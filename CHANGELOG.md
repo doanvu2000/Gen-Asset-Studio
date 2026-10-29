@@ -2,24 +2,24 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
-## Chưa phát hành
+## 1.1.0 — 2026-10-29
 
 ### Update
-- Tự tạo style: thêm "Chốt luôn theo mô tả" — không cần đợi gen preview, sang bước Gen ngay
-- Bước Style: 3 cách tạo style rõ ràng — Tự tạo (mô tả và/hoặc ảnh tham chiếu → Vẽ preview), Mẫu có sẵn, AI gợi ý
-- Logo mới: Jin Vũ bắt tay GPT (icon app, splash, sidebar)
-- Bước Style dễ dùng hơn: nhóm style thành tab ngang, gợi ý AI + mẫu có sẵn chung một chỗ chọn, mô tả / ảnh tham chiếu ở cột phải, thanh Chốt style luôn hiện ở đáy, có chỉ dẫn 3 bước
+- Bước Style làm lại: nhóm style thành tab ngang, chỉ dẫn 3 bước (chọn ảnh → chọn style → chốt), thanh **Chốt style** luôn hiện ở đáy
+- 3 cách tạo style rõ ràng: **Tự tạo** (mô tả và/hoặc ảnh tham chiếu → Vẽ preview), **Mẫu có sẵn**, **AI gợi ý**
+- Tự tạo style: thêm **Chốt luôn theo mô tả** — không cần đợi gen preview
+- Chốt xong style cho mọi nhóm có ảnh thì tự sang bước Gen
+- Duyệt trong màn chi tiết: bấm Duyệt (A) tự sang ảnh tiếp; ảnh cuối đã duyệt có nút **Tiếp: Xuất** (Enter)
+- Logo mới: Jin Vũ bắt tay GPT
 - App mở phóng to toàn màn hình ngay từ đầu
-- Chốt xong style cho mọi nhóm có ảnh thì tự chuyển sang bước Gen ảnh
-- Xem chi tiết ở bước Duyệt: bấm Duyệt (A) tự chuyển sang ảnh tiếp theo; ảnh cuối đã duyệt hiện nút Tiếp: Xuất (Enter)
-- Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
+- Ghi rõ cần tài khoản ChatGPT Plus trở lên
 
 ### Add
-- Bản portable (GenAssetStudio-Portable-<version>.exe): chạy không cần cài, không tự cập nhật
-- Đóng app khi còn việc đang gen: thu xuống taskbar và chạy tiếp (đóng lần nữa sẽ hỏi thoát hẳn); đổi trong Cài đặt › Chung
-- Nhận thêm ảnh JPG, WebP, AVIF, TIFF (vẫn ưu tiên PNG để giữ nền trong suốt); xuất giữ đúng định dạng gốc
-- Dòng hướng dẫn đầu mỗi bước (Bước N/5): bước này làm gì + bước tiếp theo
-- Chọn loại asset: Ảnh PNG · Spine (sắp có) · Sprite sheet (sắp có) ở hộp Project mới và bước Ảnh gốc
+- Bản **portable** `GenAssetStudio-Portable-<phiên bản>.exe`: chạy không cần cài (không tự cập nhật)
+- Nhận thêm ảnh JPG, WebP, AVIF, TIFF (vẫn ưu tiên PNG); xuất giữ đúng định dạng gốc
+- Đóng app khi đang gen: thu xuống taskbar và chạy tiếp, đóng lần nữa sẽ hỏi thoát hẳn (tuỳ chọn ở Cài đặt › Chung)
+- Dòng hướng dẫn **Bước N/5** đầu mỗi bước: bước này làm gì + bước tiếp theo
+- Chọn loại asset khi tạo project: Ảnh 2D · Spine (sắp có) · Sprite sheet (sắp có)
 
 ## 1.0.0 — 2026-10-29
 
