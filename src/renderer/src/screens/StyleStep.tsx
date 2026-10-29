@@ -666,6 +666,34 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
             </h3>
             <span className="muted">{t('style.pick.desc')}</span>
           </div>
+          <div className="sub-l">
+            {t('style.pick.templates')}
+            <div className="grow" />
+            <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
+              <Icon name="save" size={13} />
+              {t('style.tpl.saveAs')}
+            </button>
+          </div>
+          <div className="tpl-grid">
+            {templates.map((tpl, i) => (
+              <TemplateCard
+                key={tpl.id}
+                tpl={tpl}
+                index={i}
+                on={pick?.kind === 'template' && pick.id === tpl.id}
+                locked={locked && group.templateId === tpl.id}
+                disabled={locked}
+                onPick={() => pickTemplate(tpl)}
+                onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
+                onDelete={() =>
+                  void window.gas.style.deleteTemplate(tpl.id).then(() => {
+                    void loadTemplates()
+                    toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
+                  })
+                }
+              />
+            ))}
+          </div>
           <div className="ai-bar">
             <span className="ai-ic">
               <Icon name="sparkles" size={16} />
@@ -731,42 +759,18 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
               ))}
             </div>
           )}
-          <div className="sub-l">
-            {t('style.pick.templates')}
-            <div className="grow" />
-            <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
-              <Icon name="save" size={13} />
-              {t('style.tpl.saveAs')}
-            </button>
-          </div>
-          <div className="tpl-grid">
-            {templates.map((tpl, i) => (
-              <TemplateCard
-                key={tpl.id}
-                tpl={tpl}
-                index={i}
-                on={pick?.kind === 'template' && pick.id === tpl.id}
-                locked={locked && group.templateId === tpl.id}
-                disabled={locked}
-                onPick={() => pickTemplate(tpl)}
-                onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
-                onDelete={() =>
-                  void window.gas.style.deleteTemplate(tpl.id).then(() => {
-                    void loadTemplates()
-                    toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
-                  })
-                }
-              />
-            ))}
-          </div>
         </section>
       </div>
 
       <aside className="ed-side">
-        <section>
-          <label className="lbl" htmlFor={`gp-${group.id}`}>
-            {t('style.prompt.label')} <small className="muted">{t('style.prompt.optional')}</small>
+        <section className="side-card">
+          <label className="side-h" htmlFor={`gp-${group.id}`}>
+            <span className="side-ic">
+              <Icon name="edit" size={14} />
+            </span>
+            <b>{t('style.prompt.label')}</b>
           </label>
+          <small className="muted side-sub">{t('style.prompt.optional')}</small>
           <textarea
             id={`gp-${group.id}`}
             className="ta"
@@ -812,9 +816,13 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
             )}
           </AnimatePresence>
         </section>
-        <section>
-          <div className="lbl">
-            {t('style.refs.label')} <small className="muted">{t('style.refs.optional')}</small>
+        <section className="side-card">
+          <div className="side-h">
+            <span className="side-ic">
+              <Icon name="image" size={14} />
+            </span>
+            <b>{t('style.refs.label')}</b>
+            <small className="muted">{t('style.refs.optional')}</small>
           </div>
           <div className="refs">
             {group.refImages.map((r) => (
@@ -834,9 +842,13 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
           <p className="muted small ref-note">{t('style.refs.note')}</p>
         </section>
         {run && !locked && (
-          <section>
-            <label className="lbl" htmlFor={`fb-${group.id}`}>
-              {t('style.fb.label')} <small className="muted">{t('style.refs.optional')}</small>
+          <section className="side-card">
+            <label className="side-h" htmlFor={`fb-${group.id}`}>
+              <span className="side-ic">
+                <Icon name="refresh" size={14} />
+              </span>
+              <b>{t('style.fb.label')}</b>
+              <small className="muted">{t('style.refs.optional')}</small>
             </label>
             <textarea id={`fb-${group.id}`} className="ta" rows={3} value={feedback} placeholder={t('style.fb.placeholder')} onChange={(e) => setFeedback(e.target.value)} />
             <div className="ptools">

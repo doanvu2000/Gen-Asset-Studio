@@ -1693,3 +1693,58 @@
 .style-step > .proj-state {
   flex: 1;
 }
+
+.ed-side {
+  gap: 12px;
+  padding: 18px 16px 24px;
+}
+.ed-side section + section {
+  padding-top: 14px;
+  border-top: 0;
+}
+.side-card {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  padding: 14px;
+}
+.side-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+.side-h small {
+  font-size: 11.5px;
+  font-weight: 400;
+}
+.side-ic {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.side-sub {
+  display: block;
+  font-size: 11.5px;
+  margin: -6px 0 8px 34px;
+}
+.ed-main .tpl-grid {
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.ed-main .sugg-grid {
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+}
+.tpl-grid + .ai-bar {
+  margin-top: 18px;
+}
+.ed-main .sthumb,
+.ed-main .strip .more {
+  width: 52px;
+  height: 52px;
+}
