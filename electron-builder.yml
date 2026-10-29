@@ -29,3 +29,8 @@ nsis:
   shortcutName: Gen Asset Studio
   uninstallDisplayName: Gen Asset Studio
 npmRebuild: false
+publish:
+  provider: github
+  owner: doanvu2000
+  repo: Gen-Asset-Studio
+  releaseType: release

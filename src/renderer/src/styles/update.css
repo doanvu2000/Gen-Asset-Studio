@@ -1,0 +1,245 @@
+.upd-banner {
+  position: fixed;
+  right: 16px;
+  bottom: calc(var(--statusbar-h, 26px) + 14px);
+  z-index: 900;
+  width: 360px;
+  max-height: min(520px, calc(100vh - var(--titlebar-h, 52px) - var(--statusbar-h, 26px) - 40px));
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 14px 12px;
+  border-radius: var(--radius-xl, 14px);
+  background: var(--chrome);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: var(--shadow-lg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 13px;
+  animation: upd-in .32s var(--spring, ease-out) both;
+}
+
+@keyframes upd-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.upd-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.upd-icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(180deg, #3D9BFF, var(--accent));
+  box-shadow: 0 2px 6px rgba(0, 113, 227, .3);
+}
+
+.upd-titles {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.upd-title {
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.upd-sub {
+  color: var(--text2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.upd-error {
+  color: var(--red);
+  word-break: break-word;
+}
+
+.upd-notes-wrap {
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: var(--radius, 8px);
+  background: var(--surface2);
+}
+
+.upd-notes-title {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--text3);
+}
+
+.upd-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upd-notes-empty {
+  color: var(--text3);
+  font-size: 12px;
+}
+
+.upd-section ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.upd-section li {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.upd-section li + li {
+  margin-top: 2px;
+}
+
+.upd-label {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: .02em;
+}
+
+.upd-label-update {
+  color: var(--blue);
+  background: var(--blue-bg);
+}
+
+.upd-label-add {
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+.upd-label-remove {
+  color: var(--gray);
+  background: var(--gray-bg);
+}
+
+.upd-label-fixbug {
+  color: var(--orange);
+  background: var(--orange-bg);
+}
+
+.upd-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.upd-bar {
+  height: 6px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--gray-bg);
+}
+
+.upd-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--accent);
+  transition: width .3s var(--ease, ease);
+}
+
+.upd-progress-text {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+
+.upd-blocked {
+  padding: 8px 10px;
+  border-radius: var(--radius, 8px);
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--orange);
+  background: var(--orange-bg);
+}
+
+.upd-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.upd-actions-start {
+  justify-content: flex-start;
+}
+
+.upd-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.upd-settings-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.upd-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12.5px;
+}
+
+.upd-kv > span:first-child {
+  color: var(--text2);
+}
+
+.upd-mono {
+  font-family: var(--mono);
+}
+
+.upd-state {
+  font-size: 12.5px;
+  color: var(--text2);
+}
+
+.upd-state-available,
+.upd-state-downloaded {
+  color: var(--accent);
+}
+
+.upd-state-notAvailable {
+  color: var(--green);
+}
+
+.upd-state-error {
+  color: var(--red);
+}
+
+.upd-settings .upd-notes {
+  padding: 10px 12px;
+  border-radius: var(--radius, 8px);
+  background: var(--surface2);
+  max-height: 220px;
+  overflow: auto;
+}
