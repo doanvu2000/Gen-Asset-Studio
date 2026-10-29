@@ -5,8 +5,8 @@ Spec chi tiết + mọi quyết định đã chốt: `.planning/SPEC-gen-asset-s
 ## Giai đoạn hiện tại
 
 - [x] Brainstorm + audit + chốt quyết định (2026-10-29)
-- [ ] Chủ nhân duyệt spec v0.2
-- [ ] Mockup HTML prototype bấm được → `mockup/index.html` → chủ nhân duyệt
+- [x] Chủ nhân duyệt spec v0.2
+- [x] Mockup HTML prototype → `mockup/index.html` → chủ nhân duyệt OK (2026-10-29)
 - [ ] Bắt đầu M0
 
 ## Mockup (prototype HTML 1 file, bấm được)
