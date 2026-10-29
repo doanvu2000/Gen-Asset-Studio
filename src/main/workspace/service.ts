@@ -572,7 +572,14 @@ export class WorkspaceService extends EventEmitter {
   }
 
   async relink(rel: string, rootIndex: number, win: BrowserWindow | null): Promise<ProjectView | null> {
-    const picked = await this.pick(win, { properties: ['openDirectory', 'dontAddToRecent'] })
+    const opts: Electron.OpenDialogOptions = { properties: ['openDirectory', 'dontAddToRecent'] }
+    const old = await this.load(rel).then(({ data }) => data.roots[rootIndex], () => undefined)
+    if (old) {
+      let near = dirname(old)
+      while (!existsSync(near) && dirname(near) !== near) near = dirname(near)
+      if (existsSync(near)) opts.defaultPath = near
+    }
+    const picked = await this.pick(win, opts)
     if (!picked.length) return null
     return this.run(async () => {
       const { dir, data } = await this.load(rel)

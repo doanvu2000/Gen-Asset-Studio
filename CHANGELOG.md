@@ -26,6 +26,7 @@ Mục `Chưa phát hành` gom thay đổi đang làm; khi ra bản thì đổi t
 - Bản đóng gói thiếu project mẫu (extraResources) và icon
 - Cập nhật báo lỗi đỏ khi GitHub chưa có bản phát hành → nay báo đang dùng bản mới nhất
 - Toast "Đã gen xong N ảnh" cộng nhầm job cũ
+- Trỏ lại folder: hộp chọn folder mở ngay cạnh folder cũ bị mất thay vì vị trí ngẫu nhiên
 
 ## 0.1.0 — 2026-10-29 (nội bộ, chưa phát hành)
 
