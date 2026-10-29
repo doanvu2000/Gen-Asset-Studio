@@ -797,3 +797,11 @@ kbd {
     font-size: 11.5px;
   }
 }
+
+.rv-acts {
+  flex-wrap: wrap;
+}
+
+.rv-acts .rv-next {
+  flex-basis: 100%;
+}

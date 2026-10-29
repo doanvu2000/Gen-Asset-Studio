@@ -197,6 +197,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   const rel = useWs((s) => s.curProject)
   const reload = useWs((s) => s.reloadProject)
   const flushGroups = useWs((s) => s.flushGroups)
+  const setStep = useWs((s) => s.setStep)
   const fixAvailable = useEnv((s) => s.fixAvailable)
   const openFix = useEnv((s) => s.openFix)
   const { mode, zoom, dark, open, setMode, setZoom, setDark } = useRv()
@@ -254,14 +255,23 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   const newLabel = input.selected ? `${t('review.detail.new')} · v${input.selected}` : t('review.detail.none')
   const errText = job?.error ? `${job.error.code}: ${job.error.message}` : ''
   const canDecide = input.selected > 0 && !busy
+  const last = idx >= total - 1
+  const toExport = last && input.decision === 'approved'
 
   const decide = useCallback(
     (d: 'approved' | 'rejected') => {
       if (!canDecide) return
-      void setDecision([input.id], input.decision === d ? null : d)
+      const next = input.decision === d ? null : d
+      if (next === 'approved' && !last) onNav(1)
+      void setDecision([input.id], next)
     },
-    [canDecide, input.id, input.decision]
+    [canDecide, input.id, input.decision, last, onNav]
   )
+
+  const goExport = (): void => {
+    open(null)
+    setStep(5)
+  }
 
   const runPolish = async (): Promise<void> => {
     if (!note.trim()) {
@@ -355,6 +365,9 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
       } else if (e.key === ' ') {
         e.preventDefault()
         if (!e.repeat && newUrl) setHold(true)
+      } else if (e.key === 'Enter' && toExport) {
+        e.preventDefault()
+        goExport()
       } else if (k === 'a') {
         e.preventDefault()
         decide('approved')
@@ -629,6 +642,12 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
               {input.decision === 'approved' ? t('review.unapprove') : t('review.approve')}
               <span className="kbd">A</span>
             </button>
+            {toExport && (
+              <button type="button" className="btn primary rv-next" onClick={goExport}>
+                {t('review.next')}
+                <Icon name="right" size={14} />
+              </button>
+            )}
           </div>
         </aside>
       </div>
