@@ -410,6 +410,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const lang = i18n.language === 'en' ? 'en' : 'vi'
   const updateGroups = useWs((s) => s.updateGroups)
   const setProject = useWs((s) => s.setProject)
+  const setStep = useWs((s) => s.setStep)
   const inputSel = useWs((s) => s.inputSel)
   const templates = useStyle((s) => s.templates)
   const loadTemplates = useStyle((s) => s.loadTemplates)
@@ -520,6 +521,8 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
         toast(t('style.lockedToast', { name: tpl?.name[lang] ?? '' }))
       }
       setPick(null)
+      const allLocked = project.groups.every((x) => x.id === group.id || !x.assetIds.length || isLocked(x))
+      if (assets.length && allLocked) setTimeout(() => setStep(3), 700)
     } catch (e) {
       toast(`${t('style.lockFailed')}: ${errMsg(e)}`, 'err')
     } finally {

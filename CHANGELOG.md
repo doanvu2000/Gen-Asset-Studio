@@ -7,6 +7,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 ### Update
 - Bước Style dễ dùng hơn: nhóm style thành tab ngang, gợi ý AI + mẫu có sẵn chung một chỗ chọn, mô tả / ảnh tham chiếu ở cột phải, thanh Chốt style luôn hiện ở đáy, có chỉ dẫn 3 bước
 - App mở phóng to toàn màn hình ngay từ đầu
+- Chốt xong style cho mọi nhóm có ảnh thì tự chuyển sang bước Gen ảnh
 - Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
 
 ### Add
