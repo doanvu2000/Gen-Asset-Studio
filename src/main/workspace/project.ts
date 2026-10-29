@@ -5,6 +5,7 @@ import type { InputKind, InputStatus, InputType, InputView, ProjectView, RootVie
 import type { NineSliceOverride, StyleGroup } from '@shared/style'
 import { analyzeImage, hashFile, makeThumb, mapLimit } from './analyze'
 import { fileUrl } from './protocol'
+import { readVersionQa, sanitizeReview } from './review'
 
 export const PROJECT_FILE = 'project.json'
 export const CACHE_DIR = '.cache'
@@ -281,6 +282,7 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
   const labels = rootLabels(data.roots)
   const multi = data.roots.length > 1
   const common = data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots)
+  const review = sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))
   const inputs: InputView[] = await mapLimit(checked, 4, async ({ record, abs, status }) => {
     const thumb = status === 'missing' ? null : await ensureThumb(dir, abs, record.hash)
     const d = dirname(record.rel).replace(/\\/g, '/')
@@ -289,6 +291,10 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
     const outRel = fromCommon && !fromCommon.startsWith('..') && !isAbsolute(fromCommon) ? fromCommon : multi ? `${labels[record.root]}/${record.rel}` : record.rel
     const versions = await listVersions(dir, outRel)
     const last = versions.length ? versions[versions.length - 1] : 0
+    const vdir = join(dir, 'versions', ...assetSegments(outRel))
+    const entry = review[record.id]
+    const selected = entry?.selected && versions.includes(entry.selected) ? entry.selected : last
+    const qa = selected ? await readVersionQa(vdir, selected) : null
     return {
       id: record.id,
       root: record.root,
@@ -308,7 +314,11 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
       url: fileUrl(abs, `${record.mtime}`),
       outRel,
       versions,
-      latest: last ? fileUrl(join(dir, 'versions', ...assetSegments(outRel), `v${last}.png`), `${last}`) : null
+      latest: last ? fileUrl(join(vdir, `v${last}.png`), `${last}`) : null,
+      selected,
+      selectedUrl: selected ? fileUrl(join(vdir, `v${selected}.png`), `${selected}`) : null,
+      decision: selected ? (entry?.decision ?? null) : null,
+      qa
     }
   })
   const roots: RootView[] = data.roots.map((p, index) => {

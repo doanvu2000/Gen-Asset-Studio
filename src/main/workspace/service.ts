@@ -23,6 +23,10 @@ import {
   type ProjectFile
 } from './project'
 import { fileUrl } from './protocol'
+import type { PipelineLike } from '../queue/GenJob'
+import type { ReprocessOptions, ReprocessResult, ReviewPatch, VersionInfo } from '@shared/review'
+import { applyReviewPatch, readVersions, reprocessVersion, sanitizeReview } from './review'
+import { assetSegments } from './project'
 
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
@@ -219,7 +223,7 @@ export class WorkspaceService extends EventEmitter {
       parentRel: rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '',
       imageCount: count,
       groupCount: data?.groups.length ?? 0,
-      approved: 0,
+      approved: data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))).filter((r) => r.decision === 'approved').length : 0,
       status: count ? 'draft' : 'new',
       updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
       thumbs
@@ -442,6 +446,56 @@ export class WorkspaceService extends EventEmitter {
         return null
       }
     })
+  }
+
+  setReview(rel: string, patch: ReviewPatch): Promise<boolean> {
+    return this.run(async () => {
+      try {
+        const { dir, data } = await this.load(rel)
+        const ids = new Set(data.inputs.map((i) => i.id))
+        data.review = applyReviewPatch(sanitizeReview(data.review, ids), patch, ids)
+        await writeProject(dir, data)
+        return true
+      } catch (e) {
+        this.log(`save review failed: ${(e as Error).message}`)
+        return false
+      }
+    })
+  }
+
+  private async assetOf(rel: string, inputId: string): Promise<{ dir: string; vdir: string; abs: string; outRel: string; versions: number[] }> {
+    const { dir, data } = await this.load(rel)
+    const { checked } = await checkInputs(data)
+    const view = await buildView(dir, rel, data, checked.filter((c) => c.record.id === inputId))
+    const input = view.inputs[0]
+    if (!input) throw new WsFail('notFound')
+    return { dir, vdir: join(dir, 'versions', ...assetSegments(input.outRel)), abs: input.abs, outRel: input.outRel, versions: input.versions }
+  }
+
+  versions(rel: string, inputId: string): Promise<VersionInfo[]> {
+    return this.run(async () => {
+      try {
+        const a = await this.assetOf(rel, inputId)
+        return await readVersions(a.vdir, a.versions)
+      } catch (e) {
+        this.log(`read versions failed: ${(e as Error).message}`)
+        return []
+      }
+    })
+  }
+
+  async reprocess(rel: string, inputId: string, version: number, options: ReprocessOptions, pipeline: Pick<PipelineLike, 'processAsset'>): Promise<ReprocessResult> {
+    try {
+      const a = await this.run(() => this.assetOf(rel, inputId))
+      if (!a.versions.includes(version)) throw new Error(`v${version} not found`)
+      const r = await reprocessVersion(a.vdir, version, a.abs, a.outRel, options, pipeline)
+      this.log(`project ${rel}: reprocessed ${a.outRel} v${version} → v${r.version}`)
+      await this.setReview(rel, { [inputId]: { decision: null, selected: null } })
+      return { ok: true, version: r.version, qa: r.qa, error: null }
+    } catch (e) {
+      this.log(`reprocess failed: ${(e as Error).message}`)
+      return { ok: false, version: null, qa: null, error: (e as Error).message.split(/\r?\n/)[0] }
+    }
   }
 
   async addRefs(rel: string, groupId: string, win: BrowserWindow | null): Promise<string[]> {

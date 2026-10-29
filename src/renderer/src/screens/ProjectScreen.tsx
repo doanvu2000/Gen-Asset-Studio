@@ -8,6 +8,8 @@ import { useWs } from '@renderer/store/workspace'
 import { InputStep } from './InputStep'
 import { StyleStep } from './StyleStep'
 import { GenStep } from './GenStep'
+import { ReviewStep } from './ReviewStep'
+import { approvedCount } from '@renderer/lib/review'
 import { hasVersions, isLocked, styleReady } from '@renderer/lib/project'
 
 const STEPS = ['input', 'style', 'gen', 'review', 'export'] as const
@@ -19,7 +21,7 @@ function canStep(p: ProjectView, n: number): true | string {
   if (n === 2) return p.inputs.length ? true : LOCK.style
   if (n === 3) return p.inputs.length && styleReady(p) ? true : LOCK.gen
   if (n === 4) return hasVersions(p) ? true : LOCK.review
-  return LOCK.export
+  return approvedCount(p) > 0 ? true : LOCK.export
 }
 
 function StepBar({ p }: { p: ProjectView }): ReactElement {
@@ -30,7 +32,7 @@ function StepBar({ p }: { p: ProjectView }): ReactElement {
     t('project.sub.images', { count: p.inputs.length }),
     t('project.sub.groups', { locked: p.groups.filter(isLocked).length, total: p.groups.length }),
     t('project.sub.generated', { done: p.inputs.filter((i) => i.versions.length > 0).length, total: p.groups.filter(isLocked).reduce((n, g) => n + g.assetIds.length, 0) }),
-    t('project.sub.approved', { count: 0 }),
+    t('project.sub.approved', { count: approvedCount(p) }),
     t('project.sub.notExported')
   ]
   return (
@@ -146,7 +148,7 @@ export function ProjectScreen(): ReactElement {
             exit="exit"
             transition={viewTransition}
           >
-            {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : <Soon step={key} />}
+            {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : key === 'review' ? <ReviewStep project={project} /> : <Soon step={key} />}
           </motion.div>
         </AnimatePresence>
       </div>

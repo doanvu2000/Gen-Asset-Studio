@@ -1,4 +1,6 @@
 import type { StyleGroup } from './style'
+import type { QaSummary } from './queue'
+import type { ReviewDecision } from './review'
 
 export type ProjectStatus = 'new' | 'draft'
 
@@ -55,6 +57,10 @@ export interface InputView {
   outRel: string
   versions: number[]
   latest: string | null
+  selected: number
+  selectedUrl: string | null
+  decision: ReviewDecision | null
+  qa: QaSummary | null
 }
 
 export interface RootView {

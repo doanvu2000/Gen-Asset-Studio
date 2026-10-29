@@ -13,9 +13,12 @@ import { Icon, type IconName } from './Icon'
 import { Segmented } from './Segmented'
 import { EnvChip } from './EnvChip'
 import { ErrorActions } from './ErrorActions'
+import { UpdateSettingsSection } from './UpdateSettingsSection'
+import { useUpdateT } from '@renderer/lib/useUpdateT'
 
 function GeneralTab(): ReactElement {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const updT = useUpdateT()
   const theme = useApp((s) => s.settings.theme)
   const lang = useApp((s) => s.settings.lang)
   const setTheme = useApp((s) => s.setTheme)
@@ -56,6 +59,9 @@ function GeneralTab(): ReactElement {
             {t('settings.exportLog')}
           </button>
         </div>
+      </div>
+      <div className="group upd-group">
+        <UpdateSettingsSection api={window.gas.update} t={updT} lang={i18n.language} />
       </div>
     </>
   )

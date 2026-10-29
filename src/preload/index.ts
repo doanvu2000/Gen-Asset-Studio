@@ -14,6 +14,8 @@ import type {
 } from '@shared/types'
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
+import { exposeUpdateApi } from './update'
+import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import { QUEUE_IPC, type JobSpec, type QueueJobEvent, type QueueSnapshot, type QuotaPause } from '@shared/queue'
 
 function subscribe<T>(channel: string, cb: (value: T) => void): Unsubscribe {
@@ -144,6 +146,12 @@ const api: GasApi = {
     onJob: (cb) => subscribe<QueueJobEvent>(QUEUE_IPC.job, cb),
     onQuota: (cb) => subscribe<QuotaPause | null>(QUEUE_IPC.quota, cb)
   },
+  review: {
+    set: (rel: string, patch: ReviewPatch) => ipcRenderer.invoke(REVIEW_IPC.set, rel, patch),
+    versions: (rel: string, inputId: string) => ipcRenderer.invoke(REVIEW_IPC.versions, rel, inputId),
+    reprocess: (rel: string, inputId: string, version: number, options: ReprocessOptions) => ipcRenderer.invoke(REVIEW_IPC.reprocess, rel, inputId, version, options)
+  },
+  update: exposeUpdateApi(),
   files: {
     pathFor: (file: File) => webUtils.getPathForFile(file)
   }

@@ -56,7 +56,7 @@ export function versionsDir(projectPath: string, assetRelPath: string): string {
   return join(projectPath, 'versions', ...assetSegments(assetRelPath))
 }
 
-async function reserveVersion(dir: string): Promise<number> {
+export async function reserveVersion(dir: string): Promise<number> {
   await fs.mkdir(dir, { recursive: true })
   const names = await fs.readdir(dir).catch(() => [] as string[])
   let max = 0
@@ -70,7 +70,7 @@ async function reserveVersion(dir: string): Promise<number> {
   return v
 }
 
-function release(dir: string, v: number): void {
+export function releaseVersion(dir: string, v: number): void {
   reserved.delete(`${dir}|${v}`)
 }
 
@@ -310,6 +310,6 @@ export async function runGenJob(job: QueueJob, ctx: GenContext): Promise<JobResu
     await fs.writeFile(metaPath, JSON.stringify(record, null, 2), 'utf8')
     return { version, versionPath, rawPath, metaPath, qa }
   } finally {
-    release(dir, version)
+    releaseVersion(dir, version)
   }
 }

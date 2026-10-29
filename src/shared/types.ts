@@ -1,6 +1,8 @@
 import type { AddResult, InputType, OpResult, ProjectView, WorkspaceSnapshot } from './workspace'
 import type { StyleApi, StyleGroup } from './style'
 import type { QueueApi } from './queue'
+import type { ReviewApi } from './review'
+import type { UpdateApi } from './update'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
@@ -278,6 +280,8 @@ export interface GasApi {
   }
   style: StyleApi
   queue: QueueApi
+  review: ReviewApi
+  update: UpdateApi
   files: {
     pathFor: (file: File) => string
   }

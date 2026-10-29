@@ -16,6 +16,9 @@ import { registerStyleIpc, StyleService } from './style'
 import { userTemplatesDir } from './style/templates'
 import { JobQueue, queueStatePath, registerQueueIpc } from './queue'
 import { closePipeline, getPipeline } from './pipeline'
+import { createUpdater, registerUpdateIpc, type Updater } from './updater'
+import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
+import type { EdgeSide } from '@shared/queue'
 
 const BG: Record<ResolvedTheme, string> = { light: '#F5F5F7', dark: '#1C1C1E' }
 
@@ -28,6 +31,7 @@ let fixer: FixService
 let workspace: WorkspaceService
 let style: StyleService
 let queue: JobQueue | null = null
+let updater: Updater | null = null
 let quitting = false
 
 function resolveTheme(s: AppSettings): ResolvedTheme {
@@ -253,6 +257,33 @@ function registerWorkspaceIpc(): void {
   ipcMain.handle(IPC.projRelink, (e, rel: unknown, index: unknown) => workspace.relink(str(rel), typeof index === 'number' ? index : -1, win(e)))
   ipcMain.handle(IPC.projSetGroups, (_e, rel: unknown, groups: unknown) => workspace.setGroups(str(rel), groups))
   ipcMain.handle(IPC.projAddRefs, (e, rel: unknown, groupId: unknown) => workspace.addRefs(str(rel), str(groupId), win(e)))
+  ipcMain.handle(REVIEW_IPC.set, (_e, rel: unknown, patch: unknown) =>
+    workspace.setReview(str(rel), patch && typeof patch === 'object' ? (patch as ReviewPatch) : {})
+  )
+  ipcMain.handle(REVIEW_IPC.versions, (_e, rel: unknown, id: unknown) => workspace.versions(str(rel), str(id)))
+  ipcMain.handle(REVIEW_IPC.reprocess, (_e, rel: unknown, id: unknown, version: unknown, options: unknown) =>
+    workspace.reprocess(str(rel), str(id), typeof version === 'number' ? version : -1, reprocessOptions(options), getPipeline({ size: 2 }))
+  )
+}
+
+const SIDES: readonly EdgeSide[] = ['left', 'right', 'top', 'bottom']
+
+function reprocessOptions(v: unknown): ReprocessOptions {
+  const o = (v ?? {}) as Record<string, unknown>
+  return {
+    nineSlice: o.nineSlice === true ? true : o.nineSlice === false ? false : 'auto',
+    edgeAnchored: Array.isArray(o.edgeAnchored) ? o.edgeAnchored.filter((s): s is EdgeSide => SIDES.includes(s as EdgeSide)) : 'auto'
+  }
+}
+
+function initUpdater(): void {
+  const u = createUpdater({
+    log: logger.scoped('update'),
+    canRestart: () => !queue || !queue.snapshot().jobs.some((j) => j.status === 'queued' || j.status === 'running' || j.status === 'processing')
+  })
+  updater = u
+  registerUpdateIpc(ipcMain, () => mainWindow, u)
+  u.start()
 }
 
 function registerIpc(): void {
@@ -337,6 +368,7 @@ if (!app.requestSingleInstanceLock()) {
     handleFileScheme((p) => workspace.isAllowed(p))
     void workspace.setRoot(settings.get().workspace)
     mainWindow = createWindow()
+    initUpdater()
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow()
@@ -348,6 +380,7 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true
     event.preventDefault()
     logger.write('app', 'quit')
+    updater?.dispose()
     void workspace?.dispose()
     const stopQueue = queue ? Promise.race([queue.dispose(), new Promise((r) => setTimeout(r, 3000))]).catch(() => undefined) : Promise.resolve()
     void stopQueue

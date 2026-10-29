@@ -196,7 +196,7 @@ function AssetPicker({
   )
 }
 
-function PolishPanel({
+export function PolishPanel({
   state,
   onUse,
   onAgain,

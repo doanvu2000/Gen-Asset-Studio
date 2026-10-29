@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactElement } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { selectResolvedTheme, useApp, type Route } from '@renderer/store/app'
 import { viewTransition } from '@renderer/lib/motion'
@@ -18,6 +19,8 @@ import { useWs } from '@renderer/store/workspace'
 import { useStyle } from '@renderer/store/style'
 import { useQueue } from '@renderer/store/queue'
 import { QueueDrawer } from '@renderer/components/QueueDrawer'
+import { UpdateBanner } from '@renderer/components/UpdateBanner'
+import { useUpdateT } from '@renderer/lib/useUpdateT'
 
 const SCREENS: Record<Route, () => ReactElement> = {
   setup: SetupScreen,
@@ -95,6 +98,8 @@ export function App(): ReactElement {
   useBridgeEvents()
   useEnvBridge()
   const focused = useWindowFocus()
+  const { i18n } = useTranslation()
+  const updT = useUpdateT()
   const route = useApp((s) => s.route)
   const direction = useApp((s) => s.direction)
   const sidebarOpen = useApp((s) => s.sidebarOpen)
@@ -135,6 +140,7 @@ export function App(): ReactElement {
         <FixDialog />
         <WorkspaceDialogs />
         <Toasts />
+        {route !== 'setup' && <UpdateBanner api={window.gas.update} t={updT} lang={i18n.language} />}
       </div>
     </MotionConfig>
   )
