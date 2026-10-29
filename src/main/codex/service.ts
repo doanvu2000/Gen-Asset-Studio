@@ -42,6 +42,7 @@ export interface TurnOptions {
   timeoutMs?: number
   onDelta?: (delta: string, itemId: string) => void
   onTurnStarted?: (turnId: string) => void
+  onThreadStarted?: (threadId: string) => void
 }
 
 export interface GeneratedImage {
@@ -175,7 +176,7 @@ export class CodexService extends EventEmitter {
       const init = await conn.request<{ userAgent?: string; codexHome?: string }>(
         'initialize',
         {
-          clientInfo: { name: 'gen_asset_studio', title: 'Gen Asset Studio', version: app.getVersion() },
+          clientInfo: { name: 'gen_asset_studio', title: 'Gen Asset Studio', version: app?.getVersion?.() ?? process.env['npm_package_version'] ?? '0.0.0' },
           capabilities: { experimentalApi: true, requestAttestation: false }
         },
         30000
@@ -479,6 +480,7 @@ export class CodexService extends EventEmitter {
 
   async generateImage(thread: ThreadOptions, prompt: string, imagePaths: string[], turn: TurnOptions = {}): Promise<TurnResult> {
     const threadId = await this.startThread({ sandbox: 'workspace-write', ...thread })
+    turn.onThreadStarted?.(threadId)
     const input: UserInput[] = [
       { type: 'text', text: prompt, text_elements: [] },
       ...imagePaths.map((p) => ({ type: 'localImage' as const, path: p }))
