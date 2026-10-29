@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "Gen Asset Studio"
+  },
+  "window": {
+    "close": "Close",
+    "minimize": "Minimize",
+    "maximize": "Zoom",
+    "restore": "Restore"
+  },
+  "titlebar": {
+    "setupCrumb": "Environment setup",
+    "allProjects": "All projects",
+    "toggleSidebar": "Toggle sidebar",
+    "switchLang": "Switch language",
+    "toggleTheme": "Toggle light/dark",
+    "settings": "Settings"
+  },
+  "status": {
+    "notReady": "Not ready — finish environment setup to start",
+    "environment": "Environment {{ok}}/{{total}}",
+    "environmentTitle": "View environment status",
+    "queueIdle": "Queue idle",
+    "copyright": "© {{year}} Jin Vũ. All rights reserved."
+  },
+  "sidebar": {
+    "workspace": "Workspace",
+    "noWorkspace": "No workspace selected",
+    "library": "Library",
+    "allProjects": "All projects",
+    "environment": "Environment",
+    "settings": "Settings"
+  },
+  "setup": {
+    "title": "Set up your environment",
+    "intro": "Gen Asset Studio needs Codex CLI and a ChatGPT account to generate images. Finish the steps below before you start — the app installs everything; you only sign in and grant permission when asked.",
+    "start": "Start setup",
+    "enter": "Open Studio",
+    "admin": "Admin",
+    "steps": {
+      "perm": {
+        "title": "Check permissions",
+        "desc": "Checks whether the app runs as Administrator."
+      },
+      "codex": {
+        "title": "Install Codex CLI",
+        "desc": "Downloads the pinned Codex CLI into the app folder and verifies the checksum. No Node, Python or ffmpeg needed."
+      },
+      "path": {
+        "title": "Add to PATH",
+        "desc": "Adds Codex to the user PATH. No admin rights needed."
+      },
+      "longPath": {
+        "title": "Enable long paths",
+        "desc": "Allows paths longer than 260 characters for deep asset folders. Needs Administrator."
+      },
+      "login": {
+        "title": "Sign in to Codex",
+        "desc": "Sign in to Codex with your ChatGPT account."
+      },
+      "quota": {
+        "title": "Check quota + test generation",
+        "desc": "Reads your quota and generates one small test image to confirm image generation works."
+      },
+      "workspace": {
+        "title": "Choose a workspace",
+        "desc": "Create a new workspace or open an existing folder. Each subfolder groups projects."
+      }
+    }
+  },
+  "workspace": {
+    "title": "All projects",
+    "subtitle": "No projects in this workspace yet",
+    "emptyTitle": "No projects yet",
+    "emptyDesc": "Create a project to import a PNG set, lock a style, then regenerate it with Codex.",
+    "newProject": "New project",
+    "openFolder": "Open folder"
+  },
+  "settings": {
+    "title": "Settings",
+    "close": "Close",
+    "tabs": {
+      "general": "General"
+    },
+    "appearance": "Appearance",
+    "language": "Language",
+    "theme": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "langs": {
+      "vi": "Tiếng Việt",
+      "en": "English"
+    }
+  }
+}

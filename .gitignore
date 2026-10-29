@@ -1,0 +1,9 @@
+node_modules
+out
+dist
+release
+*.log
+spike/m0/out/
+spike/m0/schema/
+spike/m0/work/
+spike/m0/out-*.json

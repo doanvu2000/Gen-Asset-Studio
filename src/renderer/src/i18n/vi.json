@@ -1,0 +1,97 @@
+{
+  "app": {
+    "name": "Gen Asset Studio"
+  },
+  "window": {
+    "close": "Đóng",
+    "minimize": "Thu nhỏ",
+    "maximize": "Phóng to",
+    "restore": "Thu về"
+  },
+  "titlebar": {
+    "setupCrumb": "Cài đặt môi trường",
+    "allProjects": "Tất cả project",
+    "toggleSidebar": "Ẩn/hiện sidebar",
+    "switchLang": "Đổi ngôn ngữ",
+    "toggleTheme": "Đổi giao diện sáng/tối",
+    "settings": "Cài đặt"
+  },
+  "status": {
+    "notReady": "Chưa sẵn sàng — hoàn tất cài đặt môi trường để bắt đầu",
+    "environment": "Môi trường {{ok}}/{{total}}",
+    "environmentTitle": "Xem trạng thái môi trường",
+    "queueIdle": "Hàng đợi trống",
+    "copyright": "© {{year}} Jin Vũ. All rights reserved."
+  },
+  "sidebar": {
+    "workspace": "Workspace",
+    "noWorkspace": "Chưa chọn workspace",
+    "library": "Thư viện",
+    "allProjects": "Tất cả project",
+    "environment": "Môi trường",
+    "settings": "Cài đặt"
+  },
+  "setup": {
+    "title": "Chuẩn bị môi trường",
+    "intro": "Gen Asset Studio cần Codex CLI và tài khoản ChatGPT để gen ảnh. Hoàn tất các bước dưới đây trước khi bắt đầu — app tự cài, bạn chỉ cần đăng nhập và cấp quyền khi được hỏi.",
+    "start": "Bắt đầu cài đặt",
+    "enter": "Vào Studio",
+    "admin": "Admin",
+    "steps": {
+      "perm": {
+        "title": "Kiểm tra quyền",
+        "desc": "Kiểm tra app có đang chạy bằng quyền Administrator không."
+      },
+      "codex": {
+        "title": "Cài Codex CLI",
+        "desc": "Tải bản Codex CLI đã ghim vào thư mục của app và kiểm checksum. Không cần Node, Python hay ffmpeg."
+      },
+      "path": {
+        "title": "Thêm vào PATH",
+        "desc": "Thêm Codex vào PATH của user, không cần quyền Administrator."
+      },
+      "longPath": {
+        "title": "Bật đường dẫn dài",
+        "desc": "Cho phép đường dẫn dài hơn 260 ký tự cho cây thư mục asset sâu. Cần quyền Administrator."
+      },
+      "login": {
+        "title": "Đăng nhập Codex",
+        "desc": "Đăng nhập Codex bằng tài khoản ChatGPT của bạn."
+      },
+      "quota": {
+        "title": "Kiểm tra quota + gen thử",
+        "desc": "Đọc quota rồi gen thử 1 ảnh nhỏ để chắc image gen chạy được trên tài khoản."
+      },
+      "workspace": {
+        "title": "Chọn workspace",
+        "desc": "Tạo workspace mới hoặc mở một folder có sẵn. Mỗi folder con là một nhóm project."
+      }
+    }
+  },
+  "workspace": {
+    "title": "Tất cả project",
+    "subtitle": "Chưa có project nào trong workspace",
+    "emptyTitle": "Chưa có project",
+    "emptyDesc": "Tạo project mới để nhập bộ PNG, chốt style rồi gen lại bằng Codex.",
+    "newProject": "Project mới",
+    "openFolder": "Mở folder"
+  },
+  "settings": {
+    "title": "Cài đặt",
+    "close": "Đóng",
+    "tabs": {
+      "general": "Chung"
+    },
+    "appearance": "Giao diện",
+    "language": "Ngôn ngữ",
+    "theme": {
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "Theo hệ thống"
+    },
+    "langs": {
+      "vi": "Tiếng Việt",
+      "en": "English"
+    }
+  }
+}

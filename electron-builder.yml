@@ -1,0 +1,27 @@
+appId: com.jinvu.genassetstudio
+productName: Gen Asset Studio
+copyright: Copyright © Jin Vũ
+directories:
+  output: release/${version}
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+asarUnpack:
+  - resources/**
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: GenAssetStudio-Setup-${version}.${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Gen Asset Studio
+  uninstallDisplayName: Gen Asset Studio
+npmRebuild: false

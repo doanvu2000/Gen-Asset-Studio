@@ -1,0 +1,95 @@
+import { useEffect, useState, type ReactElement } from 'react'
+import { AnimatePresence, MotionConfig, motion } from 'motion/react'
+import { selectResolvedTheme, useApp, type Route } from '@renderer/store/app'
+import { viewTransition } from '@renderer/lib/motion'
+import { TitleBar } from '@renderer/components/TitleBar'
+import { StatusBar } from '@renderer/components/StatusBar'
+import { Sidebar } from '@renderer/components/Sidebar'
+import { SettingsDialog } from '@renderer/components/SettingsDialog'
+import { SetupScreen } from '@renderer/screens/SetupScreen'
+import { WorkspaceScreen } from '@renderer/screens/WorkspaceScreen'
+
+const SCREENS: Record<Route, () => ReactElement> = {
+  setup: SetupScreen,
+  workspace: WorkspaceScreen
+}
+
+function useThemeSync(): void {
+  const theme = useApp(selectResolvedTheme)
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+  }, [theme])
+}
+
+function useBridgeEvents(): void {
+  const applySettings = useApp((s) => s.applySettings)
+  const setSystemDark = useApp((s) => s.setSystemDark)
+  const setMaximized = useApp((s) => s.setMaximized)
+  useEffect(() => {
+    const offs = [
+      window.gas.settings.onChange(applySettings),
+      window.gas.theme.onSystemChange(setSystemDark),
+      window.gas.window.onMaximizedChange(setMaximized)
+    ]
+    return () => offs.forEach((off) => off())
+  }, [applySettings, setSystemDark, setMaximized])
+}
+
+function useWindowFocus(): boolean {
+  const [focused, setFocused] = useState(() => document.hasFocus())
+  useEffect(() => {
+    const on = (): void => setFocused(true)
+    const off = (): void => setFocused(false)
+    window.addEventListener('focus', on)
+    window.addEventListener('blur', off)
+    return () => {
+      window.removeEventListener('focus', on)
+      window.removeEventListener('blur', off)
+    }
+  }, [])
+  return focused
+}
+
+export function App(): ReactElement {
+  useThemeSync()
+  useBridgeEvents()
+  const focused = useWindowFocus()
+  const route = useApp((s) => s.route)
+  const direction = useApp((s) => s.direction)
+  const sidebarOpen = useApp((s) => s.sidebarOpen)
+  const Screen = SCREENS[route]
+  const sideVisible = route !== 'setup' && sidebarOpen
+
+  return (
+    <MotionConfig reducedMotion="user">
+      <div className={focused ? 'app' : 'app blurred'}>
+        <TitleBar />
+        <div className={sideVisible ? 'body' : 'body side-off'}>
+          <Sidebar />
+          <div className="main">
+            <AnimatePresence initial={false} custom={direction}>
+              <motion.div
+                key={route}
+                className="view"
+                custom={direction}
+                variants={{
+                  enter: (d: number) => ({ opacity: 0, x: 14 * d }),
+                  center: { opacity: 1, x: 0 },
+                  exit: (d: number) => ({ opacity: 0, x: -10 * d })
+                }}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                transition={viewTransition}
+              >
+                <Screen />
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
+        <StatusBar />
+        <SettingsDialog />
+      </div>
+    </MotionConfig>
+  )
+}
