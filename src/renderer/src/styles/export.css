@@ -112,17 +112,27 @@
   text-align: left;
 }
 
+.ex-wrap .gkv {
+  grid-template-columns: 140px minmax(0, 1fr);
+}
+
+.ex-wrap .gkv .val {
+  min-width: 0;
+}
+
 .ex-path {
   font-family: var(--mono);
   font-size: 12px;
   padding: 6px 9px;
   border-radius: 7px;
   background: var(--surface2);
-  flex: 1;
+  flex: 1 1 160px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  direction: rtl;
+  text-align: left;
   user-select: text;
 }
 

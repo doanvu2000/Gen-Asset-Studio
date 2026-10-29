@@ -16,6 +16,7 @@ import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
+import { EXPORT_IPC, type ExportOptions, type ExportProgress } from '@shared/export'
 import { QUEUE_IPC, type JobSpec, type QueueJobEvent, type QueueSnapshot, type QuotaPause } from '@shared/queue'
 
 function subscribe<T>(channel: string, cb: (value: T) => void): Unsubscribe {
@@ -150,6 +151,15 @@ const api: GasApi = {
     set: (rel: string, patch: ReviewPatch) => ipcRenderer.invoke(REVIEW_IPC.set, rel, patch),
     versions: (rel: string, inputId: string) => ipcRenderer.invoke(REVIEW_IPC.versions, rel, inputId),
     reprocess: (rel: string, inputId: string, version: number, options: ReprocessOptions) => ipcRenderer.invoke(REVIEW_IPC.reprocess, rel, inputId, version, options)
+  },
+  export: {
+    plan: (rel: string, options?: Partial<ExportOptions>) => ipcRenderer.invoke(EXPORT_IPC.plan, rel, options),
+    run: (rel: string, options?: Partial<ExportOptions>) => ipcRenderer.invoke(EXPORT_IPC.run, rel, options),
+    cancel: (rel: string) => ipcRenderer.invoke(EXPORT_IPC.cancel, rel),
+    pickDir: (current?: string) => ipcRenderer.invoke(EXPORT_IPC.pickDir, current),
+    openPath: (path: string) => ipcRenderer.invoke(EXPORT_IPC.openPath, path),
+    saveDir: (rel: string, outDir: string) => ipcRenderer.invoke(EXPORT_IPC.saveDir, rel, outDir),
+    onProgress: (cb) => subscribe<ExportProgress>(EXPORT_IPC.progress, cb)
   },
   update: exposeUpdateApi(),
   files: {

@@ -330,7 +330,8 @@ function EnvActions({ item }: { item: EnvItem }): ReactElement | null {
   )
 }
 
-function envDetail(item: EnvItem, t: ReturnType<typeof useTranslation>['t']): string {
+function envDetail(item: EnvItem, tf: ReturnType<typeof useTranslation>['t']): string {
+  const t = tf as unknown as (key: string, vars?: Record<string, string>) => string
   if (item.id === 'codex' && item.detail) return t('env.items.codex.version', { v: item.detail })
   if (item.detail === 'skipped') return `${t(`env.items.${item.id}.desc`)} · ${t('env.skipped')}`
   if ((item.id === 'login' || item.id === 'workspace') && item.detail) return item.detail

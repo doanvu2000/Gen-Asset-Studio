@@ -17,6 +17,7 @@ import {
   pathKey,
   PROJECT_FILE,
   readProject,
+  sanitizeExport,
   sanitizeGroups,
   thumbPath,
   writeProject,
@@ -217,14 +218,19 @@ export class WorkspaceService extends EventEmitter {
       if (existsSync(t)) thumbs.push(fileUrl(t, input.hash))
     }
     const count = data?.inputs.length ?? 0
+    const review = data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))) : []
+    const approved = review.filter((r) => r.decision === 'approved').length
+    const exp = sanitizeExport(data?.export)
     return {
       rel,
       name: basename(dir),
       parentRel: rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '',
       imageCount: count,
       groupCount: data?.groups.length ?? 0,
-      approved: data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))).filter((r) => r.decision === 'approved').length : 0,
-      status: count ? 'draft' : 'new',
+      approved,
+      exported: exp.lastAssets,
+      exportedAt: exp.lastAt,
+      status: !count ? 'new' : exp.lastAt ? 'exported' : review.length ? 'review' : 'draft',
       updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
       thumbs
     }
@@ -366,6 +372,42 @@ export class WorkspaceService extends EventEmitter {
     const { checked, dirty } = await checkInputs(data)
     if (dirty || forceWrite) await writeProject(dir, data)
     return this.allow(await buildView(dir, rel, data, checked))
+  }
+
+  loadForExport(rel: string): Promise<{ dir: string; data: ProjectFile }> {
+    return this.run(() => this.load(rel))
+  }
+
+  setExportDir(rel: string, outDir: string): Promise<boolean> {
+    return this.run(async () => {
+      try {
+        const { dir, data } = await this.load(rel)
+        const prev = data.export && typeof data.export === 'object' ? (data.export as Record<string, unknown>) : {}
+        data.export = { ...prev, outDir: outDir.trim() }
+        await writeProject(dir, data)
+        return true
+      } catch (e) {
+        this.log(`save export dir failed: ${(e as Error).message}`)
+        return false
+      }
+    })
+  }
+
+  recordExport(rel: string, rec: { outDir: string; resolvedOutDir: string; assets: number; files: number }): Promise<boolean> {
+    return this.run(async () => {
+      try {
+        const { dir, data } = await this.load(rel)
+        data.export = {
+          outDir: rec.outDir.trim(),
+          last: { at: new Date().toISOString(), assets: rec.assets, files: rec.files, outDir: rec.resolvedOutDir }
+        }
+        await writeProject(dir, data)
+        return true
+      } catch (e) {
+        this.log(`save export record failed: ${(e as Error).message}`)
+        return false
+      }
+    })
   }
 
   open(rel: string): Promise<ProjectView | null> {

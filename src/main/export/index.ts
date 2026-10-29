@@ -413,6 +413,8 @@ export interface ExportIpcDeps {
   loadProject: (projectRel: string) => Promise<{ dir: string; data: ProjectFile }>
   scale?: ExportScaler
   log?: (msg: string) => void
+  saveDir?: (projectRel: string, outDir: string) => Promise<boolean>
+  onExported?: (projectRel: string, result: ExportResult, options: ExportOptions) => Promise<unknown>
 }
 
 function str(v: unknown): string {
@@ -468,7 +470,15 @@ export function registerExportIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
       try {
         const res = await runExport(src, options, send, { scale: deps.scale, signal: ac.signal })
         deps.log?.(`export ${r}: written=${res.written} backedUp=${res.backedUp} kept=${res.keptExisting} errors=${res.errors.length} canceled=${res.canceled} ${res.durationMs}ms`)
-        if (res.ok && normalizeExportOptions(options).openFolderWhenDone) void shell.openPath(res.outDir)
+        const norm = normalizeExportOptions(options)
+        if (!res.canceled && !res.planError && res.exportedAssets > 0 && deps.onExported) {
+          try {
+            await deps.onExported(r, res, norm)
+          } catch (e) {
+            deps.log?.(`export ${r}: record failed: ${errText(e)}`)
+          }
+        }
+        if (res.ok && norm.openFolderWhenDone) void shell.openPath(res.outDir)
         return res
       } finally {
         running.delete(key)
@@ -488,6 +498,11 @@ export function registerExportIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
       if (typeof current === 'string' && current) o.defaultPath = current
       const res = win ? await dialog.showOpenDialog(win, o) : await dialog.showOpenDialog(o)
       return res.canceled || !res.filePaths.length ? null : res.filePaths[0]
+    },
+    [EXPORT_IPC.saveDir]: async (rel, dir) => {
+      const r = str(rel)
+      const d = typeof dir === 'string' ? dir : ''
+      return deps.saveDir ? deps.saveDir(r, d) : false
     },
     [EXPORT_IPC.openPath]: async (p) => {
       const target = str(p)

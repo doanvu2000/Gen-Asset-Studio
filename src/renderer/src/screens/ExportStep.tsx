@@ -48,19 +48,20 @@ function storeKey(rel: string): string {
   return `gas.export.${rel}`
 }
 
-function loadOptions(rel: string, defaultScale: ExportScaleFactor): ExportOptions {
+function loadOptions(rel: string, defaultScale: ExportScaleFactor, outDir: string): ExportOptions {
   try {
     const raw = localStorage.getItem(storeKey(rel))
-    if (raw) return normalizeExportOptions(JSON.parse(raw) as Partial<ExportOptions>)
+    if (raw) return normalizeExportOptions({ ...(JSON.parse(raw) as Partial<ExportOptions>), outDir })
   } catch {
-    return { ...DEFAULT_EXPORT_OPTIONS, scales: [defaultScale] }
+    return { ...DEFAULT_EXPORT_OPTIONS, scales: [defaultScale], outDir }
   }
-  return { ...DEFAULT_EXPORT_OPTIONS, scales: [defaultScale] }
+  return { ...DEFAULT_EXPORT_OPTIONS, scales: [defaultScale], outDir }
 }
 
 function saveOptions(rel: string, o: ExportOptions): void {
   try {
-    localStorage.setItem(storeKey(rel), JSON.stringify(o))
+    const { outDir: _dir, ...rest } = o
+    localStorage.setItem(storeKey(rel), JSON.stringify(rest))
   } catch {
     return
   }
@@ -137,7 +138,7 @@ export interface ExportStepProps {
 
 export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExported, defaultScale = 1 }: ExportStepProps): ReactElement {
   const t = useExportT()
-  const [opts, setOpts] = useState<ExportOptions>(() => loadOptions(project.rel, defaultScale))
+  const [opts, setOpts] = useState<ExportOptions>(() => loadOptions(project.rel, defaultScale, project.export.outDir))
   const [plan, setPlan] = useState<ExportPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [showSkipped, setShowSkipped] = useState(false)
@@ -149,7 +150,7 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
   const seq = useRef(0)
 
   useEffect(() => {
-    setOpts(loadOptions(project.rel, defaultScale))
+    setOpts(loadOptions(project.rel, defaultScale, project.export.outDir))
     setResult(null)
   }, [project.rel, defaultScale])
 
@@ -186,7 +187,10 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
     [api, project.rel]
   )
 
-  const patch = (p: Partial<ExportOptions>): void => setOpts((o) => normalizeExportOptions({ ...o, ...p }))
+  const patch = (p: Partial<ExportOptions>): void => {
+    setOpts((o) => normalizeExportOptions({ ...o, ...p }))
+    if (typeof p.outDir === 'string') void api.saveDir(project.rel, p.outDir).catch(() => false)
+  }
 
   const toggleScale = (s: ExportScaleFactor): void => {
     const has = opts.scales.includes(s)

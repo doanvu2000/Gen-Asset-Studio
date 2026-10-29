@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState, type MouseEvent, type ReactElement } from 'react'
 import { motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import type { ProjectSummary } from '@shared/workspace'
-import { Icon } from '@renderer/components/Icon'
+import type { ProjectStatus, ProjectSummary } from '@shared/workspace'
+import { Icon, type IconName } from '@renderer/components/Icon'
 import { ContextMenu, type MenuItem } from '@renderer/components/ContextMenu'
 import { EASE } from '@renderer/lib/motion'
 import { relTime } from '@renderer/lib/format'
@@ -10,6 +10,12 @@ import { useApp } from '@renderer/store/app'
 import { findNode, useWs, type SortKey } from '@renderer/store/workspace'
 
 const SORTS: SortKey[] = ['recent', 'name', 'images']
+const STATUS_CHIP: Record<ProjectStatus, [string, IconName]> = {
+  new: ['c-gray', 'plus'],
+  draft: ['c-gray', 'image'],
+  review: ['c-orange', 'eye'],
+  exported: ['c-green', 'check']
+}
 
 function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: (e: MouseEvent, p: ProjectSummary) => void }): ReactElement {
   const { t } = useTranslation()
@@ -50,8 +56,11 @@ function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: 
           <i style={{ width: `${pct}%` }} />
         </div>
         <div className="card-foot">
-          <span className={p.status === 'new' ? 'chip c-gray' : 'chip c-blue'}>
-            <Icon name={p.status === 'new' ? 'plus' : 'image'} size={11} />
+          <span
+            className={`chip ${STATUS_CHIP[p.status][0]}`}
+            title={p.status === 'exported' ? t('workspace.card.exportedTip', { count: p.exported, time: relTime(p.exportedAt, lang) }) : undefined}
+          >
+            <Icon name={STATUS_CHIP[p.status][1]} size={11} />
             {t(`workspace.card.status.${p.status}`)}
           </span>
           <span className="muted">{relTime(p.updatedAt, lang)}</span>

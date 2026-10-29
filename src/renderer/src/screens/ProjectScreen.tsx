@@ -9,6 +9,10 @@ import { InputStep } from './InputStep'
 import { StyleStep } from './StyleStep'
 import { GenStep } from './GenStep'
 import { ReviewStep } from './ReviewStep'
+import { ExportStep } from './ExportStep'
+import { useApp } from '@renderer/store/app'
+import { relTime } from '@renderer/lib/format'
+import { useNow } from '@renderer/lib/useNow'
 import { approvedCount } from '@renderer/lib/review'
 import { hasVersions, isLocked, styleReady } from '@renderer/lib/project'
 
@@ -28,12 +32,15 @@ function StepBar({ p }: { p: ProjectView }): ReactElement {
   const { t } = useTranslation()
   const step = useWs((s) => s.step)
   const setStep = useWs((s) => s.setStep)
+  const lang = useApp((s) => s.settings.lang)
+  const exported = p.export.lastAt > 0
+  useNow(exported, 30000)
   const subs = [
     t('project.sub.images', { count: p.inputs.length }),
     t('project.sub.groups', { locked: p.groups.filter(isLocked).length, total: p.groups.length }),
     t('project.sub.generated', { done: p.inputs.filter((i) => i.versions.length > 0).length, total: p.groups.filter(isLocked).reduce((n, g) => n + g.assetIds.length, 0) }),
     t('project.sub.approved', { count: approvedCount(p) }),
-    t('project.sub.notExported')
+    exported ? t('project.sub.exported', { count: p.export.lastAssets, time: relTime(p.export.lastAt, lang) }) : t('project.sub.notExported')
   ]
   return (
     <div className="steps" role="tablist">
@@ -41,7 +48,7 @@ function StepBar({ p }: { p: ProjectView }): ReactElement {
         const n = i + 1
         const ok = canStep(p, n)
         const locked = ok !== true
-        const done = n < step
+        const done = n < step || (n === STEPS.length && exported && !locked)
         const cur = step === n
         const cls = ['stp', cur && 'cur', done && !cur && 'done', locked && 'locked'].filter(Boolean).join(' ')
         return (
@@ -100,6 +107,9 @@ export function ProjectScreen(): ReactElement {
   const loading = useWs((s) => s.loading)
   const step = useWs((s) => s.step)
   const closeProject = useWs((s) => s.closeProject)
+  const reloadProject = useWs((s) => s.reloadProject)
+  const setStep = useWs((s) => s.setStep)
+  const defaultScale = useApp((s) => s.settings.gen.scale)
   const dir = useWs((s) => s.stepDir)
 
   if (loading) {
@@ -148,7 +158,13 @@ export function ProjectScreen(): ReactElement {
             exit="exit"
             transition={viewTransition}
           >
-            {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : key === 'review' ? <ReviewStep project={project} /> : <Soon step={key} />}
+            {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : key === 'review' ? (
+              <ReviewStep project={project} />
+            ) : key === 'export' ? (
+              <ExportStep project={project} api={window.gas.export} defaultScale={defaultScale} onBack={() => setStep(4)} onHome={closeProject} onExported={() => void reloadProject()} />
+            ) : (
+              <Soon step={key} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

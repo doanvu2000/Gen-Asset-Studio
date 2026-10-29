@@ -117,6 +117,7 @@ export const EXPORT_IPC = {
   cancel: 'export:cancel',
   pickDir: 'export:pick-dir',
   openPath: 'export:open-path',
+  saveDir: 'export:save-dir',
   progress: 'export:progress'
 } as const
 
@@ -126,6 +127,7 @@ export interface ExportApi {
   cancel: (projectRel: string) => Promise<boolean>
   pickDir: (current?: string) => Promise<string | null>
   openPath: (path: string) => Promise<boolean>
+  saveDir: (projectRel: string, outDir: string) => Promise<boolean>
   onProgress: (cb: (p: ExportProgress) => void) => () => void
 }
 

@@ -46,27 +46,27 @@ export const useQueue = create<QueueStore>()((set) => ({
   drawer: false,
   init: () => {
     const g = window.gas
-    const activeByProject = new Map<string, number>()
+    const runs = new Map<string, Set<string>>()
     const track = (snap: QueueSnapshot, notify: boolean): void => {
-      const counts = new Map<string, number>()
-      const done = new Map<string, number>()
+      const active = new Set<string>()
       for (const j of snap.jobs) {
+        if (!isActive(j)) continue
         const k = j.projectPath.toLowerCase()
-        if (isActive(j)) counts.set(k, (counts.get(k) ?? 0) + 1)
-        else if (j.status === 'done' || j.status === 'qaWarn') done.set(k, (done.get(k) ?? 0) + 1)
+        active.add(k)
+        const run = runs.get(k)
+        if (run) run.add(j.id)
+        else runs.set(k, new Set([j.id]))
       }
-      if (notify) {
-        for (const [k, prev] of activeByProject) {
-          if (prev > 0 && !counts.get(k)) {
-            const job = snap.jobs.find((j) => j.projectPath.toLowerCase() === k)
-            const n = done.get(k) ?? 0
-            if (job && n > 0) toast(i18n.t('gen.toastDone', { count: n, name: projectName(job.projectPath) }), 'ok', 5000)
-            if (job) scheduleReload(job.projectPath)
-          }
-        }
+      for (const [k, ids] of runs) {
+        if (active.has(k)) continue
+        runs.delete(k)
+        if (!notify) continue
+        const jobs = snap.jobs.filter((j) => ids.has(j.id))
+        const job = jobs[0] ?? snap.jobs.find((j) => j.projectPath.toLowerCase() === k)
+        const n = jobs.filter((j) => j.status === 'done' || j.status === 'qaWarn').length
+        if (job && n > 0) toast(i18n.t('gen.toastDone', { count: n, name: projectName(job.projectPath) }), 'ok', 5000)
+        if (job) scheduleReload(job.projectPath)
       }
-      activeByProject.clear()
-      for (const [k, v] of counts) activeByProject.set(k, v)
     }
     void g.queue.snapshot().then((snap) => {
       track(snap, false)

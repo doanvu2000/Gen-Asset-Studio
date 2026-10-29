@@ -201,8 +201,11 @@
       "approved": "{{a}}/{{n}} đã duyệt",
       "status": {
         "new": "Mới",
-        "draft": "Chưa gen"
-      }
+        "draft": "Chưa gen",
+        "review": "Đang duyệt",
+        "exported": "Đã xuất"
+      },
+      "exportedTip": "Đã xuất {{count}} ảnh · {{time}}"
     }
   },
   "settings": {
@@ -447,7 +450,8 @@
       "groups": "{{locked}}/{{total}} nhóm đã chốt",
       "generated": "{{done}}/{{total}} đã gen",
       "approved": "{{count}} đã duyệt",
-      "notExported": "Chưa xuất"
+      "notExported": "Chưa xuất",
+      "exported": "Đã xuất {{count}} ảnh · {{time}}"
     },
     "lock": {
       "style": "Thêm ít nhất 1 ảnh PNG trước",
@@ -887,5 +891,83 @@
     "stateError": "Lỗi: {{message}}",
     "stateDev": "Bản dev (chưa đóng gói) — tắt cập nhật tự động.",
     "releasedAt": "Phát hành {{date}}"
+  },
+  "export": {
+    "title": "Xuất ảnh",
+    "desc": "Chỉ ảnh đã duyệt được xuất. Folder ảnh gốc không bao giờ bị ghi.",
+    "descAll": "Xuất bản đã chọn của mọi ảnh có version (kể cả chưa duyệt). Folder ảnh gốc không bao giờ bị ghi.",
+    "loading": "Đang kiểm tra…",
+    "stat": {
+      "ready": "Sẽ xuất",
+      "readyApproved": "Đã duyệt · sẽ xuất",
+      "notApproved": "Chưa duyệt · bỏ qua",
+      "notGrouped": "Không thuộc nhóm",
+      "other": "Bỏ qua khác"
+    },
+    "reason": {
+      "notApproved": "Chưa duyệt",
+      "notGrouped": "Không thuộc nhóm style",
+      "noVersion": "Chưa có bản gen",
+      "missingFile": "Thiếu file version",
+      "sizeMismatch": "Sai W×H — cần fit lại",
+      "sprite": "Sprite sheet · đang phát triển"
+    },
+    "skippedShow": "Xem {{count}} ảnh bị bỏ qua",
+    "skippedHide": "Ẩn danh sách bỏ qua",
+    "dest": "Folder đích",
+    "change": "Đổi…",
+    "reset": "Mặc định",
+    "open": "Mở",
+    "size": "Kích thước",
+    "scaleExact": "Đúng W×H gốc",
+    "scaleResize": "×2/×4 resize thường (Lanczos), không gen lại",
+    "needScale": "Chọn ít nhất 1 kích thước",
+    "layout": "Ảnh ×2 / ×4",
+    "layoutFolder": "Folder @2x/",
+    "layoutSuffix": "Tên@2x.png",
+    "format": "Định dạng",
+    "formatVal": "PNG · giữ alpha, giữ nguyên tên file",
+    "existing": "File đã tồn tại",
+    "existingNone": "Chưa có — ghi mới",
+    "policyBackup": "Backup rồi ghi",
+    "policySkip": "Giữ file cũ",
+    "backupPre": "Sẽ backup vào",
+    "backupPost": "trước khi ghi",
+    "skipHint": "Không ghi đè, giữ nguyên file đã có",
+    "options": "Tuỳ chọn",
+    "onlyApproved": "Chỉ ảnh đã duyệt",
+    "openWhenDone": "Mở folder khi xong",
+    "back": "Duyệt",
+    "run": "Xuất {{count}} ảnh",
+    "cancel": "Huỷ",
+    "canceling": "Đang huỷ…",
+    "progress": "{{done}}/{{total}} file",
+    "tree": "Cấu trúc output",
+    "treeHint": "giống hệt input",
+    "treeEmpty": "Chưa có ảnh nào đủ điều kiện xuất",
+    "more": "+{{count}} file nữa",
+    "exists": "đã có",
+    "err": {
+      "noProject": "Không đọc được project",
+      "outInsideSource": "Folder đích nằm trong folder ảnh gốc — chọn chỗ khác",
+      "outIsFile": "Đường dẫn đích là một file, không phải folder",
+      "noScale": "Chọn ít nhất 1 kích thước",
+      "busy": "Project này đang xuất"
+    },
+    "done": {
+      "title": "Đã xuất {{count}} ảnh",
+      "sub": "Đúng tên, đúng cây thư mục gốc",
+      "files": "{{count}} file đã ghi",
+      "backup": "{{count}} file cũ đã được backup vào",
+      "kept": "{{count}} file đã có được giữ nguyên",
+      "errors": "{{count}} file lỗi",
+      "canceled": "Đã huỷ — đã ghi {{count}} file",
+      "failed": "Xuất chưa xong",
+      "report": "Báo cáo: {{path}}"
+    },
+    "openOut": "Mở folder output",
+    "again": "Xuất lại",
+    "toWorkspace": "Về workspace",
+    "openFail": "Không mở được folder"
   }
 }

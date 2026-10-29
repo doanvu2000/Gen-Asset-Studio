@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
-import type { InputKind, InputStatus, InputType, InputView, ProjectView, RootView, SkippedFile } from '@shared/workspace'
+import type { InputKind, InputStatus, InputType, InputView, ProjectExportState, ProjectView, RootView, SkippedFile } from '@shared/workspace'
 import type { NineSliceOverride, StyleGroup } from '@shared/style'
 import { analyzeImage, hashFile, makeThumb, mapLimit } from './analyze'
 import { fileUrl } from './protocol'
@@ -86,6 +86,19 @@ function sanitizeInput(raw: unknown, rootCount: number): InputRecord | null {
     type: TYPES.includes(r.type as InputType) ? (r.type as InputType) : 'normal',
     typeAuto: r.typeAuto !== false,
     kind: KINDS.includes(r.kind as InputKind) ? (r.kind as InputKind) : 'icon'
+  }
+}
+
+export function sanitizeExport(raw: unknown): ProjectExportState {
+  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const last = r.last && typeof r.last === 'object' ? (r.last as Record<string, unknown>) : null
+  const at = last && typeof last.at === 'string' ? Date.parse(last.at) || 0 : 0
+  return {
+    outDir: typeof r.outDir === 'string' ? r.outDir.trim().slice(0, 1024) : '',
+    lastAt: at,
+    lastAssets: at && last ? Math.max(0, Math.round(num(last.assets))) : 0,
+    lastFiles: at && last ? Math.max(0, Math.round(num(last.files))) : 0,
+    lastOutDir: at && last && typeof last.outDir === 'string' ? last.outDir : ''
   }
 }
 
@@ -335,6 +348,7 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
     inputs,
     groups: sanitizeGroups(data.groups, new Set(data.inputs.map((i) => i.id))),
     groupCount: data.groups.length,
+    export: sanitizeExport(data.export),
     updatedAt: Date.parse(data.updatedAt) || 0
   }
 }

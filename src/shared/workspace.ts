@@ -2,7 +2,15 @@ import type { StyleGroup } from './style'
 import type { QaSummary } from './queue'
 import type { ReviewDecision } from './review'
 
-export type ProjectStatus = 'new' | 'draft'
+export type ProjectStatus = 'new' | 'draft' | 'review' | 'exported'
+
+export interface ProjectExportState {
+  outDir: string
+  lastAt: number
+  lastAssets: number
+  lastFiles: number
+  lastOutDir: string
+}
 
 export interface FolderNode {
   rel: string
@@ -20,6 +28,8 @@ export interface ProjectSummary {
   imageCount: number
   groupCount: number
   approved: number
+  exported: number
+  exportedAt: number
   status: ProjectStatus
   updatedAt: number
   thumbs: string[]
@@ -80,6 +90,7 @@ export interface ProjectView {
   inputs: InputView[]
   groups: StyleGroup[]
   groupCount: number
+  export: ProjectExportState
   updatedAt: number
 }
 

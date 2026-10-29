@@ -17,6 +17,7 @@ import { userTemplatesDir } from './style/templates'
 import { JobQueue, queueStatePath, registerQueueIpc } from './queue'
 import { closePipeline, getPipeline } from './pipeline'
 import { createUpdater, registerUpdateIpc, type Updater } from './updater'
+import { registerExportIpc } from './export'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import type { EdgeSide } from '@shared/queue'
 
@@ -32,6 +33,7 @@ let workspace: WorkspaceService
 let style: StyleService
 let queue: JobQueue | null = null
 let updater: Updater | null = null
+let disposeExportIpc: (() => void) | null = null
 let quitting = false
 
 function resolveTheme(s: AppSettings): ResolvedTheme {
@@ -364,6 +366,13 @@ if (!app.requestSingleInstanceLock()) {
     registerServiceIpc()
     registerWorkspaceIpc()
     registerStyleIpc(ipcMain, () => mainWindow, { service: style })
+    disposeExportIpc = registerExportIpc(ipcMain, () => mainWindow, {
+      loadProject: (rel) => workspace.loadForExport(rel),
+      scale: (png, factor) => getPipeline({ size: 2 }).scale({ png, factor }),
+      log: logger.scoped('export'),
+      saveDir: (rel, outDir) => workspace.setExportDir(rel, outDir),
+      onExported: (rel, res, options) => workspace.recordExport(rel, { outDir: options.outDir, resolvedOutDir: res.outDir, assets: res.exportedAssets, files: res.written + res.keptExisting })
+    })
     initQueue()
     handleFileScheme((p) => workspace.isAllowed(p))
     void workspace.setRoot(settings.get().workspace)
@@ -381,6 +390,8 @@ if (!app.requestSingleInstanceLock()) {
     event.preventDefault()
     logger.write('app', 'quit')
     updater?.dispose()
+    disposeExportIpc?.()
+    disposeExportIpc = null
     void workspace?.dispose()
     const stopQueue = queue ? Promise.race([queue.dispose(), new Promise((r) => setTimeout(r, 3000))]).catch(() => undefined) : Promise.resolve()
     void stopQueue
