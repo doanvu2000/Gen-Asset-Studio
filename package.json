@@ -14,7 +14,8 @@
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
-    "dist:win": "npm run build && electron-builder --win nsis"
+    "dist:win": "npm run build && electron-builder --win nsis",
+    "test:pipeline": "tsx scripts/pipeline-test.ts"
   },
   "dependencies": {
     "i18next": "^26.5.11",
@@ -22,6 +23,8 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-i18next": "^17.1.9",
+    "sharp": "^0.35.5",
+    "tar": "^7.5.22",
     "zustand": "^5.0.16"
   },
   "devDependencies": {
@@ -32,6 +35,7 @@
     "electron": "^45.1.0",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   }

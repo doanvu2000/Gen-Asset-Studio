@@ -10,6 +10,8 @@ files:
   - "!**/*.map"
 asarUnpack:
   - resources/**
+  - "**/node_modules/sharp/**/*"
+  - "**/node_modules/@img/**/*"
 win:
   target:
     - target: nsis
