@@ -6,9 +6,17 @@ Mục `Chưa phát hành` gom thay đổi đang làm; khi ra bản thì đổi t
 ## Chưa phát hành
 
 ### Add
-- Workspace: cây thư mục, thẻ project, tạo/đổi tên/xoá/kéo thả (M2, đang làm)
-- Bước nhập ảnh: mở folder, thêm file, kéo thả, xem trước, đoán loại asset (M2, đang làm)
-- Hàng đợi gen chung, tự dừng khi hết quota và tự chạy tiếp (M4, đang làm)
+- Workspace: cây thư mục thật, thẻ project (tìm, sắp xếp), tạo/đổi tên/chuyển/xoá vào Thùng rác, tự cập nhật khi folder đổi ngoài app
+- Project 5 bước (Ảnh gốc mở; Style, Gen, Duyệt, Xuất đang làm)
+- Bước Ảnh gốc: mở folder (đệ quy, chỉ PNG), thêm ảnh, kéo thả, cây thư mục, chọn nhiều, xem trước W×H/alpha/dung lượng, đoán loại + 9-slice, báo thiếu file + trỏ lại folder
+- Backend hàng đợi gen chung (song song 1–6, giữ khi khởi động lại, tự dừng khi hết quota và tự chạy tiếp)
+- Backend style: chuẩn hoá prompt EN, gợi ý N hướng + preview, khoá style, lưu template riêng
+
+### Update
+- Màn chuẩn bị môi trường tự dò nhanh khi mở, bước đã đạt hiện xong ngay
+
+### Fixbug
+- Bản đóng gói thiếu template style sẵn (đóng gói qua extraResources)
 
 ## 0.1.0 — 2026-10-29 (nội bộ, chưa phát hành)
 
