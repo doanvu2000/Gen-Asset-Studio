@@ -654,7 +654,29 @@
       "templates": "Templates",
       "selected": "Selected: {{name}}",
       "none": "No style selected",
-      "noneDesc": "Click an AI suggestion or a template above, then lock it to move on to Gen."
+      "noneDesc": "Create a style in ② (Your own · Templates · AI suggestions), select a card, then lock it to move on to Gen."
+    },
+    "src": {
+      "desc": "pick one of three ways to create a style",
+      "custom": {
+        "name": "Your own",
+        "desc": "from your description and/or reference images"
+      },
+      "templates": {
+        "name": "Templates",
+        "desc": "pick a ready-made style"
+      },
+      "ai": {
+        "name": "AI suggestions",
+        "desc": "Codex proposes a few directions to compare",
+        "note": "AI looks at the group’s assets plus your description and reference images (Your own tab), then proposes different directions."
+      }
+    },
+    "custom": {
+      "need": "Write a description or add at least one reference image to draw a preview.",
+      "ready": "Codex draws one preview that follows your description / reference images (≈ 1 generation).",
+      "draw": "Draw preview from description",
+      "results": "Drawn previews — click to select"
     }
   },
   "gen": {
@@ -1098,7 +1120,7 @@
       "next": "Next: pick a style"
     },
     "style": {
-      "what": "Choose assets for the group, pick one style (template or AI suggestion), then Lock. The locked style is the reference for redrawing the whole set.",
+      "what": "Choose the group’s assets, then create a style one of three ways: Your own (description / reference images), Templates, or AI suggestions. Select a card and Lock — the locked style is the reference for redrawing the whole set.",
       "next": "All groups locked → Gen"
     },
     "gen": {

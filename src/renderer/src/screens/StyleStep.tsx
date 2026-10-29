@@ -20,7 +20,7 @@ import { tourSteps } from '@renderer/lib/tours'
 
 type Pick = { kind: 'template'; id: string } | { kind: 'suggestion'; id: string } | null
 
-const ONLY_PROMPT_FEEDBACK = "Use the user's style wishes exactly as written as the single direction; do not invent a different style."
+const ONLY_PROMPT_FEEDBACK = "Use the user's own style description and/or reference images exactly as the single direction; do not invent a different style."
 
 function lockUrl(p: ProjectView, g: StyleGroup): string | null {
   return g.lockImage ? fileUrl(projAbs(p.dir, g.lockImage), g.lockedAt ?? 0) : null
@@ -421,6 +421,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const rl = useEnv((s) => s.rateLimits)
   const [n, setN] = useState(styleCount)
   const [pick, setPick] = useState<Pick>(null)
+  const [src, setSrc] = useState<'custom' | 'templates' | 'ai'>(group.suggestRunId ? 'ai' : group.promptEn.trim() && !group.templateId ? 'custom' : 'templates')
   const [polish, setPolish] = useState<{ phase: 'loading' } | { phase: 'done'; result: PromptPolishResult; v: number } | { phase: 'error'; msg: string } | null>(null)
   const [prevPrompt, setPrevPrompt] = useState<string | null>(null)
   const [feedback, setFeedback] = useState('')
@@ -586,6 +587,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const phaseText = run ? (run.phase === 'planning' ? t('style.sugg.planning') : run.phase === 'rendering' ? t('style.sugg.rendering', { done: run.suggestions.filter((s) => s.status === 'done').length, total: run.suggestions.length }) : '') : ''
   const lockedSuggestion = (s: StyleSuggestion): boolean => locked && !group.templateId && group.lockName === s.name
   const canSuggest = !locked && !running && !busy
+  const hasCustom = !!group.promptEn.trim() || group.refImages.length > 0
 
   const pickedSugg = pick?.kind === 'suggestion' ? run?.suggestions.find((s) => s.id === pick.id) : undefined
   const pickedTpl = pick?.kind === 'template' ? templates.find((x) => x.id === pick.id) : undefined
@@ -664,206 +666,249 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
               <span className="sn">2</span>
               {t('style.pick.title')}
             </h3>
-            <span className="muted">{t('style.pick.desc')}</span>
+            <span className="muted">{t('style.src.desc')}</span>
           </div>
-          <div className="sub-l">
-            {t('style.pick.templates')}
-            <div className="grow" />
-            <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
-              <Icon name="save" size={13} />
-              {t('style.tpl.saveAs')}
-            </button>
-          </div>
-          <div className="tpl-grid">
-            {templates.map((tpl, i) => (
-              <TemplateCard
-                key={tpl.id}
-                tpl={tpl}
-                index={i}
-                on={pick?.kind === 'template' && pick.id === tpl.id}
-                locked={locked && group.templateId === tpl.id}
-                disabled={locked}
-                onPick={() => pickTemplate(tpl)}
-                onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
-                onDelete={() =>
-                  void window.gas.style.deleteTemplate(tpl.id).then(() => {
-                    void loadTemplates()
-                    toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
-                  })
-                }
-              />
+          <div className="src-tabs" role="tablist">
+            {(
+              [
+                { id: 'custom', icon: 'edit' },
+                { id: 'templates', icon: 'palette' },
+                { id: 'ai', icon: 'sparkles' }
+              ] as const
+            ).map((x) => (
+              <button key={x.id} type="button" role="tab" aria-selected={src === x.id} className={src === x.id ? 'src-tab on' : 'src-tab'} onClick={() => setSrc(x.id)}>
+                <span className="st-ic">
+                  <Icon name={x.icon} size={16} />
+                </span>
+                <span className="st-t">
+                  <b>{t(`style.src.${x.id}.name`)}</b>
+                  <small>{t(`style.src.${x.id}.desc`)}</small>
+                </span>
+              </button>
             ))}
           </div>
-          <div className="ai-bar">
-            <span className="ai-ic">
-              <Icon name="sparkles" size={16} />
-            </span>
-            <div className="ai-t">
-              <b>{t('style.sugg.title')}</b>
-              <span className="muted">
-                {running ? phaseText : run ? (left5 !== null ? t('style.sugg.estimateQuota', { count: n, left: left5 }) : t('style.sugg.estimate', { count: n })) : t('style.sugg.emptyShort', { count: n })}
-              </span>
+
+          {src === 'custom' && (
+            <div className="src-pane">
+              <div className="custom-grid">
+                <div>
+                  <label className="lbl" htmlFor={`gp-${group.id}`}>
+                    {t('style.prompt.label')} <small className="muted">{t('style.prompt.optional')}</small>
+                  </label>
+                  <textarea
+                    id={`gp-${group.id}`}
+                    className="ta"
+                    rows={5}
+                    value={group.promptEn}
+                    disabled={locked}
+                    placeholder={t('style.prompt.placeholder')}
+                    onChange={(e) => patch({ promptEn: e.target.value })}
+                  />
+                  <div className="ptools">
+                    <button type="button" className="btn sm" disabled={locked || polish?.phase === 'loading'} onClick={() => void runPolish()}>
+                      <Icon name="sparkles" size={13} />
+                      {t('style.polish.button')}
+                    </button>
+                    <ModelChip task="promptPolish" />
+                    {prevPrompt !== null && (
+                      <button
+                        type="button"
+                        className="btn sm ghost"
+                        onClick={() => {
+                          patch({ promptEn: prevPrompt }, true)
+                          setPrevPrompt(null)
+                        }}
+                      >
+                        <Icon name="refresh" size={13} />
+                        {t('style.polish.undo')}
+                      </button>
+                    )}
+                  </div>
+                  <AnimatePresence initial={false}>
+                    {polish && (
+                      <PolishPanel
+                        key="pf"
+                        state={polish}
+                        onUse={() => {
+                          if (polish.phase !== 'done') return
+                          setPrevPrompt(group.promptEn)
+                          patch({ promptEn: polish.result.promptEn }, true)
+                          setPolish(null)
+                        }}
+                        onAgain={() => void runPolish()}
+                        onDrop={() => setPolish(null)}
+                      />
+                    )}
+                  </AnimatePresence>
+                </div>
+                <div>
+                  <div className="lbl">
+                    {t('style.refs.label')} <small className="muted">{t('style.refs.optional')}</small>
+                  </div>
+                  <div className="refs">
+                    {group.refImages.map((r) => (
+                      <div className="ref ck" key={r}>
+                        <img src={fileUrl(projAbs(project.dir, r))} alt="" draggable={false} />
+                        {!locked && (
+                          <button type="button" className="ref-x" aria-label={t('style.refs.remove')} onClick={() => patch({ refImages: group.refImages.filter((x) => x !== r) }, true)}>
+                            <Icon name="x" size={11} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {group.refImages.length < 8 && !locked && (
+                      <button type="button" className="ref-add" aria-label={t('style.refs.add')} title={t('style.refs.add')} onClick={() => void addRefs()}>
+                        <Icon name="plus" size={18} />
+                      </button>
+                    )}
+                  </div>
+                  <p className="muted small ref-note">{t('style.refs.note')}</p>
+                </div>
+              </div>
+              <div className="draw-row">
+                <span className="muted">{hasCustom ? t('style.custom.ready') : t('style.custom.need')}</span>
+                <div className="grow" />
+                {running ? (
+                  <button type="button" className="btn" onClick={() => run && void window.gas.style.suggestCancel(run.runId)}>
+                    <Icon name="x" size={14} />
+                    {t('style.sugg.cancel')}
+                  </button>
+                ) : (
+                  <button type="button" className="btn primary" disabled={!canSuggest || !hasCustom} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
+                    {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={14} />}
+                    {t('style.custom.draw')}
+                  </button>
+                )}
+              </div>
             </div>
-            <ModelChip task="styleSuggest" />
-            <Stepper value={n} min={SUGGEST_MIN} max={SUGGEST_MAX} onChange={setN} label={t('style.sugg.count')} />
-            {running ? (
-              <button type="button" className="btn sm" onClick={() => run && void window.gas.style.suggestCancel(run.runId)}>
-                <Icon name="x" size={13} />
-                {t('style.sugg.cancel')}
-              </button>
-            ) : (
-              <>
-                <button type="button" className="btn sm" disabled={!canSuggest || !group.promptEn.trim()} title={t('style.sugg.promptOnlyHint')} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
-                  {t('style.sugg.promptOnly')}
+          )}
+
+          {src === 'templates' && (
+            <div className="src-pane">
+              <div className="sub-l">
+                {t('style.pick.templates')}
+                <div className="grow" />
+                <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
+                  <Icon name="save" size={13} />
+                  {t('style.tpl.saveAs')}
                 </button>
-                <button type="button" className="btn sm primary" disabled={!canSuggest} onClick={() => void startSuggest(n)}>
-                  {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={13} />}
-                  {run ? t('style.sugg.again') : t('style.sugg.start')}
-                </button>
-              </>
-            )}
-          </div>
-          {run && run.phase === 'error' && (
-            <div className="note err">
-              <Icon name="alert" size={14} />
-              <span className="note-t">{run.error ?? t('style.sugg.failed')}</span>
+              </div>
+              <div className="tpl-grid">
+                {templates.map((tpl, i) => (
+                  <TemplateCard
+                    key={tpl.id}
+                    tpl={tpl}
+                    index={i}
+                    on={pick?.kind === 'template' && pick.id === tpl.id}
+                    locked={locked && group.templateId === tpl.id}
+                    disabled={locked}
+                    onPick={() => pickTemplate(tpl)}
+                    onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
+                    onDelete={() =>
+                      void window.gas.style.deleteTemplate(tpl.id).then(() => {
+                        void loadTemplates()
+                        toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
+                      })
+                    }
+                  />
+                ))}
+              </div>
             </div>
           )}
-          {run && run.phase === 'canceled' && (
-            <div className="note info">
-              <Icon name="x" size={14} />
-              <span className="note-t">{t('style.sugg.canceled')}</span>
+
+          {src === 'ai' && (
+            <div className="src-pane">
+              <div className="ai-bar">
+                <span className="ai-ic">
+                  <Icon name="sparkles" size={16} />
+                </span>
+                <div className="ai-t">
+                  <b>{t('style.sugg.title')}</b>
+                  <span className="muted">
+                    {running ? phaseText : left5 !== null ? t('style.sugg.estimateQuota', { count: n, left: left5 }) : t('style.sugg.estimate', { count: n })}
+                  </span>
+                </div>
+                <ModelChip task="styleSuggest" />
+                <Stepper value={n} min={SUGGEST_MIN} max={SUGGEST_MAX} onChange={setN} label={t('style.sugg.count')} />
+                {running ? (
+                  <button type="button" className="btn sm" onClick={() => run && void window.gas.style.suggestCancel(run.runId)}>
+                    <Icon name="x" size={13} />
+                    {t('style.sugg.cancel')}
+                  </button>
+                ) : (
+                  <button type="button" className="btn sm primary" disabled={!canSuggest} onClick={() => void startSuggest(n)}>
+                    {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={13} />}
+                    {run ? t('style.sugg.again') : t('style.sugg.start')}
+                  </button>
+                )}
+              </div>
+              <p className="muted small ai-note">{t('style.src.ai.note')}</p>
             </div>
           )}
-          {showAi && <div className="sub-l">{t('style.pick.ai')}</div>}
-          {run && run.phase === 'planning' && (
-            <div className="sugg-grid">
-              {Array.from({ length: n }, (_, i) => (
-                <div className="skel" key={i} style={{ animationDelay: `${i * 120}ms` }} />
-              ))}
-            </div>
-          )}
-          {run && run.suggestions.length > 0 && (
-            <div className="sugg-grid">
-              {run.suggestions.map((s, i) => (
-                <SuggestionCard
-                  key={s.id}
-                  s={s}
-                  index={i}
-                  on={pick?.kind === 'suggestion' && pick.id === s.id}
-                  locked={lockedSuggestion(s)}
-                  disabled={locked || running}
-                  onPick={() => setPick({ kind: 'suggestion', id: s.id })}
-                  onZoom={() => s.previewPath && setZoom({ src: fileUrl(s.previewPath, s.durationMs ?? 0), title: s.name })}
-                />
-              ))}
-            </div>
+
+          {src !== 'templates' && (
+            <>
+              {run && run.phase === 'error' && (
+                <div className="note err">
+                  <Icon name="alert" size={14} />
+                  <span className="note-t">{run.error ?? t('style.sugg.failed')}</span>
+                </div>
+              )}
+              {run && run.phase === 'canceled' && (
+                <div className="note info">
+                  <Icon name="x" size={14} />
+                  <span className="note-t">{t('style.sugg.canceled')}</span>
+                </div>
+              )}
+              {showAi && <div className="sub-l">{t('style.custom.results')}</div>}
+              {run && run.phase === 'planning' && (
+                <div className="sugg-grid">
+                  {Array.from({ length: src === 'custom' ? 1 : n }, (_, i) => (
+                    <div className="skel" key={i} style={{ animationDelay: `${i * 120}ms` }} />
+                  ))}
+                </div>
+              )}
+              {run && run.suggestions.length > 0 && (
+                <div className="sugg-grid">
+                  {run.suggestions.map((s, i) => (
+                    <SuggestionCard
+                      key={s.id}
+                      s={s}
+                      index={i}
+                      on={pick?.kind === 'suggestion' && pick.id === s.id}
+                      locked={lockedSuggestion(s)}
+                      disabled={locked || running}
+                      onPick={() => setPick({ kind: 'suggestion', id: s.id })}
+                      onZoom={() => s.previewPath && setZoom({ src: fileUrl(s.previewPath, s.durationMs ?? 0), title: s.name })}
+                    />
+                  ))}
+                </div>
+              )}
+              {run && !locked && run.suggestions.length > 0 && (
+                <div className="fb-box">
+                  <label className="lbl" htmlFor={`fb-${group.id}`}>
+                    {t('style.fb.label')} <small className="muted">{t('style.refs.optional')}</small>
+                  </label>
+                  <div className="fb-in">
+                    <textarea id={`fb-${group.id}`} className="ta" rows={2} value={feedback} placeholder={t('style.fb.placeholder')} onChange={(e) => setFeedback(e.target.value)} />
+                    <div className="fb-acts">
+                      <button type="button" className="btn sm" disabled={running || pick?.kind !== 'suggestion'} onClick={() => void regenPicked()}>
+                        <Icon name="refresh" size={13} />
+                        {t('style.fb.regenPicked')}
+                      </button>
+                      <button type="button" className="btn sm" disabled={!canSuggest} onClick={() => void startSuggest(src === 'custom' ? 1 : n, src === 'custom' ? [ONLY_PROMPT_FEEDBACK, feedback.trim()].filter(Boolean).join(' ') : feedback.trim() || undefined)}>
+                        <Icon name="refresh" size={13} />
+                        {t('style.fb.regenAll')}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>
 
-      <aside className="ed-side">
-        <section className="side-card">
-          <label className="side-h" htmlFor={`gp-${group.id}`}>
-            <span className="side-ic">
-              <Icon name="edit" size={14} />
-            </span>
-            <b>{t('style.prompt.label')}</b>
-          </label>
-          <small className="muted side-sub">{t('style.prompt.optional')}</small>
-          <textarea
-            id={`gp-${group.id}`}
-            className="ta"
-            rows={6}
-            value={group.promptEn}
-            placeholder={t('style.prompt.placeholder')}
-            onChange={(e) => patch({ promptEn: e.target.value })}
-          />
-          <div className="ptools">
-            <button type="button" className="btn sm" disabled={polish?.phase === 'loading'} onClick={() => void runPolish()}>
-              <Icon name="sparkles" size={13} />
-              {t('style.polish.button')}
-            </button>
-            <ModelChip task="promptPolish" />
-            {prevPrompt !== null && (
-              <button
-                type="button"
-                className="btn sm ghost"
-                onClick={() => {
-                  patch({ promptEn: prevPrompt }, true)
-                  setPrevPrompt(null)
-                }}
-              >
-                <Icon name="refresh" size={13} />
-                {t('style.polish.undo')}
-              </button>
-            )}
-          </div>
-          <AnimatePresence initial={false}>
-            {polish && (
-              <PolishPanel
-                key="pf"
-                state={polish}
-                onUse={() => {
-                  if (polish.phase !== 'done') return
-                  setPrevPrompt(group.promptEn)
-                  patch({ promptEn: polish.result.promptEn }, true)
-                  setPolish(null)
-                }}
-                onAgain={() => void runPolish()}
-                onDrop={() => setPolish(null)}
-              />
-            )}
-          </AnimatePresence>
-        </section>
-        <section className="side-card">
-          <div className="side-h">
-            <span className="side-ic">
-              <Icon name="image" size={14} />
-            </span>
-            <b>{t('style.refs.label')}</b>
-            <small className="muted">{t('style.refs.optional')}</small>
-          </div>
-          <div className="refs">
-            {group.refImages.map((r) => (
-              <div className="ref ck" key={r}>
-                <img src={fileUrl(projAbs(project.dir, r))} alt="" draggable={false} />
-                <button type="button" className="ref-x" aria-label={t('style.refs.remove')} onClick={() => patch({ refImages: group.refImages.filter((x) => x !== r) }, true)}>
-                  <Icon name="x" size={11} />
-                </button>
-              </div>
-            ))}
-            {group.refImages.length < 8 && (
-              <button type="button" className="ref-add" aria-label={t('style.refs.add')} title={t('style.refs.add')} onClick={() => void addRefs()}>
-                <Icon name="plus" size={18} />
-              </button>
-            )}
-          </div>
-          <p className="muted small ref-note">{t('style.refs.note')}</p>
-        </section>
-        {run && !locked && (
-          <section className="side-card">
-            <label className="side-h" htmlFor={`fb-${group.id}`}>
-              <span className="side-ic">
-                <Icon name="refresh" size={14} />
-              </span>
-              <b>{t('style.fb.label')}</b>
-              <small className="muted">{t('style.refs.optional')}</small>
-            </label>
-            <textarea id={`fb-${group.id}`} className="ta" rows={3} value={feedback} placeholder={t('style.fb.placeholder')} onChange={(e) => setFeedback(e.target.value)} />
-            <div className="ptools">
-              <button type="button" className="btn sm" disabled={running || pick?.kind !== 'suggestion'} onClick={() => void regenPicked()}>
-                <Icon name="refresh" size={13} />
-                {t('style.fb.regenPicked')}
-              </button>
-              <button type="button" className="btn sm" disabled={!canSuggest} onClick={() => void startSuggest(n, feedback.trim() || undefined)}>
-                <Icon name="refresh" size={13} />
-                {t('style.fb.regenAll')}
-              </button>
-            </div>
-          </section>
-        )}
-      </aside>
 
       <AnimatePresence initial={false} mode="wait">
         {locked ? (

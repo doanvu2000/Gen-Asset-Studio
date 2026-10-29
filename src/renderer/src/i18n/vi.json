@@ -654,7 +654,29 @@
       "templates": "Mẫu có sẵn",
       "selected": "Đã chọn: {{name}}",
       "none": "Chưa chọn style",
-      "noneDesc": "Bấm 1 thẻ gợi ý AI hoặc mẫu có sẵn ở trên, rồi chốt để sang bước Gen."
+      "noneDesc": "Tạo style ở mục ② (Tự tạo · Mẫu có sẵn · AI gợi ý), bấm chọn 1 thẻ rồi chốt để sang bước Gen."
+    },
+    "src": {
+      "desc": "chọn 1 trong 3 cách tạo style",
+      "custom": {
+        "name": "Tự tạo",
+        "desc": "từ mô tả của bạn và/hoặc ảnh tham chiếu"
+      },
+      "templates": {
+        "name": "Mẫu có sẵn",
+        "desc": "chọn nhanh 1 style dựng sẵn"
+      },
+      "ai": {
+        "name": "AI gợi ý",
+        "desc": "Codex đề xuất vài hướng để so sánh",
+        "note": "AI xem bộ ảnh của nhóm, kèm mô tả + ảnh tham chiếu ở tab Tự tạo nếu có, rồi đề xuất các hướng khác nhau."
+      }
+    },
+    "custom": {
+      "need": "Nhập mô tả hoặc thêm ít nhất 1 ảnh tham chiếu để vẽ preview.",
+      "ready": "Codex sẽ vẽ 1 ảnh preview đúng theo mô tả / ảnh tham chiếu của bạn (≈ 1 lượt gen).",
+      "draw": "Vẽ preview từ mô tả",
+      "results": "Preview đã vẽ — bấm để chọn"
     }
   },
   "gen": {
@@ -1098,7 +1120,7 @@
       "next": "Tiếp: chọn style"
     },
     "style": {
-      "what": "Chọn ảnh cho nhóm, chọn 1 style (mẫu có sẵn hoặc nhờ AI gợi ý) rồi bấm Chốt. Style đã chốt là khuôn để vẽ lại cả bộ.",
+      "what": "Chọn ảnh cho nhóm, rồi tạo style theo 1 trong 3 cách: Tự tạo (mô tả / ảnh tham chiếu), Mẫu có sẵn, hoặc AI gợi ý. Chọn 1 thẻ và bấm Chốt — style đã chốt là khuôn để vẽ lại cả bộ.",
       "next": "Chốt xong mọi nhóm → tự sang Gen"
     },
     "gen": {
