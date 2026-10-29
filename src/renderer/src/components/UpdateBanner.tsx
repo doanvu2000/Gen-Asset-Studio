@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { parseReleaseNotes, type NoteSectionKind, type UpdateApi } from '@shared/update'
-import { fallbackUpdateT, formatBytes, useUpdateSnapshot, type UpdateKey, type UpdateT } from '../lib/updateText'
+import { fallbackUpdateT, formatBytes, formatReleaseDate, useUpdateSnapshot, type UpdateKey, type UpdateT } from '../lib/updateText'
 import '../styles/update.css'
 
 const SECTION_KEY: Record<NoteSectionKind, UpdateKey | null> = {
@@ -51,6 +51,7 @@ export function UpdateBanner({ api, t, lang = 'vi' }: UpdateBannerProps): React.
   const state = snap.state
   const version = 'version' in state ? state.version : ''
   const key = `${state.kind}:${version}`
+  const releasedAt = formatReleaseDate('date' in state ? state.date : null, lang)
 
   const visible =
     (state.kind === 'available' || state.kind === 'downloading' || state.kind === 'downloaded') && dismissed !== key
@@ -113,6 +114,9 @@ export function UpdateBanner({ api, t, lang = 'vi' }: UpdateBannerProps): React.
               <div className="upd-title">{tr('downloadedTitle', { version })}</div>
               <div className="upd-sub">{tr('downloadedSub')}</div>
             </>
+          )}
+          {releasedAt && state.kind !== 'error' && (
+            <div className="upd-date">{tr('releasedAt', { date: releasedAt })}</div>
           )}
           {state.kind === 'error' && (
             <>

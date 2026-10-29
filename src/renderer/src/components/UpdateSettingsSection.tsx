@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { UpdateApi, UpdateSnapshot } from '@shared/update'
-import { fallbackUpdateT, useUpdateSnapshot, type UpdateT } from '../lib/updateText'
+import { fallbackUpdateT, formatReleaseDate, useUpdateSnapshot, type UpdateT } from '../lib/updateText'
 import { ReleaseNotes } from './UpdateBanner'
 import '../styles/update.css'
 
@@ -10,7 +10,14 @@ export interface UpdateSettingsSectionProps {
   lang?: string
 }
 
-function stateLine(snap: UpdateSnapshot, t: UpdateT): string {
+function stateLine(snap: UpdateSnapshot, t: UpdateT, lang: string): string {
+  const line = baseLine(snap, t)
+  const s = snap.state
+  const date = 'date' in s ? formatReleaseDate(s.date, lang) : ''
+  return date ? `${line} · ${t('releasedAt', { date })}` : line
+}
+
+function baseLine(snap: UpdateSnapshot, t: UpdateT): string {
   const s = snap.state
   switch (s.kind) {
     case 'idle':
@@ -65,7 +72,7 @@ export function UpdateSettingsSection({ api, t, lang = 'vi' }: UpdateSettingsSec
         <span>{tr('lastCheck')}</span>
         <span>{lastCheck}</span>
       </div>
-      <div className={`upd-state upd-state-${s.kind}`}>{stateLine(snap, tr)}</div>
+      <div className={`upd-state upd-state-${s.kind}`}>{stateLine(snap, tr, lang)}</div>
       {s.kind === 'downloading' && (
         <div className="upd-bar">
           <div className="upd-bar-fill" style={{ width: `${Math.max(2, Math.min(100, s.percent))}%` }} />
