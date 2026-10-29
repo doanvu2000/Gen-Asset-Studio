@@ -8,6 +8,7 @@ import { EASE } from '@renderer/lib/motion'
 import { relTime } from '@renderer/lib/format'
 import { useApp } from '@renderer/store/app'
 import { findNode, useWs, type SortKey } from '@renderer/store/workspace'
+import { COACH, coachAttr } from '@renderer/lib/tours'
 
 const SORTS: SortKey[] = ['recent', 'name', 'images']
 const STATUS_CHIP: Record<ProjectStatus, [string, IconName]> = {
@@ -26,6 +27,7 @@ function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: 
     <motion.button
       type="button"
       className="card"
+      data-coach={p.sample ? COACH.wsSample : undefined}
       initial={{ opacity: 0, y: 10, scale: 0.985 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ duration: 0.32, ease: EASE, delay: Math.min(index, 12) * 0.035 }}
@@ -83,6 +85,8 @@ function Empty({ icon, title, desc, children }: { icon: 'layers' | 'folder' | 's
 
 export function WorkspaceScreen(): ReactElement {
   const { t } = useTranslation()
+  const sampleBusy = useWs((s) => s.sampleBusy)
+  const createSample = useWs((s) => s.createSample)
   const snap = useWs((s) => s.snap)
   const curFolder = useWs((s) => s.curFolder)
   const search = useWs((s) => s.search)
@@ -156,6 +160,8 @@ export function WorkspaceScreen(): ReactElement {
     )
   }
 
+  const hasProjects = snap.projects.length > 0
+  const hasSample = snap.projects.some((p) => p.sample)
   const total = isRoot ? snap.projects.length : (folder?.projectCount ?? 0)
 
   return (
@@ -181,7 +187,13 @@ export function WorkspaceScreen(): ReactElement {
             <Icon name="sort" size={14} />
             {t(`workspace.sort.${sort}`)}
           </button>
-          <button type="button" className="btn primary" onClick={() => setDialog({ kind: 'newProject', parent })}>
+          {hasProjects && !hasSample && (
+            <button type="button" className="btn" disabled={sampleBusy} title={t('coach.ui.sampleHint')} onClick={() => void createSample()} {...coachAttr(COACH.wsSample)}>
+              <Icon name="sparkles" size={14} />
+              {sampleBusy ? t('coach.ui.sampleCreating') : t('workspace.sampleShort')}
+            </button>
+          )}
+          <button type="button" className="btn primary" onClick={() => setDialog({ kind: 'newProject', parent })} {...coachAttr(COACH.wsNewProject)}>
             <Icon name="plus" size={14} />
             {t('workspace.newProject')}
           </button>
@@ -207,6 +219,12 @@ export function WorkspaceScreen(): ReactElement {
                 <Icon name="folderPlus" size={14} />
                 {t('sidebar.newFolder')}
               </button>
+              {isRoot && (
+                <button type="button" className="btn" disabled={sampleBusy} title={t('coach.ui.sampleHint')} onClick={() => void createSample()} {...coachAttr(COACH.wsSample)}>
+                  <Icon name="sparkles" size={14} />
+                  {sampleBusy ? t('coach.ui.sampleCreating') : t('coach.ui.sampleCreate')}
+                </button>
+              )}
             </div>
           </Empty>
         )}

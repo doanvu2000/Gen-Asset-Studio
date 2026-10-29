@@ -165,6 +165,7 @@ function TreeNode({ node, depth, onMenu, drag }: NodeProps): ReactElement {
 
 export function Sidebar(): ReactElement {
   const { t } = useTranslation()
+  const createSample = useWs((s) => s.createSample)
   const openSettings = useApp((s) => s.openSettings)
   const sidebarOpen = useApp((s) => s.sidebarOpen)
   const route = useApp((s) => s.route)
@@ -218,6 +219,7 @@ export function Sidebar(): ReactElement {
       items: [
         { label: t('tree.menu.newFolder'), icon: 'folderPlus', onSelect: () => setDialog({ kind: 'newFolder', parent: '' }) },
         { label: t('tree.menu.newProject'), icon: 'plus', onSelect: () => setDialog({ kind: 'newProject', parent: '' }) },
+        { label: t('coach.ui.sampleCreate'), icon: 'sparkles', onSelect: () => void createSample() },
         { sep: true },
         { label: t('tree.menu.reveal'), icon: 'external', onSelect: () => void window.gas.workspace.reveal('') }
       ]
@@ -272,7 +274,7 @@ export function Sidebar(): ReactElement {
   const wsPath = snap?.root ?? null
 
   return (
-    <aside className="side" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
+    <aside className="side" data-coach="ws-tree" aria-hidden={!sidebarOpen} inert={!sidebarOpen}>
       <div className="side-inner">
         <button type="button" className="ws-switch" onClick={wsMenu} title={wsPath ?? undefined}>
           <Logo />
@@ -330,7 +332,7 @@ export function Sidebar(): ReactElement {
             {t('sidebar.newProject')}
           </button>
           <div className="grow" />
-          <button type="button" className="icon-btn" aria-label={t('sidebar.settings')} title={t('sidebar.settings')} onClick={() => openSettings()}>
+          <button type="button" className="icon-btn" data-coach="ws-settings" aria-label={t('sidebar.settings')} title={t('sidebar.settings')} onClick={() => openSettings()}>
             <Icon name="gear" />
           </button>
         </div>

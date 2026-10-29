@@ -62,6 +62,7 @@ function StepBar({ p }: { p: ProjectView }): ReactElement {
               type="button"
               className={cls}
               role="tab"
+              data-coach={`proj-step-${key}`}
               aria-selected={cur}
               aria-disabled={locked || undefined}
               title={locked ? t(`project.lock.${ok as Exclude<StepKey, 'input'>}`) : undefined}

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { selectResolvedTheme, useApp, type Route } from '@renderer/store/app'
@@ -21,6 +21,8 @@ import { useQueue } from '@renderer/store/queue'
 import { QueueDrawer } from '@renderer/components/QueueDrawer'
 import { UpdateBanner } from '@renderer/components/UpdateBanner'
 import { useUpdateT } from '@renderer/lib/useUpdateT'
+import { CoachTour } from '@renderer/components/CoachMarks'
+import { tourSteps } from '@renderer/lib/tours'
 
 const SCREENS: Record<Route, () => ReactElement> = {
   setup: SetupScreen,
@@ -104,6 +106,12 @@ export function App(): ReactElement {
   const direction = useApp((s) => s.direction)
   const sidebarOpen = useApp((s) => s.sidebarOpen)
   const Screen = SCREENS[route]
+  const wsSteps = useMemo(() => tourSteps('workspace'), [])
+  const projSteps = useMemo(() => tourSteps('project'), [])
+  const seenTours = useApp((s) => s.settings.onboarding.tours)
+  const coachReplay = useApp((s) => s.coachReplay)
+  const markTourSeen = useApp((s) => s.markTourSeen)
+  const settingsOpen = useApp((s) => s.settingsOpen)
   const sideVisible = route !== 'setup' && sidebarOpen
 
   return (
@@ -139,6 +147,12 @@ export function App(): ReactElement {
         <UacDialog />
         <FixDialog />
         <WorkspaceDialogs />
+        {route === 'workspace' && (
+          <CoachTour tourId="workspace" steps={wsSteps} seen={!!seenTours.workspace} onSeen={markTourSeen} replay={coachReplay} enabled={!settingsOpen} />
+        )}
+        {route === 'project' && (
+          <CoachTour tourId="project" steps={projSteps} seen={!!seenTours.project} onSeen={markTourSeen} replay={coachReplay} enabled={!settingsOpen} />
+        )}
         <Toasts />
         {route !== 'setup' && <UpdateBanner api={window.gas.update} t={updT} lang={i18n.language} />}
       </div>

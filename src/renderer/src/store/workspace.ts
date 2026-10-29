@@ -27,6 +27,8 @@ interface WsStore {
   search: string
   sort: SortKey
   busy: boolean
+  sampleBusy: boolean
+  createSample: () => Promise<void>
   skipped: SkippedFile[]
   inputSel: string[]
   activeGroup: string | null
@@ -116,6 +118,7 @@ export const useWs = create<WsStore>()((set, get) => ({
   search: '',
   sort: 'recent',
   busy: false,
+  sampleBusy: false,
   skipped: [],
   inputSel: [],
   activeGroup: null,
@@ -190,6 +193,21 @@ export const useWs = create<WsStore>()((set, get) => ({
       toast(i18n.t('toast.created', { name: baseName(r.rel) }))
     }
     return r
+  },
+  createSample: async () => {
+    if (get().sampleBusy) return
+    set({ sampleBusy: true })
+    try {
+      const r = await window.gas.workspace.createSample()
+      if (r.ok && r.rel) {
+        toast(i18n.t('coach.ui.sampleCreated', { name: r.name ?? baseName(r.rel), count: r.added }))
+        await get().openProject(r.rel)
+      } else {
+        toast(i18n.t('coach.ui.sampleFailed', { error: r.error === 'noWorkspace' ? i18n.t('errors.noWorkspace') : (r.error ?? '') }), 'err')
+      }
+    } finally {
+      set({ sampleBusy: false })
+    }
   },
   createProject: async (parent, name) => {
     const r = await window.gas.workspace.createProject(parent, name)

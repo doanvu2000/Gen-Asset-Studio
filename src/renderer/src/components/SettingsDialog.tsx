@@ -23,6 +23,8 @@ function GeneralTab(): ReactElement {
   const lang = useApp((s) => s.settings.lang)
   const setTheme = useApp((s) => s.setTheme)
   const setLang = useApp((s) => s.setLang)
+  const closeSettings = useApp((s) => s.closeSettings)
+  const replayTours = useApp((s) => s.replayTours)
 
   const themeOptions = [
     { value: 'light', label: t('settings.theme.light') },
@@ -57,6 +59,21 @@ function GeneralTab(): ReactElement {
           <button type="button" className="btn sm" onClick={() => void window.gas.app.exportLog()}>
             <Icon name="download" size={13} />
             {t('settings.exportLog')}
+          </button>
+        </div>
+        <div className="row">
+          <div className="rl" title={t('coach.ui.replayHint')}>{t('coach.ui.replay')}</div>
+          <button
+            type="button"
+            className="btn sm"
+            data-coach="settings-replay"
+            onClick={() => {
+              closeSettings()
+              replayTours()
+            }}
+          >
+            <Icon name="help" size={13} />
+            {t('coach.ui.replay')}
           </button>
         </div>
       </div>

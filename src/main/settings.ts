@@ -3,18 +3,40 @@ import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import {
   DEFAULT_GEN,
+  DEFAULT_ONBOARDING,
   DEFAULT_SETTINGS,
   DEFAULT_SETUP,
   type AppSettings,
   type ExportScale,
   type GenPrefs,
   type Lang,
+  type OnboardingPersist,
   type SetupPersist,
   type ThemePref
 } from '@shared/types'
 
 const THEMES: readonly ThemePref[] = ['light', 'dark', 'system']
 const LANGS: readonly Lang[] = ['vi', 'en']
+const TOURS: readonly string[] = ['workspace', 'project', 'style']
+
+function cloneOnboarding(o: OnboardingPersist | undefined): OnboardingPersist {
+  return { tours: { ...(o?.tours ?? {}) }, sampleOffered: o?.sampleOffered === true }
+}
+
+function sanitizeOnboarding(input: unknown, base: OnboardingPersist): OnboardingPersist {
+  const out = cloneOnboarding(base)
+  if (!input || typeof input !== 'object') return out
+  const raw = input as Record<string, unknown>
+  if (raw.tours && typeof raw.tours === 'object') {
+    const tours: Record<string, boolean> = {}
+    for (const [k, v] of Object.entries(raw.tours as Record<string, unknown>)) {
+      if (TOURS.includes(k) && typeof v === 'boolean') tours[k] = v
+    }
+    out.tours = tours
+  }
+  if (typeof raw.sampleOffered === 'boolean') out.sampleOffered = raw.sampleOffered
+  return out
+}
 
 function sanitizeSetup(input: unknown, base: SetupPersist): SetupPersist {
   const out: SetupPersist = { ...base }
@@ -42,7 +64,7 @@ function sanitizeGen(input: unknown, base: GenPrefs): GenPrefs {
 }
 
 function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSettings {
-  const out: AppSettings = { ...base, setup: { ...base.setup }, gen: { ...DEFAULT_GEN, ...base.gen } }
+  const out: AppSettings = { ...base, setup: { ...base.setup }, gen: { ...DEFAULT_GEN, ...base.gen }, onboarding: cloneOnboarding(base.onboarding ?? DEFAULT_ONBOARDING) }
   if (input && typeof input === 'object') {
     const raw = input as Record<string, unknown>
     if (typeof raw.theme === 'string' && (THEMES as readonly string[]).includes(raw.theme)) {
@@ -52,6 +74,7 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
       out.lang = raw.lang as Lang
     }
     if ('gen' in raw) out.gen = sanitizeGen(raw.gen, out.gen)
+    if ('onboarding' in raw) out.onboarding = sanitizeOnboarding(raw.onboarding, out.onboarding)
     if (internal) {
       if (typeof raw.workspace === 'string' || raw.workspace === null) out.workspace = raw.workspace
       if ('setup' in raw) out.setup = sanitizeSetup(raw.setup, out.setup)
@@ -61,12 +84,12 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
 }
 
 export class SettingsStore {
-  private current: AppSettings = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN } }
+  private current: AppSettings = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING) }
   private writing: Promise<void> = Promise.resolve()
   private readonly file = join(app.getPath('userData'), 'settings.json')
 
   get(): AppSettings {
-    return { ...this.current, setup: { ...this.current.setup }, gen: { ...this.current.gen } }
+    return { ...this.current, setup: { ...this.current.setup }, gen: { ...this.current.gen }, onboarding: cloneOnboarding(this.current.onboarding) }
   }
 
   async load(): Promise<AppSettings> {
@@ -74,7 +97,7 @@ export class SettingsStore {
       const text = await fs.readFile(this.file, 'utf8')
       this.current = sanitize(JSON.parse(text), DEFAULT_SETTINGS, true)
     } catch {
-      this.current = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN } }
+      this.current = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING) }
     }
     return this.get()
   }

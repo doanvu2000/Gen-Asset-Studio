@@ -23,6 +23,9 @@ Sprite sheet: đang phát triển (phase sau).
 2. Windows SmartScreen cảnh báo (app chưa ký code) → **More info → Run anyway**.
 3. Mở app, làm theo màn **Chuẩn bị môi trường**. Bước nào cần quyền Administrator thì app hỏi; chạy app bằng *Run as administrator* để bỏ qua các lần hỏi.
 4. Cần tài khoản ChatGPT (Plus trở lên) để gen ảnh.
+5. Lần đầu vào workspace có hướng dẫn nhanh; bấm **Tạo project mẫu** (14 ảnh UI có sẵn) để thử cả luồng. Xem lại hướng dẫn: Cài đặt › Chung.
+
+Cài im lặng (IT/test): `GenAssetStudio-Setup-<version>.exe /S /D=<thư mục>`; gỡ: `"<thư mục>Uninstall Gen Asset Studio.exe" /S`.
 
 Dữ liệu app: `%LOCALAPPDATA%\GenAssetStudio` (Codex, codex-home, log, hàng đợi) · cài đặt: `%APPDATA%\Gen Asset Studio\settings.json`.
 
@@ -36,7 +39,10 @@ Yêu cầu: Node 24+, npm, Windows 10/11 x64.
 | `npm run dev` | Chạy app chế độ dev |
 | `npm run typecheck` | Kiểm kiểu main + renderer |
 | `npm run build` | Typecheck + build vào `out/` |
-| `npm run dist:win` | Đóng gói NSIS vào `release/<version>/` |
+| `npm run dist:win` | Đóng gói NSIS vào `release/<version>/` (`GenAssetStudio-Setup-<version>.exe` + `latest.yml`; bản chạy thẳng: `win-unpacked/Gen Asset Studio.exe`) |
+| `node scripts/make-icon.mjs` | Dựng lại `build/icon.png` (512) + `build/icon.ico` (16–256) từ logo |
+| `node scripts/make-sample-assets.mjs` | Vẽ lại bộ ảnh project mẫu |
+| `npm run test:queue` · `test:style` · `test:export` | Test hàng đợi / style / xuất |
 | `npm run test:pipeline` | Chạy thử pipeline xử lý ảnh trên ảnh mẫu |
 
 Biến môi trường dev: `GAS_CODEX_HOME=<thư mục>` dùng CODEX_HOME khác thay cho `%LOCALAPPDATA%\GenAssetStudio\codex-home`.
@@ -51,7 +57,9 @@ Biến môi trường dev: `GAS_CODEX_HOME=<thư mục>` dùng CODEX_HOME khác 
 | `src/main/queue` | Hàng đợi gen |
 | `src/preload`, `src/shared` | API `window.gas` + kiểu dùng chung |
 | `src/renderer/src` | Giao diện React |
-| `resources/style-templates` | Template style + ảnh preview |
+| `resources/style-templates` | Template style + ảnh preview (đóng gói qua extraResources) |
+| `resources/sample-project` | Ảnh + manifest project mẫu (extraResources) |
+| `build/` | Icon app cho electron-builder |
 | `.planning` | Spec, plan, tiến độ, kết quả spike |
 | `mockup/index.html` | Mockup đã duyệt |
 

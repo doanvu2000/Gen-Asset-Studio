@@ -33,6 +33,15 @@ export interface ProjectSummary {
   status: ProjectStatus
   updatedAt: number
   thumbs: string[]
+  sample?: boolean
+}
+
+export interface SampleCreateResult {
+  ok: boolean
+  rel: string | null
+  name: string | null
+  added: number
+  error: string | null
 }
 
 export interface WorkspaceSnapshot {

@@ -532,7 +532,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
     return (
       <div className="input-wrap">
         {skippedNote && <div className="notes">{skippedNote}</div>}
-        <div className="empty-drop big">
+        <div className="empty-drop big" data-coach="proj-input-add">
           {busy ? <span className="spin lg" /> : <Icon name="upload" size={40} />}
           <h2>{busy ? t('input.reading') : t('input.emptyTitle')}</h2>
           <p>{t('input.emptyDesc')}</p>
@@ -555,7 +555,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
   let tileIndex = 0
   return (
     <div className="input-wrap">
-      <div className="toolbar">
+      <div className="toolbar" data-coach="proj-input-add">
         {actions}
         <span className="sep-v" />
         <span className="muted">{t('input.selected', { sel: sel.size, total: inputs.length })}</span>

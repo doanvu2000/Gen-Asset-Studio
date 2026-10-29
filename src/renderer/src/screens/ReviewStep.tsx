@@ -225,7 +225,7 @@ export function ReviewStep({ project }: { project: ProjectView }): ReactElement 
           )}
         </AnimatePresence>
       </div>
-      <div className="rv-grid">
+      <div className="rv-grid" data-coach="review-grid">
         {list.map((x, i) => (
           <Tile key={x.input.id} item={x} index={i} sel={selIds.includes(x.input.id)} onOpen={(e) => onTile(e, x.input.id)} onSel={() => toggleSel(x.input.id)} />
         ))}

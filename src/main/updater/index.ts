@@ -51,6 +51,12 @@ function errorMessage(err: unknown): string {
   return String(err)
 }
 
+const NO_RELEASE = /No published versions|Unable to find latest version|Cannot find latest\.yml|latest\.yml.*(404|not found)|HttpError: 404/i
+
+function isNoRelease(message: string): boolean {
+  return NO_RELEASE.test(message)
+}
+
 export function createUpdater(deps: UpdaterDeps): Updater {
   const enabled = deps.enabled ?? app.isPackaged
   const listeners = new Set<(snapshot: UpdateSnapshot) => void>()
@@ -110,9 +116,15 @@ export function createUpdater(deps: UpdaterDeps): Updater {
     setState({ kind: 'downloaded', ...release })
   }
   const onError = (err: Error): void => {
-    deps.log(`update error: ${errorMessage(err)}`)
+    const message = errorMessage(err)
+    deps.log(`update error: ${message}`)
     if (state.kind === 'downloaded') return
-    setState({ kind: 'error', message: errorMessage(err) })
+    if (isNoRelease(message) && state.kind !== 'downloading') {
+      lastCheckedAt = Date.now()
+      setState({ kind: 'notAvailable' })
+      return
+    }
+    setState({ kind: 'error', message })
   }
 
   if (enabled) {
@@ -144,6 +156,10 @@ export function createUpdater(deps: UpdaterDeps): Updater {
       .catch((err: unknown): UpdateActionResult => {
         lastCheckedAt = Date.now()
         const message = errorMessage(err)
+        if (isNoRelease(message)) {
+          if (state.kind !== 'downloading' && state.kind !== 'downloaded') setState({ kind: 'notAvailable' })
+          return { ok: true }
+        }
         if (state.kind !== 'error') setState({ kind: 'error', message })
         return { ok: false, message }
       })

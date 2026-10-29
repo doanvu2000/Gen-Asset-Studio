@@ -50,6 +50,7 @@ export const IPC = {
   wsChoose: 'ws:choose',
   wsCreateFolder: 'ws:create-folder',
   wsCreateProject: 'ws:create-project',
+  wsCreateSample: 'ws:create-sample',
   wsRename: 'ws:rename',
   wsMove: 'ws:move',
   wsTrash: 'ws:trash',

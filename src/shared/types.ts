@@ -1,4 +1,4 @@
-import type { AddResult, InputType, OpResult, ProjectView, WorkspaceSnapshot } from './workspace'
+import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, WorkspaceSnapshot } from './workspace'
 import type { StyleApi, StyleGroup } from './style'
 import type { QueueApi } from './queue'
 import type { ReviewApi } from './review'
@@ -28,18 +28,27 @@ export interface GenPrefs {
 
 export const DEFAULT_GEN: GenPrefs = { concurrency: 3, styleCount: 3, scale: 1 }
 
+export interface OnboardingPersist {
+  tours: Record<string, boolean>
+  sampleOffered: boolean
+}
+
+export const DEFAULT_ONBOARDING: OnboardingPersist = { tours: {}, sampleOffered: false }
+
 export interface AppSettings {
   theme: ThemePref
   lang: Lang
   workspace: string | null
   setup: SetupPersist
   gen: GenPrefs
+  onboarding: OnboardingPersist
 }
 
 export interface SettingsPatch {
   theme?: ThemePref
   lang?: Lang
   gen?: Partial<GenPrefs>
+  onboarding?: Partial<OnboardingPersist>
 }
 
 export const DEFAULT_SETUP: SetupPersist = {
@@ -54,7 +63,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   lang: 'vi',
   workspace: null,
   setup: { ...DEFAULT_SETUP },
-  gen: { ...DEFAULT_GEN }
+  gen: { ...DEFAULT_GEN },
+  onboarding: { tours: {}, sampleOffered: false }
 }
 
 export interface AppInfo {
@@ -263,6 +273,7 @@ export interface GasApi {
     choose: () => Promise<WorkspaceSnapshot>
     createFolder: (parentRel: string, name: string) => Promise<OpResult>
     createProject: (parentRel: string, name: string) => Promise<OpResult>
+    createSample: () => Promise<SampleCreateResult>
     rename: (rel: string, name: string) => Promise<OpResult>
     move: (rel: string, destRel: string) => Promise<OpResult>
     trash: (rel: string) => Promise<OpResult>

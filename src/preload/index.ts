@@ -95,6 +95,7 @@ const api: GasApi = {
     choose: () => ipcRenderer.invoke(IPC.wsChoose),
     createFolder: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateFolder, parentRel, name),
     createProject: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateProject, parentRel, name),
+    createSample: () => ipcRenderer.invoke(IPC.wsCreateSample),
     rename: (rel: string, name: string) => ipcRenderer.invoke(IPC.wsRename, rel, name),
     move: (rel: string, destRel: string) => ipcRenderer.invoke(IPC.wsMove, rel, destRel),
     trash: (rel: string) => ipcRenderer.invoke(IPC.wsTrash, rel),

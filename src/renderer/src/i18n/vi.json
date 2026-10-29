@@ -177,6 +177,7 @@
     "emptyTitle": "Chưa có project",
     "emptyDesc": "Tạo project mới để nhập bộ PNG, chốt style rồi gen lại bằng Codex.",
     "newProject": "Project mới",
+    "sampleShort": "Project mẫu",
     "openFolder": "Mở folder",
     "count": "{{count}} project · khớp thư mục thật trong",
     "search": "Tìm project",
@@ -969,5 +970,85 @@
     "again": "Xuất lại",
     "toWorkspace": "Về workspace",
     "openFail": "Không mở được folder"
+  },
+  "coach": {
+    "ui": {
+      "kicker": "Hướng dẫn · {{n}}/{{total}}",
+      "next": "Tiếp",
+      "back": "Quay lại",
+      "done": "Xong",
+      "skip": "Bỏ qua",
+      "dialog": "Hướng dẫn nhanh",
+      "progress": "Bước {{n}} trên {{total}}",
+      "replay": "Xem lại hướng dẫn",
+      "replayHint": "Chạy lại các bước hướng dẫn ở màn workspace và project.",
+      "sampleCreate": "Tạo project mẫu",
+      "sampleCreating": "Đang tạo project mẫu…",
+      "sampleCreated": "Đã tạo “{{name}}” với {{count}} ảnh",
+      "sampleFailed": "Không tạo được project mẫu: {{error}}",
+      "sampleHint": "14 ảnh UI có sẵn để bấm thử cả luồng."
+    },
+    "workspace": {
+      "tree": {
+        "title": "Cây thư mục",
+        "body": "Mỗi folder là thư mục thật trong workspace. Kéo thả để sắp xếp, chuột phải hoặc “…” để đổi tên, xoá."
+      },
+      "sample": {
+        "title": "Project mẫu",
+        "body": "Project mẫu có sẵn bộ ảnh UI để bạn bấm thử cả luồng: ảnh gốc → style → gen → duyệt → xuất."
+      },
+      "newProject": {
+        "title": "Tạo project",
+        "body": "Tạo project mới trong folder đang chọn. Mỗi project là một bộ asset cần reskin."
+      },
+      "queue": {
+        "title": "Hàng đợi chung",
+        "body": "Mọi project gen chung một hàng đợi. Hết quota sẽ tự dừng và tự chạy tiếp khi reset."
+      },
+      "settings": {
+        "title": "Cài đặt",
+        "body": "Giao diện, ngôn ngữ, số luồng gen, tài khoản Codex và nút xem lại hướng dẫn này nằm ở đây."
+      }
+    },
+    "project": {
+      "steps": {
+        "title": "5 bước",
+        "body": "Đi lần lượt từ trái sang phải. Bước chưa đủ điều kiện sẽ khoá và cho biết lý do khi rê chuột."
+      },
+      "input": {
+        "title": "Thêm ảnh gốc",
+        "body": "Kéo thả PNG hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất."
+      },
+      "style": {
+        "title": "Nhóm style",
+        "body": "Gom ảnh thành nhóm, chọn template hoặc gợi ý style rồi khoá style trước khi gen."
+      },
+      "gen": {
+        "title": "Gen hàng loạt",
+        "body": "Bấm Bắt đầu để đưa cả nhóm vào hàng đợi. Có thể sang project khác trong lúc chờ."
+      },
+      "review": {
+        "title": "Duyệt kết quả",
+        "body": "So sánh bản gốc và bản mới, chọn phiên bản, duyệt hoặc gen lại từng ảnh."
+      },
+      "export": {
+        "title": "Xuất",
+        "body": "Xuất đúng tên, đúng kích thước, giữ cây thư mục gốc. Có thể xuất thêm bản x2/x4."
+      }
+    },
+    "style": {
+      "groups": {
+        "title": "Nhóm style",
+        "body": "Mỗi nhóm có một style riêng. Project mẫu đã có sẵn một nhóm điền từ template Kẹo Ngọt."
+      },
+      "templates": {
+        "title": "Template có sẵn",
+        "body": "Chọn template để điền prompt và bảng màu, hoặc nhờ AI gợi ý vài hướng style."
+      },
+      "lock": {
+        "title": "Khoá style",
+        "body": "Khoá để chốt ảnh mẫu style. Chỉ nhóm đã khoá mới được gen."
+      }
+    }
   }
 }

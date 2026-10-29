@@ -18,6 +18,7 @@ import { JobQueue, queueStatePath, registerQueueIpc } from './queue'
 import { closePipeline, getPipeline } from './pipeline'
 import { createUpdater, registerUpdateIpc, type Updater } from './updater'
 import { registerExportIpc } from './export'
+import { createSampleProject } from './sample'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import type { EdgeSide } from '@shared/queue'
 
@@ -245,6 +246,22 @@ function registerWorkspaceIpc(): void {
   })
   ipcMain.handle(IPC.wsCreateFolder, (_e, parent: unknown, name: unknown) => workspace.createFolder(str(parent), str(name)))
   ipcMain.handle(IPC.wsCreateProject, (_e, parent: unknown, name: unknown) => workspace.createProject(str(parent), str(name)))
+  ipcMain.handle(IPC.wsCreateSample, async () => {
+    const root = workspace.current
+    if (!root) return { ok: false, rel: null, name: null, added: 0, error: 'noWorkspace' }
+    try {
+      const r = await createSampleProject(root, settings.get().lang, {
+        getTemplate: (id) => style.templates.get(id),
+        log: logger.scoped('sample')
+      })
+      await workspace.rescan()
+      await settings.update({ onboarding: { ...settings.get().onboarding, sampleOffered: true } })
+      broadcast(IPC.settingsChanged, settings.get())
+      return { ok: true, rel: r.rel, name: r.name, added: r.added, error: null }
+    } catch (e) {
+      return { ok: false, rel: null, name: null, added: 0, error: (e as Error).message }
+    }
+  })
   ipcMain.handle(IPC.wsRename, (_e, rel: unknown, name: unknown) => workspace.rename(str(rel), str(name)))
   ipcMain.handle(IPC.wsMove, (_e, rel: unknown, dest: unknown) => workspace.move(str(rel), str(dest)))
   ipcMain.handle(IPC.wsTrash, (_e, rel: unknown) => workspace.trash(str(rel)))

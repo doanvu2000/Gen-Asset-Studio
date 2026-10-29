@@ -232,7 +232,8 @@ export class WorkspaceService extends EventEmitter {
       exportedAt: exp.lastAt,
       status: !count ? 'new' : exp.lastAt ? 'exported' : review.length ? 'review' : 'draft',
       updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
-      thumbs
+      thumbs,
+      sample: !!(data && (data as Record<string, unknown>).sample)
     }
   }
 

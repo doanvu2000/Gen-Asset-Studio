@@ -15,6 +15,8 @@ import { useEnv } from '@renderer/store/env'
 import { useStyle } from '@renderer/store/style'
 import { useWs } from '@renderer/store/workspace'
 import { toast } from '@renderer/store/toast'
+import { CoachTour } from '@renderer/components/CoachMarks'
+import { tourSteps } from '@renderer/lib/tours'
 
 type Pick = { kind: 'template'; id: string } | { kind: 'suggestion'; id: string } | null
 
@@ -707,7 +709,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
         </section>
       </div>
 
-      <section className="card-s">
+      <section className="card-s" data-coach="style-templates">
         <div className="sec-h">
           <h3>{t('style.tpl.title')}</h3>
           <span className="muted">{t('style.tpl.desc')}</span>
@@ -846,7 +848,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
                   <Icon name="refresh" size={14} />
                   {t('style.fb.regenAll')}
                 </button>
-                <button type="button" className="btn primary" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
+                <button type="button" className="btn primary" data-coach="style-lock" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
                   {busy === 'lock' ? <span className="spin" /> : <Icon name="lock" size={14} />}
                   {t('style.lock')}
                 </button>
@@ -919,6 +921,11 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
 
 export function StyleStep({ project }: { project: ProjectView }): ReactElement {
   const { t } = useTranslation()
+  const styleSteps = useMemo(() => tourSteps('style'), [])
+  const seenTours = useApp((s) => s.settings.onboarding.tours)
+  const markTourSeen = useApp((s) => s.markTourSeen)
+  const settingsOpen = useApp((s) => s.settingsOpen)
+  const coachReplay = useApp((s) => s.coachReplay)
   const activeGroup = useWs((s) => s.activeGroup)
   const setActiveGroup = useWs((s) => s.setActiveGroup)
   const updateGroups = useWs((s) => s.updateGroups)
@@ -951,7 +958,7 @@ export function StyleStep({ project }: { project: ProjectView }): ReactElement {
   return (
     <div className="style-step">
       <div className="style-wrap">
-        <div className="glist">
+        <div className="glist" data-coach="style-groups">
           <div className="lbl-s">{t('style.groups')}</div>
           <AnimatePresence initial={false}>
             {groups.map((x) => {
@@ -1038,6 +1045,7 @@ export function StyleStep({ project }: { project: ProjectView }): ReactElement {
           <Icon name="right" size={14} />
         </button>
       </div>
+      <CoachTour tourId="style" steps={styleSteps} seen={!!seenTours.style} onSeen={markTourSeen} enabled={!!seenTours.project && !settingsOpen} replay={coachReplay} delay={500} />
     </div>
   )
 }

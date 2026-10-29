@@ -14,6 +14,9 @@ interface AppState {
   sidebarOpen: boolean
   settingsOpen: boolean
   settingsTab: SettingsTab
+  coachReplay: number
+  markTourSeen: (id: string) => void
+  replayTours: () => void
   navigate: (route: Route) => void
   hydrate: (settings: AppSettings, systemDark: boolean, maximized: boolean) => void
   applySettings: (settings: AppSettings) => void
@@ -38,6 +41,18 @@ export const useApp = create<AppState>()((set, get) => ({
   sidebarOpen: true,
   settingsOpen: false,
   settingsTab: 'general',
+  coachReplay: 0,
+  markTourSeen: (id) => {
+    const cur = get().settings.onboarding?.tours ?? {}
+    if (cur[id]) return
+    const tours = { ...cur, [id]: true }
+    set({ settings: { ...get().settings, onboarding: { ...get().settings.onboarding, tours } } })
+    void window.gas.settings.set({ onboarding: { tours } }).then((next) => get().applySettings(next))
+  },
+  replayTours: () => {
+    set({ settings: { ...get().settings, onboarding: { ...get().settings.onboarding, tours: {} } }, coachReplay: get().coachReplay + 1 })
+    void window.gas.settings.set({ onboarding: { tours: {} } }).then((next) => get().applySettings(next))
+  },
   navigate: (route) => {
     const from = ORDER.indexOf(get().route)
     const to = ORDER.indexOf(route)

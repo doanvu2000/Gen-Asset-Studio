@@ -224,7 +224,7 @@ function GenConfig({ project }: { project: ProjectView }): ReactElement {
             <Icon name="left" size={14} />
             {t('project.steps.style')}
           </button>
-          <button type="button" className="btn primary lg" disabled={!count || starting} onClick={() => void start()}>
+          <button type="button" className="btn primary lg" data-coach="gen-start" disabled={!count || starting} onClick={() => void start()}>
             {starting ? <span className="spin" /> : <Icon name="sparkles" size={15} />}
             {t('gen.start', { count })}
           </button>

@@ -177,6 +177,7 @@
     "emptyTitle": "No projects yet",
     "emptyDesc": "Create a project to import a PNG set, lock a style, then regenerate it with Codex.",
     "newProject": "New project",
+    "sampleShort": "Sample project",
     "openFolder": "Open folder",
     "count": "{{count}} projects · mirrors real folders in",
     "search": "Search projects",
@@ -969,5 +970,85 @@
     "again": "Export again",
     "toWorkspace": "Back to workspace",
     "openFail": "Could not open the folder"
+  },
+  "coach": {
+    "ui": {
+      "kicker": "Guide · {{n}}/{{total}}",
+      "next": "Next",
+      "back": "Back",
+      "done": "Done",
+      "skip": "Skip",
+      "dialog": "Quick tour",
+      "progress": "Step {{n}} of {{total}}",
+      "replay": "Replay the guide",
+      "replayHint": "Run the workspace and project walkthroughs again.",
+      "sampleCreate": "Create sample project",
+      "sampleCreating": "Creating sample project…",
+      "sampleCreated": "Created “{{name}}” with {{count}} images",
+      "sampleFailed": "Could not create the sample project: {{error}}",
+      "sampleHint": "14 ready-made UI images to try the whole flow."
+    },
+    "workspace": {
+      "tree": {
+        "title": "Folder tree",
+        "body": "Each folder is a real directory in your workspace. Drag to reorganise; right-click or use “…” to rename or delete."
+      },
+      "sample": {
+        "title": "Sample project",
+        "body": "The sample project ships with a UI image set so you can try the whole flow: source → style → generate → review → export."
+      },
+      "newProject": {
+        "title": "New project",
+        "body": "Create a project in the selected folder. Each project is one asset set to reskin."
+      },
+      "queue": {
+        "title": "Shared queue",
+        "body": "All projects share one queue. It pauses when quota runs out and resumes when it resets."
+      },
+      "settings": {
+        "title": "Settings",
+        "body": "Theme, language, parallel jobs, your Codex account and a button to replay this guide live here."
+      }
+    },
+    "project": {
+      "steps": {
+        "title": "Five steps",
+        "body": "Work left to right. Steps that are not ready are locked; hover to see why."
+      },
+      "input": {
+        "title": "Add source images",
+        "body": "Drop PNGs or whole folders here. The folder structure is kept on export."
+      },
+      "style": {
+        "title": "Style groups",
+        "body": "Group images, pick a template or ask for style suggestions, then lock the style before generating."
+      },
+      "gen": {
+        "title": "Batch generate",
+        "body": "Press Start to queue the whole group. You can switch to another project while it runs."
+      },
+      "review": {
+        "title": "Review results",
+        "body": "Compare source and result, pick a version, approve or regenerate each image."
+      },
+      "export": {
+        "title": "Export",
+        "body": "Export with the same names, exact sizes and the original folder tree. Optional x2/x4 copies."
+      }
+    },
+    "style": {
+      "groups": {
+        "title": "Style groups",
+        "body": "Each group has its own style. The sample project already has one group filled from the Candy Pop template."
+      },
+      "templates": {
+        "title": "Built-in templates",
+        "body": "Pick a template to fill the prompt and palette, or let AI suggest a few style directions."
+      },
+      "lock": {
+        "title": "Lock the style",
+        "body": "Locking fixes the style sample image. Only locked groups can be generated."
+      }
+    }
   }
 }

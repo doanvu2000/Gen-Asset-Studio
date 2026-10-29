@@ -47,7 +47,7 @@ export function StatusBar(): ReactElement {
           <button type="button" className="st-btn" title={t('gen.modelHint')} onClick={() => openSettings('gen')}>
             Codex · {modelLabel(gen.model, list)} · {gen.effort}
           </button>
-          <button type="button" className={drawer ? 'st-btn on' : 'st-btn'} title={t('queue.title')} onClick={() => setDrawer(!drawer)}>
+          <button type="button" className={drawer ? 'st-btn on' : 'st-btn'} data-coach="ws-queue" title={t('queue.title')} onClick={() => setDrawer(!drawer)}>
             <span className={`dot ${qDot}`} />
             {snap?.pauseReason === 'quota'
               ? t('status.queueQuota', { queued: queued + running })

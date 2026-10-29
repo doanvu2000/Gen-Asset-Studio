@@ -492,7 +492,7 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
                   {t('back')}
                 </button>
               )}
-              <button type="button" className="btn primary lg" onClick={() => void start()} disabled={blocked}>
+              <button type="button" className="btn primary lg" data-coach="export-run" onClick={() => void start()} disabled={blocked}>
                 <Icon name="download" size={15} />
                 {t('run', { count: ready })}
               </button>

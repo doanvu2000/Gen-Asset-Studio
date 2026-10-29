@@ -117,7 +117,7 @@ export function TitleBar(): ReactElement {
         >
           <Icon name={dark ? 'sun' : 'moon'} />
         </button>
-        <button type="button" className="icon-btn" aria-label={t('titlebar.settings')} title={t('titlebar.settings')} onClick={() => openSettings()}>
+        <button type="button" className="icon-btn" data-coach="ws-settings" aria-label={t('titlebar.settings')} title={t('titlebar.settings')} onClick={() => openSettings()}>
           <Icon name="gear" />
         </button>
       </div>
