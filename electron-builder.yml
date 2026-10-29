@@ -11,6 +11,8 @@ files:
 extraResources:
   - from: resources/style-templates
     to: style-templates
+  - from: resources/sample-project
+    to: sample-project
 asarUnpack:
   - "**/node_modules/sharp/**/*"
   - "**/node_modules/@img/**/*"

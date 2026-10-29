@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "name": { "vi": "Project mẫu", "en": "Sample project" },
+  "assetsDir": "assets",
+  "sourceDir": "source",
+  "group": {
+    "templateId": "candy-pop",
+    "name": { "vi": "Kẹo ngọt", "en": "Candy Pop" },
+    "notes": {
+      "vi": "Nhóm mẫu đã điền sẵn từ template Kẹo Ngọt. Bấm Khoá style để chốt rồi sang bước Gen.",
+      "en": "Sample group pre-filled from the Candy Pop template. Lock the style, then move on to Generate."
+    }
+  },
+  "assets": [
+    { "path": "ui/buttons/btn_play.png" },
+    { "path": "ui/buttons/btn_ok_green.png" },
+    { "path": "ui/buttons/btn_cancel_grey.png" },
+    { "path": "ui/buttons/btn_close.png" },
+    { "path": "ui/panels/popup_frame.png", "type": "nine" },
+    { "path": "ui/panels/ribbon_title.png" },
+    { "path": "ui/bars/progress_bg.png", "type": "nine" },
+    { "path": "ui/bars/progress_fill.png", "type": "nine" },
+    { "path": "ui/toggles/toggle_on.png" },
+    { "path": "ui/toggles/toggle_off.png" },
+    { "path": "icons/icon_coin.png" },
+    { "path": "icons/icon_gem.png" },
+    { "path": "icons/icon_star.png" },
+    { "path": "icons/icon_heart.png" }
+  ]
+}

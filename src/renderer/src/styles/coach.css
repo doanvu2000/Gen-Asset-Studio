@@ -1,0 +1,134 @@
+.coach-root {
+  position: fixed;
+  inset: 0;
+  z-index: 950;
+  pointer-events: none;
+}
+
+.coach-block {
+  position: fixed;
+  inset: 0;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.coach-hole {
+  position: fixed;
+  left: 0;
+  top: 0;
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .5), 0 0 0 3px var(--accent), 0 0 0 7px var(--accent-soft);
+  pointer-events: none;
+  transition: transform .38s var(--ease), width .38s var(--ease), height .38s var(--ease), opacity .2s var(--ease), border-radius .38s var(--ease);
+  will-change: transform, width, height;
+}
+
+[data-theme="dark"] .coach-hole {
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, .62), 0 0 0 3px var(--accent), 0 0 0 7px var(--accent-soft);
+}
+
+.coach-hole.pending {
+  opacity: 0;
+}
+
+.coach-bub {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 304px;
+  max-width: calc(100vw - 24px);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 16px;
+  pointer-events: auto;
+  outline: none;
+  transition: transform .38s var(--ease), opacity .2s var(--ease);
+  will-change: transform;
+}
+
+.coach-bub.pending {
+  opacity: 0;
+}
+
+.coach-bub .cb-k {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .02em;
+  color: var(--accent);
+}
+
+.coach-bub h3 {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 4px 0 6px;
+  line-height: 1.3;
+}
+
+.coach-bub p {
+  margin: 0;
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+.coach-bub .cb-body {
+  animation: coach-in .26s var(--ease);
+}
+
+.coach-bub .cb-a {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.coach-bub .cb-dots {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.coach-bub .cb-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--sep);
+  transition: background .2s var(--ease), width .2s var(--ease);
+}
+
+.coach-bub .cb-dots i.on {
+  width: 16px;
+  background: var(--accent);
+}
+
+.coach-bub .cb-dots i.done {
+  background: var(--accent-ring);
+}
+
+.coach-bub .btn:focus-visible {
+  outline: 2px solid var(--accent-ring);
+  outline-offset: 2px;
+}
+
+@keyframes coach-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.coach-root.rm .coach-hole,
+.coach-root.rm .coach-bub,
+.coach-root.rm .cb-dots i {
+  transition: none;
+}
+
+.coach-root.rm .cb-body {
+  animation: none;
+}
