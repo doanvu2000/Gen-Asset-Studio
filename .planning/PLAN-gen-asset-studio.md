@@ -43,3 +43,4 @@ Toggle Light/Dark + Việt/Anh, motion thật, cửa sổ macOS-style. Áp front
 - Mỗi task: append `.planning/PROGRESS-*.md`, cập nhật handoff; xong trọn task → commit (không push, không trailer attribution).
 - **Được tự build / chạy app để test verify khi cần** (chủ nhân cho phép 2026-10-29, riêng project này — đè rule "không tự build" chung).
 - Không comment trong code.
+- `README.md` luôn cập nhật theo tính năng; `CHANGELOG.md` ghi mỗi phiên bản dạng liệt kê ngắn 4 mục **Update · Add · Remove · Fixbug** (mục `Chưa phát hành` gom việc đang làm; ra bản thì đổi thành số phiên bản + ngày và dùng làm release note GitHub). Mỗi milestone xong → thêm dòng vào changelog. Phiên bản: 0.1.0 = M0+M1, mỗi milestone +0.1, 1.0.0 = bản phát hành đầu sau M6.
