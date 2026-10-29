@@ -73,7 +73,10 @@ function createWindow(): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.show())
+  win.once('ready-to-show', () => {
+    win.maximize()
+    win.show()
+  })
 
   const emitMax = (): void => {
     if (!win.isDestroyed()) win.webContents.send(IPC.winMaximizedChanged, win.isMaximized())

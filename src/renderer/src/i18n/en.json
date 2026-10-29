@@ -121,7 +121,7 @@
       },
       "login": {
         "checking": "Reading your account…",
-        "signedOut": "Not signed in. Sign in to Codex with your ChatGPT account.",
+        "signedOut": "Not signed in. Sign in to Codex with a ChatGPT Plus (or higher) account — the Free plan cannot generate images.",
         "waiting": "Waiting for the browser — come back once you have signed in.",
         "signedIn": "{{email}} · {{plan}}"
       },
@@ -343,7 +343,7 @@
     "connected": "Connected",
     "viaChatgpt": "signed in with ChatGPT",
     "notSignedIn": "Not signed in to Codex",
-    "notSignedInDesc": "Sign in with your ChatGPT account to generate images.",
+    "notSignedInDesc": "Sign in with a ChatGPT Plus (or higher) account to generate images.",
     "signIn": "Sign in with ChatGPT",
     "q5": "5-hour quota",
     "qWeek": "Weekly quota",
@@ -568,7 +568,7 @@
       "applied": "Added {{count}} images to “{{name}}”"
     },
     "prompt": {
-      "label": "Prompt",
+      "label": "Style description",
       "optional": "optional · any language",
       "placeholder": "Describe the style, e.g. cute, vivid candy colors, thick outlines"
     },
@@ -620,7 +620,8 @@
       "drawing": "Drawing preview…",
       "failed": "Preview failed",
       "startFailed": "Could not start suggestions",
-      "canceled": "Suggestion run canceled."
+      "canceled": "Suggestion run canceled.",
+      "emptyShort": "Codex looks at your assets + description and proposes {{count}} directions, each with a preview."
     },
     "fb": {
       "label": "Feedback for Codex",
@@ -633,7 +634,21 @@
     "lockDesc": "The preview becomes the style lock image attached to every generation in this group.",
     "lockedToast": "Locked style “{{name}}”",
     "lockFailed": "Could not lock style",
-    "zoom": "View large"
+    "zoom": "View large",
+    "flow": {
+      "assets": "Choose assets",
+      "pick": "Pick a style",
+      "lock": "Lock style"
+    },
+    "pick": {
+      "title": "Pick a style",
+      "desc": "click a card — AI suggestion or built-in template",
+      "ai": "AI suggestions",
+      "templates": "Templates",
+      "selected": "Selected: {{name}}",
+      "none": "No style selected",
+      "noneDesc": "Click an AI suggestion or a template above, then lock it to move on to Gen."
+    }
   },
   "gen": {
     "title": "Generate images",
@@ -1049,6 +1064,24 @@
         "title": "Lock the style",
         "body": "Locking fixes the style sample image. Only locked groups can be generated."
       }
+    }
+  },
+  "kinds": {
+    "label": "Asset type",
+    "soon": "Coming soon",
+    "soonHint": "Coming soon — in development",
+    "soonToast": "{{name}} is coming soon — PNG images are supported for now.",
+    "png": {
+      "name": "PNG images",
+      "desc": "2D UI, icons, buttons, panels"
+    },
+    "spine": {
+      "name": "Spine",
+      "desc": "Spine atlas + skeleton"
+    },
+    "sprite": {
+      "name": "Sprite sheet",
+      "desc": "Animation frames"
     }
   }
 }

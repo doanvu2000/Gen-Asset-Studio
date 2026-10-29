@@ -121,7 +121,7 @@
       },
       "login": {
         "checking": "Đang đọc tài khoản…",
-        "signedOut": "Chưa đăng nhập. Đăng nhập Codex bằng tài khoản ChatGPT của bạn.",
+        "signedOut": "Chưa đăng nhập. Đăng nhập Codex bằng tài khoản ChatGPT Plus trở lên (gói Free không gen ảnh được).",
         "waiting": "Đang chờ trình duyệt — đăng nhập xong thì quay lại app.",
         "signedIn": "{{email}} · {{plan}}"
       },
@@ -343,7 +343,7 @@
     "connected": "Đã kết nối",
     "viaChatgpt": "đăng nhập qua ChatGPT",
     "notSignedIn": "Chưa đăng nhập Codex",
-    "notSignedInDesc": "Đăng nhập bằng tài khoản ChatGPT để gen ảnh.",
+    "notSignedInDesc": "Đăng nhập bằng tài khoản ChatGPT Plus trở lên để gen ảnh.",
     "signIn": "Đăng nhập bằng ChatGPT",
     "q5": "Quota 5 giờ",
     "qWeek": "Quota tuần",
@@ -568,7 +568,7 @@
       "applied": "Đã gán {{count}} ảnh vào “{{name}}”"
     },
     "prompt": {
-      "label": "Prompt",
+      "label": "Mô tả style",
       "optional": "không bắt buộc · viết tiếng Việt cũng được",
       "placeholder": "Mô tả style mong muốn, vd: dễ thương, màu kẹo rực, viền dày"
     },
@@ -620,7 +620,8 @@
       "drawing": "Đang vẽ preview…",
       "failed": "Gen preview lỗi",
       "startFailed": "Không bắt đầu gợi ý được",
-      "canceled": "Đã huỷ lượt gợi ý."
+      "canceled": "Đã huỷ lượt gợi ý.",
+      "emptyShort": "Codex xem bộ ảnh + mô tả rồi đề xuất {{count}} hướng, mỗi hướng kèm 1 ảnh preview."
     },
     "fb": {
       "label": "Nhận xét cho Codex",
@@ -633,7 +634,21 @@
     "lockDesc": "Ảnh preview thành ảnh khoá style, đính kèm vào mọi lượt gen của nhóm này.",
     "lockedToast": "Đã chốt style “{{name}}”",
     "lockFailed": "Chốt style lỗi",
-    "zoom": "Xem lớn"
+    "zoom": "Xem lớn",
+    "flow": {
+      "assets": "Chọn ảnh áp dụng",
+      "pick": "Chọn 1 style",
+      "lock": "Chốt style"
+    },
+    "pick": {
+      "title": "Chọn style",
+      "desc": "bấm 1 thẻ để chọn — gợi ý AI hoặc mẫu có sẵn",
+      "ai": "Gợi ý của AI",
+      "templates": "Mẫu có sẵn",
+      "selected": "Đã chọn: {{name}}",
+      "none": "Chưa chọn style",
+      "noneDesc": "Bấm 1 thẻ gợi ý AI hoặc mẫu có sẵn ở trên, rồi chốt để sang bước Gen."
+    }
   },
   "gen": {
     "title": "Gen ảnh",
@@ -1049,6 +1064,24 @@
         "title": "Khoá style",
         "body": "Khoá để chốt ảnh mẫu style. Chỉ nhóm đã khoá mới được gen."
       }
+    }
+  },
+  "kinds": {
+    "label": "Loại asset",
+    "soon": "Sắp có",
+    "soonHint": "Sắp có — đang phát triển",
+    "soonToast": "{{name}} sắp có — hiện app hỗ trợ ảnh PNG.",
+    "png": {
+      "name": "Ảnh PNG",
+      "desc": "UI, icon, nút, panel 2D"
+    },
+    "spine": {
+      "name": "Spine",
+      "desc": "Atlas + skeleton Spine"
+    },
+    "sprite": {
+      "name": "Sprite sheet",
+      "desc": "Khung hình animation"
     }
   }
 }

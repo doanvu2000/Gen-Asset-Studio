@@ -4,6 +4,7 @@ import type { FolderNode } from '@shared/workspace'
 import { errorText, useWs, type WsDialog } from '@renderer/store/workspace'
 import { Modal } from './Modal'
 import { Icon } from './Icon'
+import { AssetKinds } from './AssetKinds'
 
 function flatFolders(node: FolderNode | null, depth = 0, out: Array<{ rel: string; name: string; depth: number }> = []) {
   if (!node || node.kind !== 'folder') return out
@@ -68,6 +69,7 @@ function NameForm({ mode, parent }: { mode: 'newProject' | 'newFolder'; parent: 
           ))}
         </select>
       </label>
+      {mode === 'newProject' && <AssetKinds />}
       {error && <div className="fld-err">{error}</div>}
       {mode === 'newProject' && (
         <div className="tip">

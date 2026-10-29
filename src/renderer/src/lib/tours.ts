@@ -55,7 +55,7 @@ const DEFS: Record<TourId, Def[]> = {
     { id: 'export', targets: [COACH.exportRun, COACH.projStepExport], placement: 'bottom' }
   ],
   style: [
-    { id: 'groups', targets: [COACH.styleGroups], placement: 'right' },
+    { id: 'groups', targets: [COACH.styleGroups], placement: 'bottom' },
     { id: 'templates', targets: [COACH.styleTemplates], placement: 'auto' },
     { id: 'lock', targets: [COACH.styleLock], placement: 'top' }
   ]

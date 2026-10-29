@@ -2,6 +2,16 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
+## Chưa phát hành
+
+### Update
+- Bước Style dễ dùng hơn: nhóm style thành tab ngang, gợi ý AI + mẫu có sẵn chung một chỗ chọn, mô tả / ảnh tham chiếu ở cột phải, thanh Chốt style luôn hiện ở đáy, có chỉ dẫn 3 bước
+- App mở phóng to toàn màn hình ngay từ đầu
+- Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
+
+### Add
+- Chọn loại asset: Ảnh PNG · Spine (sắp có) · Sprite sheet (sắp có) ở hộp Project mới và bước Ảnh gốc
+
 ## 1.0.0 — 2026-10-29
 
 Bản phát hành đầu tiên.

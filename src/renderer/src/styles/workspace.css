@@ -1276,3 +1276,95 @@ select.inp {
   height: 36px;
   border-width: 3px;
 }
+
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.kind {
+  border: 1.5px solid var(--sep2);
+  background: var(--surface);
+  border-radius: 10px;
+  padding: 10px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text);
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.kind.on {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.kind.soon {
+  opacity: .55;
+  cursor: not-allowed;
+}
+
+.kind .kind-ic {
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.kind.soon .kind-ic {
+  color: var(--text3);
+}
+
+.kind b {
+  font-size: 13px;
+}
+
+.kind small {
+  font-size: 11px;
+  color: var(--text2);
+}
+
+.kinds-c {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 8px;
+  background: var(--gray-bg);
+}
+
+.kc {
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.kc.on {
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.kc.soon {
+  opacity: .6;
+  cursor: not-allowed;
+}
+
+.kc .chip {
+  height: 16px;
+  font-size: 10px;
+  padding: 0 5px;
+}
+
+.empty-drop .kinds-c {
+  margin-top: 12px;
+}

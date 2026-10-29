@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { MAX_PER_RUN, type InputType, type InputView, type ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
+import { AssetKinds } from '@renderer/components/AssetKinds'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
 import { fileSize } from '@renderer/lib/format'
 import { useWs } from '@renderer/store/workspace'
@@ -536,6 +537,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
           {busy ? <span className="spin lg" /> : <Icon name="upload" size={40} />}
           <h2>{busy ? t('input.reading') : t('input.emptyTitle')}</h2>
           <p>{t('input.emptyDesc')}</p>
+          <AssetKinds variant="compact" />
           <div className="actions">
             <button type="button" className="btn primary" disabled={busy} onClick={() => void runAdd(() => window.gas.project.addDialog(rel, 'folder'))}>
               <Icon name="folder" size={14} />
@@ -567,6 +569,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
           {t('input.remove')}
         </button>
         <div className="grow" />
+        <AssetKinds variant="compact" />
         {busy && (
           <span className="busy-chip">
             <span className="spin" />

@@ -584,67 +584,190 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const lockedSuggestion = (s: StyleSuggestion): boolean => locked && !group.templateId && group.lockName === s.name
   const canSuggest = !locked && !running && !busy
 
+  const pickedSugg = pick?.kind === 'suggestion' ? run?.suggestions.find((s) => s.id === pick.id) : undefined
+  const pickedTpl = pick?.kind === 'template' ? templates.find((x) => x.id === pick.id) : undefined
+  const pickedName = pickedSugg?.name ?? pickedTpl?.name[lang] ?? ''
+  const pickedImg = pickedSugg?.previewPath ? fileUrl(pickedSugg.previewPath, pickedSugg.durationMs ?? 0) : pickedTpl?.previewSmPath ? fileUrl(pickedTpl.previewSmPath) : null
+  const stage = locked ? 4 : !assets.length ? 1 : pick ? 3 : 2
+  const showAi = !!run && (run.phase === 'planning' || run.suggestions.length > 0)
+
   return (
     <div className="editor">
-      <div className="ed-head">
-        <input className="title-in" value={group.name} aria-label={t('style.groupName')} onChange={(e) => patch({ name: e.target.value })} />
-        {locked ? (
-          <span className="chip c-green">
-            <Icon name="lock" size={11} />
-            {t('style.locked')}
-          </span>
-        ) : (
-          <span className="chip c-gray">{t('style.notLocked')}</span>
-        )}
-        <div className="grow" />
-        <button type="button" className="btn ghost sm danger" onClick={() => setConfirmDel(true)}>
-          <Icon name="trash" size={14} />
-          {t('style.deleteGroup')}
-        </button>
-      </div>
-
-      <section className="card-s">
-        <div className="sec-h">
-          <h3>{t('style.assets.title')}</h3>
-          <span className="muted">{t('style.assets.count', { count: assets.length })}</span>
-          <div className="grow" />
-          {selFromInput.length > 0 && (
-            <button type="button" className="btn sm" onClick={useInputSel}>
-              <Icon name="check" size={13} />
-              {t('style.assets.fromInput', { count: selFromInput.length })}
-            </button>
+      <div className="ed-main">
+        <div className="ed-head">
+          <input className="title-in" value={group.name} aria-label={t('style.groupName')} onChange={(e) => patch({ name: e.target.value })} />
+          {locked ? (
+            <span className="chip c-green">
+              <Icon name="lock" size={11} />
+              {t('style.locked')}
+            </span>
+          ) : (
+            <span className="chip c-gray">{t('style.notLocked')}</span>
           )}
-          <button type="button" className="btn sm" onClick={() => setPickerOpen(true)}>
-            <Icon name="grid" size={13} />
-            {t('style.assets.choose')}
+          <div className="grow" />
+          <button type="button" className="btn ghost sm danger" onClick={() => setConfirmDel(true)}>
+            <Icon name="trash" size={14} />
+            {t('style.deleteGroup')}
           </button>
         </div>
-        <div className="strip">
-          {assets.slice(0, 30).map((i) => (
-            <div className="sthumb" key={i.id} title={`${i.rel} · ${i.w}×${i.h}`}>
-              <span className="st-img ck">{i.thumb ? <img src={i.thumb} alt="" draggable={false} /> : <Icon name="alert" size={16} />}</span>
-              <button type="button" className={i.type === 'nine' ? 'st-nine on' : 'st-nine'} title={t('style.assets.nineHint')} onClick={() => void toggleNine(i)}>
-                9
-              </button>
-              <button type="button" className="st-x" aria-label={t('style.assets.remove')} title={t('style.assets.remove')} onClick={() => removeAsset(i.id)}>
-                <Icon name="x" size={10} />
-              </button>
-            </div>
+        <ol className="flow">
+          {(['assets', 'pick', 'lock'] as const).map((k, i) => (
+            <li key={k} className={stage > i + 1 ? 'done' : stage === i + 1 ? 'cur' : undefined}>
+              <span className="fn">{stage > i + 1 ? <Icon name="check" size={11} /> : i + 1}</span>
+              {t(`style.flow.${k}`)}
+            </li>
           ))}
-          {assets.length > 30 && <div className="more">+{assets.length - 30}</div>}
-          {!assets.length && <span className="muted">{t('style.assets.empty')}</span>}
-        </div>
-      </section>
+        </ol>
 
-      <div className="two">
         <section className="card-s">
+          <div className="sec-h">
+            <h3>
+              <span className="sn">1</span>
+              {t('style.assets.title')}
+            </h3>
+            <span className="muted">{t('style.assets.count', { count: assets.length })}</span>
+            <div className="grow" />
+            {selFromInput.length > 0 && (
+              <button type="button" className="btn sm" onClick={useInputSel}>
+                <Icon name="check" size={13} />
+                {t('style.assets.fromInput', { count: selFromInput.length })}
+              </button>
+            )}
+            <button type="button" className={assets.length ? 'btn sm' : 'btn sm primary'} onClick={() => setPickerOpen(true)}>
+              <Icon name="grid" size={13} />
+              {t('style.assets.choose')}
+            </button>
+          </div>
+          <div className="strip">
+            {assets.slice(0, 40).map((i) => (
+              <div className="sthumb" key={i.id} title={`${i.rel} · ${i.w}×${i.h}`}>
+                <span className="st-img ck">{i.thumb ? <img src={i.thumb} alt="" draggable={false} /> : <Icon name="alert" size={16} />}</span>
+                <button type="button" className={i.type === 'nine' ? 'st-nine on' : 'st-nine'} title={t('style.assets.nineHint')} onClick={() => void toggleNine(i)}>
+                  9
+                </button>
+                <button type="button" className="st-x" aria-label={t('style.assets.remove')} title={t('style.assets.remove')} onClick={() => removeAsset(i.id)}>
+                  <Icon name="x" size={10} />
+                </button>
+              </div>
+            ))}
+            {assets.length > 40 && <div className="more">+{assets.length - 40}</div>}
+            {!assets.length && <span className="muted">{t('style.assets.empty')}</span>}
+          </div>
+        </section>
+
+        <section className="card-s" data-coach="style-templates">
+          <div className="sec-h">
+            <h3>
+              <span className="sn">2</span>
+              {t('style.pick.title')}
+            </h3>
+            <span className="muted">{t('style.pick.desc')}</span>
+          </div>
+          <div className="ai-bar">
+            <span className="ai-ic">
+              <Icon name="sparkles" size={16} />
+            </span>
+            <div className="ai-t">
+              <b>{t('style.sugg.title')}</b>
+              <span className="muted">
+                {running ? phaseText : run ? (left5 !== null ? t('style.sugg.estimateQuota', { count: n, left: left5 }) : t('style.sugg.estimate', { count: n })) : t('style.sugg.emptyShort', { count: n })}
+              </span>
+            </div>
+            <ModelChip task="styleSuggest" />
+            <Stepper value={n} min={SUGGEST_MIN} max={SUGGEST_MAX} onChange={setN} label={t('style.sugg.count')} />
+            {running ? (
+              <button type="button" className="btn sm" onClick={() => run && void window.gas.style.suggestCancel(run.runId)}>
+                <Icon name="x" size={13} />
+                {t('style.sugg.cancel')}
+              </button>
+            ) : (
+              <>
+                <button type="button" className="btn sm" disabled={!canSuggest || !group.promptEn.trim()} title={t('style.sugg.promptOnlyHint')} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
+                  {t('style.sugg.promptOnly')}
+                </button>
+                <button type="button" className="btn sm primary" disabled={!canSuggest} onClick={() => void startSuggest(n)}>
+                  {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={13} />}
+                  {run ? t('style.sugg.again') : t('style.sugg.start')}
+                </button>
+              </>
+            )}
+          </div>
+          {run && run.phase === 'error' && (
+            <div className="note err">
+              <Icon name="alert" size={14} />
+              <span className="note-t">{run.error ?? t('style.sugg.failed')}</span>
+            </div>
+          )}
+          {run && run.phase === 'canceled' && (
+            <div className="note info">
+              <Icon name="x" size={14} />
+              <span className="note-t">{t('style.sugg.canceled')}</span>
+            </div>
+          )}
+          {showAi && <div className="sub-l">{t('style.pick.ai')}</div>}
+          {run && run.phase === 'planning' && (
+            <div className="sugg-grid">
+              {Array.from({ length: n }, (_, i) => (
+                <div className="skel" key={i} style={{ animationDelay: `${i * 120}ms` }} />
+              ))}
+            </div>
+          )}
+          {run && run.suggestions.length > 0 && (
+            <div className="sugg-grid">
+              {run.suggestions.map((s, i) => (
+                <SuggestionCard
+                  key={s.id}
+                  s={s}
+                  index={i}
+                  on={pick?.kind === 'suggestion' && pick.id === s.id}
+                  locked={lockedSuggestion(s)}
+                  disabled={locked || running}
+                  onPick={() => setPick({ kind: 'suggestion', id: s.id })}
+                  onZoom={() => s.previewPath && setZoom({ src: fileUrl(s.previewPath, s.durationMs ?? 0), title: s.name })}
+                />
+              ))}
+            </div>
+          )}
+          <div className="sub-l">
+            {t('style.pick.templates')}
+            <div className="grow" />
+            <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
+              <Icon name="save" size={13} />
+              {t('style.tpl.saveAs')}
+            </button>
+          </div>
+          <div className="tpl-grid">
+            {templates.map((tpl, i) => (
+              <TemplateCard
+                key={tpl.id}
+                tpl={tpl}
+                index={i}
+                on={pick?.kind === 'template' && pick.id === tpl.id}
+                locked={locked && group.templateId === tpl.id}
+                disabled={locked}
+                onPick={() => pickTemplate(tpl)}
+                onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
+                onDelete={() =>
+                  void window.gas.style.deleteTemplate(tpl.id).then(() => {
+                    void loadTemplates()
+                    toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
+                  })
+                }
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+
+      <aside className="ed-side">
+        <section>
           <label className="lbl" htmlFor={`gp-${group.id}`}>
             {t('style.prompt.label')} <small className="muted">{t('style.prompt.optional')}</small>
           </label>
           <textarea
             id={`gp-${group.id}`}
             className="ta"
-            rows={5}
+            rows={6}
             value={group.promptEn}
             placeholder={t('style.prompt.placeholder')}
             onChange={(e) => patch({ promptEn: e.target.value })}
@@ -686,7 +809,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
             )}
           </AnimatePresence>
         </section>
-        <section className="card-s">
+        <section>
           <div className="lbl">
             {t('style.refs.label')} <small className="muted">{t('style.refs.optional')}</small>
           </div>
@@ -707,156 +830,60 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
           </div>
           <p className="muted small ref-note">{t('style.refs.note')}</p>
         </section>
-      </div>
+        {run && !locked && (
+          <section>
+            <label className="lbl" htmlFor={`fb-${group.id}`}>
+              {t('style.fb.label')} <small className="muted">{t('style.refs.optional')}</small>
+            </label>
+            <textarea id={`fb-${group.id}`} className="ta" rows={3} value={feedback} placeholder={t('style.fb.placeholder')} onChange={(e) => setFeedback(e.target.value)} />
+            <div className="ptools">
+              <button type="button" className="btn sm" disabled={running || pick?.kind !== 'suggestion'} onClick={() => void regenPicked()}>
+                <Icon name="refresh" size={13} />
+                {t('style.fb.regenPicked')}
+              </button>
+              <button type="button" className="btn sm" disabled={!canSuggest} onClick={() => void startSuggest(n, feedback.trim() || undefined)}>
+                <Icon name="refresh" size={13} />
+                {t('style.fb.regenAll')}
+              </button>
+            </div>
+          </section>
+        )}
+      </aside>
 
-      <section className="card-s" data-coach="style-templates">
-        <div className="sec-h">
-          <h3>{t('style.tpl.title')}</h3>
-          <span className="muted">{t('style.tpl.desc')}</span>
-          <div className="grow" />
-          <button type="button" className="btn sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
-            <Icon name="save" size={13} />
-            {t('style.tpl.saveAs')}
-          </button>
-        </div>
-        <div className="tpl-grid">
-          {templates.map((tpl, i) => (
-            <TemplateCard
-              key={tpl.id}
-              tpl={tpl}
-              index={i}
-              on={pick?.kind === 'template' && pick.id === tpl.id}
-              locked={locked && group.templateId === tpl.id}
-              disabled={locked}
-              onPick={() => pickTemplate(tpl)}
-              onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
-              onDelete={() =>
-                void window.gas.style.deleteTemplate(tpl.id).then(() => {
-                  void loadTemplates()
-                  toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
-                })
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      <section className="card-s">
-        <div className="sec-h">
-          <h3>{t('style.sugg.title')}</h3>
-          <ModelChip task="styleSuggest" />
-          <Stepper value={n} min={SUGGEST_MIN} max={SUGGEST_MAX} onChange={setN} label={t('style.sugg.count')} />
-          <span className="muted">{left5 !== null ? t('style.sugg.estimateQuota', { count: n, left: left5 }) : t('style.sugg.estimate', { count: n })}</span>
-          <div className="grow" />
-          {running ? (
-            <button type="button" className="btn" onClick={() => run && void window.gas.style.suggestCancel(run.runId)}>
-              <Icon name="x" size={14} />
-              {t('style.sugg.cancel')}
+      <AnimatePresence initial={false} mode="wait">
+        {locked ? (
+          <motion.div key="lk" className="lockbar locked" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={fadeTransition}>
+            <button type="button" className="lk-img ck" disabled={!lockSrc} onClick={() => lockSrc && setZoom({ src: lockSrc, title: group.lockName ?? group.name })}>
+              {lockSrc ? <img src={lockSrc} alt="" draggable={false} /> : <Icon name="lock" size={18} />}
             </button>
-          ) : (
-            <>
-              <button type="button" className="btn" disabled={!canSuggest || !group.promptEn.trim()} title={t('style.sugg.promptOnlyHint')} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
-                {t('style.sugg.promptOnly')}
-              </button>
-              <button type="button" className="btn primary" disabled={!canSuggest} onClick={() => void startSuggest(n)}>
-                {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={14} />}
-                {run ? t('style.sugg.again') : t('style.sugg.start')}
-              </button>
-            </>
-          )}
-        </div>
-        {!run && (
-          <div className="hint-empty">
-            <Icon name="sparkles" size={22} />
-            <p>{t('style.sugg.empty', { count: n })}</p>
-          </div>
+            <div className="lb-t">
+              <b>
+                {t('style.locked')}: {group.lockName || group.name}
+              </b>
+              <span>{t('style.lockDesc')}</span>
+            </div>
+            <button type="button" className="btn" onClick={() => void doUnlock()}>
+              <Icon name="unlock" size={14} />
+              {t('style.unlock')}
+            </button>
+          </motion.div>
+        ) : (
+          <motion.div key="pk" className="lockbar" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={fadeTransition}>
+            <span className="lk-img ck">{pickedImg ? <img src={pickedImg} alt="" draggable={false} /> : <Icon name="palette" size={18} />}</span>
+            <div className="lb-t">
+              <b>
+                <span className="sn">3</span>
+                {pick ? t('style.pick.selected', { name: pickedName }) : t('style.pick.none')}
+              </b>
+              <span>{pick ? t('style.lockDesc') : t('style.pick.noneDesc')}</span>
+            </div>
+            <button type="button" className="btn primary" data-coach="style-lock" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
+              {busy === 'lock' ? <span className="spin" /> : <Icon name="lock" size={14} />}
+              {t('style.lock')}
+            </button>
+          </motion.div>
         )}
-        {run && running && (
-          <div className="loading-row">
-            <span className="spin" />
-            <span>{phaseText}</span>
-          </div>
-        )}
-        {run && run.phase === 'error' && (
-          <div className="note err">
-            <Icon name="alert" size={14} />
-            <span className="note-t">{run.error ?? t('style.sugg.failed')}</span>
-          </div>
-        )}
-        {run && run.phase === 'canceled' && (
-          <div className="note info">
-            <Icon name="x" size={14} />
-            <span className="note-t">{t('style.sugg.canceled')}</span>
-          </div>
-        )}
-        {run && run.phase === 'planning' && (
-          <div className="sugg-grid">
-            {Array.from({ length: n }, (_, i) => (
-              <div className="skel" key={i} style={{ animationDelay: `${i * 120}ms` }} />
-            ))}
-          </div>
-        )}
-        {run && run.suggestions.length > 0 && (
-          <div className="sugg-grid">
-            {run.suggestions.map((s, i) => (
-              <SuggestionCard
-                key={s.id}
-                s={s}
-                index={i}
-                on={pick?.kind === 'suggestion' && pick.id === s.id}
-                locked={lockedSuggestion(s)}
-                disabled={locked || running}
-                onPick={() => setPick({ kind: 'suggestion', id: s.id })}
-                onZoom={() => s.previewPath && setZoom({ src: fileUrl(s.previewPath, s.durationMs ?? 0), title: s.name })}
-              />
-            ))}
-          </div>
-        )}
-        <AnimatePresence initial={false} mode="wait">
-          {locked ? (
-            <motion.div key="lk" className="locked-banner" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={fadeTransition}>
-              {lockSrc && (
-                <button type="button" className="lb-img ck" onClick={() => setZoom({ src: lockSrc, title: group.lockName ?? group.name })}>
-                  <img src={lockSrc} alt="" draggable={false} />
-                </button>
-              )}
-              <div className="lb-t">
-                <b>
-                  {t('style.locked')}: {group.lockName || group.name}
-                </b>
-                <span>{t('style.lockDesc')}</span>
-              </div>
-              <button type="button" className="btn sm" onClick={() => void doUnlock()}>
-                <Icon name="unlock" size={13} />
-                {t('style.unlock')}
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div key="fb" className="fb-row" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={fadeTransition}>
-              <div>
-                <label className="lbl" htmlFor={`fb-${group.id}`}>
-                  {t('style.fb.label')} <small className="muted">{t('style.refs.optional')}</small>
-                </label>
-                <textarea id={`fb-${group.id}`} className="ta" rows={2} value={feedback} placeholder={t('style.fb.placeholder')} onChange={(e) => setFeedback(e.target.value)} />
-              </div>
-              <div className="acts">
-                <button type="button" className="btn" disabled={!run || running || pick?.kind !== 'suggestion'} onClick={() => void regenPicked()}>
-                  <Icon name="refresh" size={14} />
-                  {t('style.fb.regenPicked')}
-                </button>
-                <button type="button" className="btn" disabled={!run || !canSuggest} onClick={() => void startSuggest(n, feedback.trim() || undefined)}>
-                  <Icon name="refresh" size={14} />
-                  {t('style.fb.regenAll')}
-                </button>
-                <button type="button" className="btn primary" data-coach="style-lock" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
-                  {busy === 'lock' ? <span className="spin" /> : <Icon name="lock" size={14} />}
-                  {t('style.lock')}
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </section>
+      </AnimatePresence>
 
       <AssetPicker project={project} group={group} open={pickerOpen} onClose={() => setPickerOpen(false)} />
       <Lightbox src={zoom?.src ?? null} title={zoom?.title ?? ''} onClose={() => setZoom(null)} />
@@ -957,82 +984,78 @@ export function StyleStep({ project }: { project: ProjectView }): ReactElement {
 
   return (
     <div className="style-step">
-      <div className="style-wrap">
-        <div className="glist" data-coach="style-groups">
-          <div className="lbl-s">{t('style.groups')}</div>
-          <AnimatePresence initial={false}>
-            {groups.map((x) => {
-              const count = x.assetIds.length
-              return (
-                <motion.button
-                  layout
-                  key={x.id}
-                  type="button"
-                  className={x.id === g?.id ? 'gitem on' : 'gitem'}
-                  onClick={() => setActiveGroup(x.id)}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -8 }}
-                  transition={{ duration: 0.22, ease: EASE }}
-                >
-                  <Swatch project={project} group={x} />
-                  <span className="gi-t">
-                    <span className="gname">{x.name}</span>
-                    <small className="muted">
-                      {t('style.assets.count', { count })} · {isLocked(x) ? x.lockName || t('style.locked') : t('style.notLocked')}
-                    </small>
-                  </span>
-                  {isLocked(x) && (
-                    <span className="chip c-green">
-                      <Icon name="lock" size={10} />
-                    </span>
-                  )}
-                </motion.button>
-              )
-            })}
-          </AnimatePresence>
-          <button type="button" className="btn ghost sm gl-add" onClick={addGroup}>
-            <Icon name="plus" size={14} />
-            {t('style.newGroup')}
-          </button>
-          {unassigned.length > 0 && groups.length > 0 && (
-            <div className="unassigned">
-              <b>{t('style.unassigned.title', { count: unassigned.length })}</b>
-              <span>{t('style.unassigned.desc')}</span>
-              <button type="button" className="btn sm" onClick={assignRest}>
-                {t('style.unassigned.assign')}
-              </button>
-            </div>
-          )}
-          {sprites > 0 && (
-            <div className="note info">
-              <Icon name="lock" size={14} />
-              <span className="note-t">{t('style.spriteNote')}</span>
-            </div>
-          )}
-        </div>
-        {g ? (
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div key={g.id} className="editor-wrap" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={fadeTransition}>
-              <GroupEditor project={project} group={g} />
-            </motion.div>
-          </AnimatePresence>
-        ) : (
-          <div className="proj-state">
-            <div className="empty">
-              <Icon name="palette" size={34} />
-              <h3>{t('style.emptyTitle')}</h3>
-              <p>{t('style.emptyDesc')}</p>
-              <div className="actions">
-                <button type="button" className="btn primary" onClick={addGroup}>
-                  <Icon name="plus" size={14} />
-                  {t('style.newGroup')}
-                </button>
-              </div>
-            </div>
+      <div className="gtabs" data-coach="style-groups">
+        <span className="lbl-s">{t('style.groups')}</span>
+        <AnimatePresence initial={false}>
+          {groups.map((x) => (
+            <motion.button
+              layout
+              key={x.id}
+              type="button"
+              className={x.id === g?.id ? 'gtab on' : 'gtab'}
+              onClick={() => setActiveGroup(x.id)}
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.22, ease: EASE }}
+            >
+              <Swatch project={project} group={x} />
+              <span className="gi-t">
+                <span className="gname">{x.name}</span>
+                <small className="muted">
+                  {t('style.assets.count', { count: x.assetIds.length })} · {isLocked(x) ? x.lockName || t('style.locked') : t('style.notLocked')}
+                </small>
+              </span>
+              {isLocked(x) && (
+                <span className="chip c-green">
+                  <Icon name="lock" size={10} />
+                </span>
+              )}
+            </motion.button>
+          ))}
+        </AnimatePresence>
+        <button type="button" className="btn ghost sm" onClick={addGroup}>
+          <Icon name="plus" size={14} />
+          {t('style.newGroup')}
+        </button>
+        <div className="grow" />
+        {sprites > 0 && (
+          <span className="chip c-gray" title={t('style.spriteNote')}>
+            <Icon name="lock" size={10} />
+            {t('kinds.sprite.name')} · {t('kinds.soon')}
+          </span>
+        )}
+        {unassigned.length > 0 && groups.length > 0 && (
+          <div className="unas" title={t('style.unassigned.desc')}>
+            <Icon name="alert" size={14} />
+            <span>{t('style.unassigned.title', { count: unassigned.length })}</span>
+            <button type="button" className="btn sm" onClick={assignRest}>
+              {t('style.unassigned.assign')}
+            </button>
           </div>
         )}
       </div>
+      {g ? (
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div key={g.id} className="editor-wrap" initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -8 }} transition={fadeTransition}>
+            <GroupEditor project={project} group={g} />
+          </motion.div>
+        </AnimatePresence>
+      ) : (
+        <div className="proj-state">
+          <div className="empty">
+            <Icon name="palette" size={34} />
+            <h3>{t('style.emptyTitle')}</h3>
+            <p>{t('style.emptyDesc')}</p>
+            <div className="actions">
+              <button type="button" className="btn primary" onClick={addGroup}>
+                <Icon name="plus" size={14} />
+                {t('style.newGroup')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="footbar">
         <span>{ready ? t('style.footReady') : t('style.footHint')}</span>
         <div className="grow" />
