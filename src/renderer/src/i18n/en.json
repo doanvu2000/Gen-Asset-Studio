@@ -252,6 +252,12 @@
       },
       "modelsNote": "Default: luna · medium for all three. Higher effort is slower and uses more quota.",
       "reset": "Reset"
+    },
+    "closeBusy": {
+      "label": "Closing while generating",
+      "hint": "Closing with tasks running minimizes to the taskbar and keeps working; closing again asks whether to quit.",
+      "background": "Keep running",
+      "quit": "Quit"
     }
   },
   "env": {

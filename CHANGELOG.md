@@ -5,6 +5,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 ## Chưa phát hành
 
 ### Update
+- Logo mới: Jin Vũ bắt tay GPT (icon app, splash, sidebar)
 - Bước Style dễ dùng hơn: nhóm style thành tab ngang, gợi ý AI + mẫu có sẵn chung một chỗ chọn, mô tả / ảnh tham chiếu ở cột phải, thanh Chốt style luôn hiện ở đáy, có chỉ dẫn 3 bước
 - App mở phóng to toàn màn hình ngay từ đầu
 - Chốt xong style cho mọi nhóm có ảnh thì tự chuyển sang bước Gen ảnh
@@ -12,6 +13,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
 
 ### Add
+- Đóng app khi còn việc đang gen: thu xuống taskbar và chạy tiếp (đóng lần nữa sẽ hỏi thoát hẳn); đổi trong Cài đặt › Chung
 - Nhận thêm ảnh JPG, WebP, AVIF, TIFF (vẫn ưu tiên PNG để giữ nền trong suốt); xuất giữ đúng định dạng gốc
 - Dòng hướng dẫn đầu mỗi bước (Bước N/5): bước này làm gì + bước tiếp theo
 - Chọn loại asset: Ảnh PNG · Spine (sắp có) · Sprite sheet (sắp có) ở hộp Project mới và bước Ảnh gốc

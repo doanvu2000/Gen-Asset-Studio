@@ -35,9 +35,12 @@ export interface OnboardingPersist {
 
 export const DEFAULT_ONBOARDING: OnboardingPersist = { tours: {}, sampleOffered: false }
 
+export type CloseWhenBusy = 'background' | 'quit'
+
 export interface AppSettings {
   theme: ThemePref
   lang: Lang
+  closeWhenBusy: CloseWhenBusy
   workspace: string | null
   setup: SetupPersist
   gen: GenPrefs
@@ -47,6 +50,7 @@ export interface AppSettings {
 export interface SettingsPatch {
   theme?: ThemePref
   lang?: Lang
+  closeWhenBusy?: CloseWhenBusy
   gen?: Partial<GenPrefs>
   onboarding?: Partial<OnboardingPersist>
 }
@@ -61,6 +65,7 @@ export const DEFAULT_SETUP: SetupPersist = {
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   lang: 'vi',
+  closeWhenBusy: 'background',
   workspace: null,
   setup: { ...DEFAULT_SETUP },
   gen: { ...DEFAULT_GEN },

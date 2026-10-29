@@ -2,15 +2,12 @@ import { useEffect, useState, type ReactElement } from 'react'
 import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { EASE } from '@renderer/lib/motion'
+import logoUrl from '@renderer/assets/logo.png'
 
 const WORDS = ['Gen', 'Asset', 'Studio']
 const LETTER_START = 1.05
 const LETTER_STEP = 0.06
 const HOLD_MS = 3900
-const FILL_BOX = {
-  transformBox: 'fill-box',
-  transformOrigin: 'center'
-} as const
 
 function SplashLogo(): ReactElement {
   return (
@@ -40,83 +37,10 @@ function SplashLogo(): ReactElement {
           }
         }}
       >
-        <svg viewBox="0 0 64 64" className="splash-logo-svg" aria-hidden="true">
-          <defs>
-            <linearGradient id="splash-g" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#5AC8FA" />
-              <stop offset="1" stopColor="#007AFF" />
-            </linearGradient>
-            <linearGradient id="splash-shine" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0" stopColor="#fff" stopOpacity="0" />
-              <stop offset="0.5" stopColor="#fff" stopOpacity="0.75" />
-              <stop offset="1" stopColor="#fff" stopOpacity="0" />
-            </linearGradient>
-            <clipPath id="splash-clip">
-              <rect x="2" y="2" width="60" height="60" rx="14" />
-            </clipPath>
-          </defs>
-          <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#splash-g)" />
-          <motion.rect
-            x="14"
-            y="20"
-            width="26"
-            height="26"
-            rx="7"
-            fill="#fff"
-            style={FILL_BOX}
-            initial={{ opacity: 0, x: -12, y: 12, scale: 0.6 }}
-            animate={{ opacity: 0.35, x: 0, y: 0, scale: 1 }}
-            transition={{
-              delay: 0.4,
-              type: 'spring',
-              stiffness: 260,
-              damping: 16
-            }}
-          />
-          <motion.rect
-            x="22"
-            y="14"
-            width="28"
-            height="28"
-            rx="7"
-            fill="#fff"
-            style={FILL_BOX}
-            initial={{ opacity: 0, y: -22, scale: 0.7 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{
-              delay: 0.55,
-              type: 'spring',
-              stiffness: 300,
-              damping: 14
-            }}
-          />
-          <motion.path
-            d="M36 20l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"
-            fill="#007AFF"
-            style={FILL_BOX}
-            initial={{ opacity: 0, scale: 0, rotate: -180 }}
-            animate={{ opacity: 1, scale: [0, 1.6, 1], rotate: 0 }}
-            transition={{ delay: 0.8, duration: 0.7, ease: EASE }}
-          />
-          <g clipPath="url(#splash-clip)">
-            <g transform="rotate(20 32 32)">
-              <motion.rect
-                x="-40"
-                y="-10"
-                width="24"
-                height="90"
-                fill="url(#splash-shine)"
-                initial={{ x: -40 }}
-                animate={{ x: 130 }}
-                transition={{
-                  delay: 1.35,
-                  duration: 0.9,
-                  ease: [0.4, 0, 0.2, 1]
-                }}
-              />
-            </g>
-          </g>
-        </svg>
+        <img src={logoUrl} className="splash-logo-svg" alt="" draggable={false} />
+        <span className="splash-shine-clip">
+          <motion.span className="splash-shine" style={{ rotate: 20 }} initial={{ x: '-160%' }} animate={{ x: '360%' }} transition={{ delay: 1.35, duration: 0.9, ease: [0.4, 0, 0.2, 1] }} />
+        </span>
       </motion.div>
       {[
         { x: -70, y: -46, d: 1.0, s: 10 },

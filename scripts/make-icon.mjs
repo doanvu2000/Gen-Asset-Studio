@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -6,23 +7,21 @@ import sharp from 'sharp'
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const outDir = join(root, 'build')
 
-const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="1024" height="1024">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#5AC8FA"/>
-      <stop offset="1" stop-color="#007AFF"/>
-    </linearGradient>
-  </defs>
-  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#g)"/>
-  <rect x="14" y="20" width="26" height="26" rx="7" fill="#fff" opacity=".35"/>
-  <rect x="22" y="14" width="28" height="28" rx="7" fill="#fff"/>
-  <path d="M36 20l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="#007AFF"/>
-</svg>`
+const src = join(root, 'spike', 'logo', 'out', '1-chibi-flat.png')
+const master = join(outDir, 'logo-master.png')
+const R = 330
+
+async function makeMaster() {
+  const meta = await sharp(src).metadata()
+  const n = meta.width
+  const mask = Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="${n}" height="${n}"><rect x="1" y="1" width="${n - 2}" height="${n - 2}" rx="${R}" fill="#fff"/></svg>`)
+  await sharp(src).ensureAlpha().composite([{ input: mask, blend: 'dest-in' }]).png({ compressionLevel: 9 }).toFile(master)
+}
 
 const SIZES = [16, 24, 32, 48, 64, 128, 256]
 
 async function png(size) {
-  return sharp(Buffer.from(svg)).resize(size, size, { kernel: 'lanczos3' }).png({ compressionLevel: 9 }).toBuffer()
+  return sharp(master).resize(size, size, { kernel: 'lanczos3' }).png({ compressionLevel: 9 }).toBuffer()
 }
 
 function ico(images) {
@@ -48,6 +47,8 @@ function ico(images) {
 }
 
 await mkdir(outDir, { recursive: true })
+if (existsSync(src)) await makeMaster()
+await writeFile(join(root, 'src', 'renderer', 'src', 'assets', 'logo.png'), await png(256))
 await writeFile(join(outDir, 'icon.png'), await png(512))
 const images = []
 for (const size of SIZES) images.push({ size, data: await png(size) })

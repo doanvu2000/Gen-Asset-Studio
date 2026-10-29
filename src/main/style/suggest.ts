@@ -396,4 +396,8 @@ export class SuggestService extends EventEmitter {
   isBusy(runId: string): boolean {
     return this.active.has(runId)
   }
+
+  activeCount(): number {
+    return this.active.size
+  }
 }

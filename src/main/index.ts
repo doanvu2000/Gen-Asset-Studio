@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeTheme, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, nativeTheme, Notification, shell } from 'electron'
 import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import { IPC } from '@shared/ipc'
@@ -36,6 +36,56 @@ let queue: JobQueue | null = null
 let updater: Updater | null = null
 let disposeExportIpc: (() => void) | null = null
 let quitting = false
+let forceClose = false
+let lastBgClose = 0
+
+const BG_TEXT = {
+  vi: {
+    title: 'Gen Asset Studio vẫn đang chạy',
+    body: (n: number) => `Còn ${n} việc đang chạy — app đã thu xuống taskbar và tiếp tục chạy nền.`,
+    ask: (n: number) => `Còn ${n} việc đang chạy. Thoát hẳn sẽ dừng các việc này (lần mở sau sẽ chạy tiếp từ hàng đợi).`,
+    keep: 'Chạy nền',
+    quit: 'Thoát hẳn'
+  },
+  en: {
+    title: 'Gen Asset Studio is still running',
+    body: (n: number) => `${n} task(s) still running — the app was minimized to the taskbar and keeps working in the background.`,
+    ask: (n: number) => `${n} task(s) still running. Quitting stops them (they resume from the queue next time).`,
+    keep: 'Keep running',
+    quit: 'Quit anyway'
+  }
+}
+
+function busyCount(): number {
+  const jobs = queue ? queue.snapshot().jobs.filter((j) => j.status === 'queued' || j.status === 'running' || j.status === 'processing').length : 0
+  return jobs + (style ? style.suggest.activeCount() : 0)
+}
+
+function onCloseRequest(win: BrowserWindow, event: Electron.Event): void {
+  if (forceClose || quitting) return
+  const n = busyCount()
+  if (!n || settings.get().closeWhenBusy === 'quit') return
+  event.preventDefault()
+  const tx = BG_TEXT[settings.get().lang === 'en' ? 'en' : 'vi']
+  const again = win.isMinimized() || !win.isVisible() || Date.now() - lastBgClose < 15000
+  if (!again) {
+    lastBgClose = Date.now()
+    win.minimize()
+    if (Notification.isSupported()) new Notification({ title: tx.title, body: tx.body(n), silent: true }).show()
+    return
+  }
+  void dialog
+    .showMessageBox(win, { type: 'question', title: tx.title, message: tx.ask(n), buttons: [tx.keep, tx.quit], defaultId: 0, cancelId: 0, noLink: true })
+    .then(({ response }) => {
+      if (response === 1) {
+        forceClose = true
+        win.close()
+      } else {
+        lastBgClose = Date.now()
+        win.minimize()
+      }
+    })
+}
 
 function resolveTheme(s: AppSettings): ResolvedTheme {
   if (s.theme === 'system') return nativeTheme.shouldUseDarkColors ? 'dark' : 'light'
@@ -72,6 +122,8 @@ function createWindow(): BrowserWindow {
       spellcheck: false
     }
   })
+
+  win.on('close', (event) => onCloseRequest(win, event))
 
   win.once('ready-to-show', () => {
     win.maximize()

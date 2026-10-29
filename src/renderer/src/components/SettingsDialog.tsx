@@ -23,6 +23,8 @@ function GeneralTab(): ReactElement {
   const lang = useApp((s) => s.settings.lang)
   const setTheme = useApp((s) => s.setTheme)
   const setLang = useApp((s) => s.setLang)
+  const closeWhenBusy = useApp((s) => s.settings.closeWhenBusy)
+  const setCloseWhenBusy = useApp((s) => s.setCloseWhenBusy)
   const closeSettings = useApp((s) => s.closeSettings)
   const replayTours = useApp((s) => s.replayTours)
 
@@ -47,6 +49,18 @@ function GeneralTab(): ReactElement {
         <div className="row">
           <div className="rl">{t('settings.language')}</div>
           <Segmented value={lang} options={langOptions} onChange={(v) => void setLang(v)} ariaLabel={t('settings.language')} />
+        </div>
+        <div className="row">
+          <div className="rl" title={t('settings.closeBusy.hint')}>{t('settings.closeBusy.label')}</div>
+          <Segmented
+            value={closeWhenBusy}
+            options={[
+              { value: 'background', label: t('settings.closeBusy.background') },
+              { value: 'quit', label: t('settings.closeBusy.quit') }
+            ]}
+            onChange={(v) => void setCloseWhenBusy(v)}
+            ariaLabel={t('settings.closeBusy.label')}
+          />
         </div>
       </div>
       <div className="group">

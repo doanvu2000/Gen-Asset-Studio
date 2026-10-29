@@ -252,6 +252,12 @@
       },
       "modelsNote": "Mặc định: luna · medium cho cả 3. Effort cao hơn chậm hơn và tốn quota hơn.",
       "reset": "Về mặc định"
+    },
+    "closeBusy": {
+      "label": "Đóng app khi đang gen",
+      "hint": "Đóng lúc còn việc chạy: thu xuống taskbar và chạy tiếp; đóng lần nữa sẽ hỏi có thoát hẳn không.",
+      "background": "Chạy nền",
+      "quit": "Thoát luôn"
     }
   },
   "env": {

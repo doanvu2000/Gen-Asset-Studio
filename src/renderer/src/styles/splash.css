@@ -113,3 +113,20 @@
   font-size: 12px;
   color: var(--text3);
 }
+
+.splash-shine-clip {
+  position: absolute;
+  inset: 0;
+  border-radius: 26%;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.splash-shine {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: 0;
+  width: 28%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .6), rgba(255, 255, 255, 0));
+}

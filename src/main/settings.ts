@@ -73,6 +73,7 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
     if (typeof raw.lang === 'string' && (LANGS as readonly string[]).includes(raw.lang)) {
       out.lang = raw.lang as Lang
     }
+    if (raw.closeWhenBusy === 'background' || raw.closeWhenBusy === 'quit') out.closeWhenBusy = raw.closeWhenBusy
     if ('gen' in raw) out.gen = sanitizeGen(raw.gen, out.gen)
     if ('onboarding' in raw) out.onboarding = sanitizeOnboarding(raw.onboarding, out.onboarding)
     if (internal) {

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { DEFAULT_SETTINGS, type AppSettings, type Lang, type ResolvedTheme, type ThemePref } from '@shared/types'
+import { DEFAULT_SETTINGS, type AppSettings, type CloseWhenBusy, type Lang, type ResolvedTheme, type ThemePref } from '@shared/types'
 import { changeLang } from '@renderer/i18n'
 
 export type Route = 'setup' | 'workspace' | 'project'
@@ -24,6 +24,7 @@ interface AppState {
   setMaximized: (maximized: boolean) => void
   setTheme: (theme: ThemePref) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
+  setCloseWhenBusy: (v: CloseWhenBusy) => Promise<void>
   toggleSidebar: () => void
   openSettings: (tab?: SettingsTab) => void
   setSettingsTab: (tab: SettingsTab) => void
@@ -74,6 +75,10 @@ export const useApp = create<AppState>()((set, get) => ({
     await changeLang(lang)
     set({ settings: { ...get().settings, lang } })
     get().applySettings(await window.gas.settings.set({ lang }))
+  },
+  setCloseWhenBusy: async (closeWhenBusy) => {
+    set({ settings: { ...get().settings, closeWhenBusy } })
+    get().applySettings(await window.gas.settings.set({ closeWhenBusy }))
   },
   toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
   openSettings: (tab) => set({ settingsOpen: true, settingsTab: tab ?? get().settingsTab }),
