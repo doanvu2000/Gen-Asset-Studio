@@ -939,7 +939,7 @@
     "stateDownloading": "Downloading {{version}} · {{percent}}%",
     "stateDownloaded": "Version {{version}} downloaded, restart to install.",
     "stateError": "Error: {{message}}",
-    "stateDev": "Dev build (not packaged) — auto-update disabled.",
+    "stateDev": "Portable or dev build — no auto-update; download new versions from GitHub Releases.",
     "releasedAt": "Released {{date}}"
   },
   "export": {

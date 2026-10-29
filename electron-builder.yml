@@ -22,8 +22,8 @@ win:
     - target: nsis
       arch:
         - x64
-  artifactName: GenAssetStudio-Setup-${version}.${ext}
 nsis:
+  artifactName: GenAssetStudio-Setup-${version}.${ext}
   oneClick: false
   perMachine: false
   allowToChangeInstallationDirectory: true
@@ -31,6 +31,9 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: Gen Asset Studio
   uninstallDisplayName: Gen Asset Studio
+portable:
+  artifactName: GenAssetStudio-Portable-${version}.${ext}
+  unpackDirName: GenAssetStudio
 npmRebuild: false
 publish:
   provider: github

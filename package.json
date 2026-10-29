@@ -19,7 +19,8 @@
     "test:queue": "tsx --tsconfig tsconfig.node.json scripts/queue-test.ts",
     "test:style": "tsx --tsconfig tsconfig.node.json scripts/style-test.ts",
     "test:export": "tsx --tsconfig tsconfig.node.json scripts/export-test.ts",
-    "test:format": "tsx --tsconfig tsconfig.node.json scripts/format-test.ts"
+    "test:format": "tsx --tsconfig tsconfig.node.json scripts/format-test.ts",
+    "dist:portable": "npm run build && electron-builder --win portable"
   },
   "dependencies": {
     "chokidar": "^4.0.3",

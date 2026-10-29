@@ -15,6 +15,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
 
 ### Add
+- Bản portable (GenAssetStudio-Portable-<version>.exe): chạy không cần cài, không tự cập nhật
 - Đóng app khi còn việc đang gen: thu xuống taskbar và chạy tiếp (đóng lần nữa sẽ hỏi thoát hẳn); đổi trong Cài đặt › Chung
 - Nhận thêm ảnh JPG, WebP, AVIF, TIFF (vẫn ưu tiên PNG để giữ nền trong suốt); xuất giữ đúng định dạng gốc
 - Dòng hướng dẫn đầu mỗi bước (Bước N/5): bước này làm gì + bước tiếp theo

@@ -353,6 +353,7 @@ function reprocessOptions(v: unknown): ReprocessOptions {
 function initUpdater(): void {
   const u = createUpdater({
     log: logger.scoped('update'),
+    enabled: app.isPackaged && !process.env.PORTABLE_EXECUTABLE_DIR,
     canRestart: () => !queue || !queue.snapshot().jobs.some((j) => j.status === 'queued' || j.status === 'running' || j.status === 'processing')
   })
   updater = u
