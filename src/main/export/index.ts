@@ -1,4 +1,5 @@
 import sharp from 'sharp'
+import { outFormatOf } from '@shared/imageFormats'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { dialog, shell, type BrowserWindow, type IpcMain } from 'electron'
@@ -237,6 +238,16 @@ export async function planExport(src: ExportSource, options?: Partial<ExportOpti
   return plan
 }
 
+async function encodeAs(png: Uint8Array, target: string): Promise<Uint8Array> {
+  const fmt = outFormatOf(target)
+  if (fmt === 'png') return png
+  const img = sharp(png)
+  if (fmt === 'jpeg') return img.flatten({ background: '#ffffff' }).jpeg({ quality: 92, mozjpeg: true }).toBuffer()
+  if (fmt === 'webp') return img.webp({ quality: 92, alphaQuality: 100 }).toBuffer()
+  if (fmt === 'avif') return img.avif({ quality: 70 }).toBuffer()
+  return img.tiff({ compression: 'lzw' }).toBuffer()
+}
+
 async function writeAtomic(target: string, buf: Uint8Array): Promise<void> {
   await fs.mkdir(longPath(dirname(target)), { recursive: true })
   const tmp = `${target}.gas-tmp`
@@ -347,7 +358,7 @@ export async function runExport(
           const d = await dims(out)
           if (d.w !== t.w || d.h !== t.h) throw new Error(`scaleMismatch ${d.w}×${d.h} ≠ ${t.w}×${t.h}`)
         }
-        await writeAtomic(t.abs, out)
+        await writeAtomic(t.abs, await encodeAs(out, t.abs))
         result.written++
       } catch (e) {
         okAll = false

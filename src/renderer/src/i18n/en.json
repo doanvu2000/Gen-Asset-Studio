@@ -175,7 +175,7 @@
     "title": "All projects",
     "subtitle": "No projects in this workspace yet",
     "emptyTitle": "No projects yet",
-    "emptyDesc": "Create a project to import a PNG set, lock a style, then regenerate it with Codex.",
+    "emptyDesc": "Create a project to import an image set (PNG preferred), lock a style, then regenerate it with Codex.",
     "newProject": "New project",
     "sampleShort": "Sample project",
     "openFolder": "Open folder",
@@ -428,8 +428,8 @@
     "renamed": "Renamed to “{{name}}”",
     "created": "Created “{{name}}”",
     "added": "Added {{count}} images",
-    "none": "No new PNG images",
-    "skipped": "Skipped {{count}} non-PNG files: {{names}}",
+    "none": "No new images",
+    "skipped": "Skipped {{count}} non-image files: {{names}}",
     "dup": "{{count}} images are already in the project",
     "unreadable": "{{count}} files could not be read: {{names}}",
     "removed": "Removed {{count}} images from the project",
@@ -455,7 +455,7 @@
       "exported": "Exported {{count}} images · {{time}}"
     },
     "lock": {
-      "style": "Add at least one PNG first",
+      "style": "Add at least one image first",
       "gen": "Lock a style for at least one group first",
       "review": "Generate images before reviewing",
       "export": "Approve at least one image before exporting"
@@ -472,10 +472,10 @@
   },
   "input": {
     "emptyTitle": "Add your source images",
-    "emptyDesc": "Drag PNG files or whole folders here. The folder structure is kept on export.",
+    "emptyDesc": "Drag images or whole folders here. PNG is preferred (keeps transparency); JPG, WebP, AVIF and TIFF also work. The folder structure is kept on export.",
     "openFolder": "Open folder",
     "addFiles": "Add images",
-    "dropTitle": "Drop PNGs or folders here",
+    "dropTitle": "Drop images or folders here",
     "dropDesc": "Folder structure is kept",
     "selected": "{{sel}}/{{total}} selected",
     "selectAll": "Select all",
@@ -490,7 +490,7 @@
     "missing": "{{count}} source images are missing from {{path}}.",
     "relink": "Relink folder",
     "changed": "{{count}} source images changed since they were added — consider regenerating them.",
-    "skippedNote": "{{count}} files skipped because they are not PNG:",
+    "skippedNote": "{{count}} files skipped because they are not supported images:",
     "dismiss": "Hide",
     "type": {
       "normal": "Normal",
@@ -524,7 +524,8 @@
       "type": "Processing",
       "path": "Path",
       "setType": "Processing for {{count}} images"
-    }
+    },
+    "formats": "PNG preferred · JPG, WebP, AVIF, TIFF also accepted"
   },
   "style": {
     "groups": "STYLE GROUPS",
@@ -942,7 +943,7 @@
     "layoutFolder": "@2x/ folder",
     "layoutSuffix": "name@2x.png",
     "format": "Format",
-    "formatVal": "PNG · keeps alpha and file names",
+    "formatVal": "Keeps the original format (PNG recommended) · keeps alpha and file names",
     "existing": "Existing files",
     "existingNone": "None — all new",
     "policyBackup": "Back up, then write",
@@ -1032,7 +1033,7 @@
       },
       "input": {
         "title": "Add source images",
-        "body": "Drop PNGs or whole folders here. The folder structure is kept on export."
+        "body": "Drop images (PNG preferred) or whole folders here. The folder structure is kept on export."
       },
       "style": {
         "title": "Style groups",
@@ -1070,10 +1071,10 @@
     "label": "Asset type",
     "soon": "Coming soon",
     "soonHint": "Coming soon — in development",
-    "soonToast": "{{name}} is coming soon — PNG images are supported for now.",
+    "soonToast": "{{name}} is coming soon — still images are supported for now (PNG preferred).",
     "png": {
-      "name": "PNG images",
-      "desc": "2D UI, icons, buttons, panels"
+      "name": "2D images",
+      "desc": "PNG (recommended), JPG, WebP… — UI, icons, buttons, panels"
     },
     "spine": {
       "name": "Spine",
@@ -1087,7 +1088,7 @@
   "intro": {
     "stepOf": "Step {{n}}/{{total}}",
     "input": {
-      "what": "Add the original PNG set you want to restyle — drag in a folder or files. Turn on 9-slice for stretchable buttons/frames.",
+      "what": "Add the original images you want to restyle — drag in a folder or files. PNG is preferred (keeps transparency); JPG/WebP/AVIF/TIFF also work. Turn on 9-slice for stretchable buttons/frames.",
       "next": "Next: pick a style"
     },
     "style": {

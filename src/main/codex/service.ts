@@ -1,7 +1,9 @@
 import { app } from 'electron'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
-import { join } from 'node:path'
+import { tmpdir } from 'node:os'
+import { extname, join } from 'node:path'
+import sharp from 'sharp'
 import type { AccountInfo, CodexServiceState, ModelInfo, RateLimits, RateWindow } from '@shared/types'
 import { codexHome, codexHomeOverridden } from '../paths'
 import type { LogFn } from '../logger'
@@ -102,6 +104,17 @@ function parseAccount(v: unknown): AccountInfo {
   const acc = o['account'] as Record<string, unknown> | null | undefined
   if (!acc) return { loggedIn: false, type: null, email: null, planType: null }
   return { loggedIn: true, type: str(acc['type']), email: str(acc['email']), planType: str(acc['planType']) }
+}
+
+const CODEX_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp'])
+
+async function codexReadable(p: string): Promise<string> {
+  if (CODEX_EXTS.has(extname(p).toLowerCase())) return p
+  const dir = join(tmpdir(), 'gas-codex-input')
+  await fs.mkdir(dir, { recursive: true })
+  const out = join(dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.png`)
+  await sharp(p).png().toFile(out)
+  return out
 }
 
 export class CodexService extends EventEmitter {
@@ -483,7 +496,7 @@ export class CodexService extends EventEmitter {
     turn.onThreadStarted?.(threadId)
     const input: UserInput[] = [
       { type: 'text', text: prompt, text_elements: [] },
-      ...imagePaths.map((p) => ({ type: 'localImage' as const, path: p }))
+      ...(await Promise.all(imagePaths.map(codexReadable))).map((p) => ({ type: 'localImage' as const, path: p }))
     ]
     const result = await this.runTurn(threadId, input, { timeoutMs: 240000, ...turn })
     if (result.status === 'completed' && result.images.length === 0 && !result.error) {

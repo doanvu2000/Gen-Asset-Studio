@@ -538,6 +538,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
           <h2>{busy ? t('input.reading') : t('input.emptyTitle')}</h2>
           <p>{t('input.emptyDesc')}</p>
           <AssetKinds variant="compact" />
+          <small className="muted fmt-note">{t('input.formats')}</small>
           <div className="actions">
             <button type="button" className="btn primary" disabled={busy} onClick={() => void runAdd(() => window.gas.project.addDialog(rel, 'folder'))}>
               <Icon name="folder" size={14} />

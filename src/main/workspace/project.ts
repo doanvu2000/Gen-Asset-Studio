@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { isImageFile } from '@shared/imageFormats'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { InputKind, InputStatus, InputType, InputView, ProjectExportState, ProjectView, RootView, SkippedFile } from '@shared/workspace'
@@ -375,7 +376,7 @@ async function walkPngs(dir: string, out: string[], skipped: SkippedFile[], base
       await walkPngs(p, out, skipped, base)
     } else if (e.isFile()) {
       const ext = extname(e.name).toLowerCase()
-      if (ext === '.png') out.push(p)
+      if (isImageFile(e.name)) out.push(p)
       else if (ext !== '.meta' && !SILENT.has(e.name.toLowerCase())) skipped.push({ name: toPosix(relative(base, p)), reason: 'notPng' })
     }
     if (out.length >= MAX_SCAN) return
@@ -397,7 +398,7 @@ export async function collect(paths: string[]): Promise<Collected> {
       await walkPngs(p, files, res.skipped, dirname(p))
       res.folders.push({ dir: resolve(p), files })
     } else if (st.isFile()) {
-      if (extname(p).toLowerCase() === '.png') res.files.push(resolve(p))
+      if (isImageFile(p)) res.files.push(resolve(p))
       else res.skipped.push({ name: basename(p), reason: 'notPng' })
     }
   }

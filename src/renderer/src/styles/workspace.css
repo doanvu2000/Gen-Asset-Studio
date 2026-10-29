@@ -1422,3 +1422,8 @@ select.inp {
   font-weight: 500;
   white-space: nowrap;
 }
+
+.empty-drop .fmt-note {
+  margin-top: 8px;
+  font-size: 12px;
+}

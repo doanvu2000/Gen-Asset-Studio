@@ -45,7 +45,7 @@
       },
       "input": {
         "title": "Thêm ảnh gốc",
-        "body": "Kéo thả PNG hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất."
+        "body": "Kéo thả ảnh (ưu tiên PNG) hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất."
       },
       "style": {
         "title": "Nhóm style",

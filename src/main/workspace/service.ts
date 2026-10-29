@@ -1,4 +1,5 @@
 import { BrowserWindow, dialog, shell } from 'electron'
+import { IMAGE_EXT_NAMES } from '@shared/imageFormats'
 import { watch, type FSWatcher } from 'chokidar'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
@@ -433,7 +434,7 @@ export class WorkspaceService extends EventEmitter {
       win,
       mode === 'folder'
         ? { properties: ['openDirectory', 'dontAddToRecent'] }
-        : { properties: ['openFile', 'multiSelections', 'dontAddToRecent'], filters: [{ name: 'PNG', extensions: ['png'] }] }
+        : { properties: ['openFile', 'multiSelections', 'dontAddToRecent'], filters: [{ name: 'Images (PNG khuyên dùng)', extensions: IMAGE_EXT_NAMES }] }
     )
     if (!paths.length) return { view: null, added: 0, skipped: [], canceled: true }
     return this.addPaths(rel, paths)

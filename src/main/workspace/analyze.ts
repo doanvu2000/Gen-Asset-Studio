@@ -55,10 +55,12 @@ export function guessKind(name: string, w: number, h: number, bw: number, bh: nu
   return longest <= 256 ? 'icon' : 'panel'
 }
 
+const READABLE = new Set(['png', 'jpeg', 'webp', 'heif', 'avif', 'tiff'])
+
 export async function analyzeImage(file: string): Promise<ImageFacts> {
   const st = await fs.stat(file)
   const meta = await sharp(file).metadata()
-  if (meta.format !== 'png' || !meta.width || !meta.height) throw new Error('notPng')
+  if (!meta.format || !READABLE.has(meta.format) || !meta.width || !meta.height) throw new Error('notPng')
   const { data, info } = await sharp(file)
     .ensureAlpha()
     .resize({ width: SAMPLE, height: SAMPLE, fit: 'inside', withoutEnlargement: true })

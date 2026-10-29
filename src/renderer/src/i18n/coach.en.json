@@ -45,7 +45,7 @@
       },
       "input": {
         "title": "Add source images",
-        "body": "Drop PNGs or whole folders here. The folder structure is kept on export."
+        "body": "Drop images (PNG preferred) or whole folders here. The folder structure is kept on export."
       },
       "style": {
         "title": "Style groups",

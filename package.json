@@ -18,7 +18,8 @@
     "test:pipeline": "tsx scripts/pipeline-test.ts",
     "test:queue": "tsx --tsconfig tsconfig.node.json scripts/queue-test.ts",
     "test:style": "tsx --tsconfig tsconfig.node.json scripts/style-test.ts",
-    "test:export": "tsx --tsconfig tsconfig.node.json scripts/export-test.ts"
+    "test:export": "tsx --tsconfig tsconfig.node.json scripts/export-test.ts",
+    "test:format": "tsx --tsconfig tsconfig.node.json scripts/format-test.ts"
   },
   "dependencies": {
     "chokidar": "^4.0.3",

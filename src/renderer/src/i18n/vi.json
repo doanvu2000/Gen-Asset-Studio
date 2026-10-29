@@ -175,7 +175,7 @@
     "title": "Tất cả project",
     "subtitle": "Chưa có project nào trong workspace",
     "emptyTitle": "Chưa có project",
-    "emptyDesc": "Tạo project mới để nhập bộ PNG, chốt style rồi gen lại bằng Codex.",
+    "emptyDesc": "Tạo project mới để nhập bộ ảnh (ưu tiên PNG), chốt style rồi gen lại bằng Codex.",
     "newProject": "Project mới",
     "sampleShort": "Project mẫu",
     "openFolder": "Mở folder",
@@ -428,8 +428,8 @@
     "renamed": "Đã đổi tên thành “{{name}}”",
     "created": "Đã tạo “{{name}}”",
     "added": "Đã thêm {{count}} ảnh",
-    "none": "Không có ảnh PNG mới",
-    "skipped": "Bỏ qua {{count}} file không phải PNG: {{names}}",
+    "none": "Không có ảnh mới",
+    "skipped": "Bỏ qua {{count}} file không phải ảnh: {{names}}",
     "dup": "{{count}} ảnh đã có trong project",
     "unreadable": "{{count}} file không đọc được: {{names}}",
     "removed": "Đã bỏ {{count}} ảnh khỏi project",
@@ -455,7 +455,7 @@
       "exported": "Đã xuất {{count}} ảnh · {{time}}"
     },
     "lock": {
-      "style": "Thêm ít nhất 1 ảnh PNG trước",
+      "style": "Thêm ít nhất 1 ảnh trước",
       "gen": "Chốt style cho ít nhất 1 nhóm trước",
       "review": "Gen ảnh trước khi duyệt",
       "export": "Duyệt ít nhất 1 ảnh trước khi xuất"
@@ -472,10 +472,10 @@
   },
   "input": {
     "emptyTitle": "Thêm bộ ảnh gốc",
-    "emptyDesc": "Kéo thả file PNG hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất.",
+    "emptyDesc": "Kéo thả ảnh hoặc cả folder vào đây. Ưu tiên PNG (giữ nền trong suốt); JPG, WebP, AVIF, TIFF vẫn dùng được. Cấu trúc thư mục được giữ nguyên khi xuất.",
     "openFolder": "Mở folder",
     "addFiles": "Thêm ảnh",
-    "dropTitle": "Thả PNG hoặc folder vào đây",
+    "dropTitle": "Thả ảnh hoặc folder vào đây",
     "dropDesc": "Giữ nguyên cấu trúc thư mục",
     "selected": "{{sel}}/{{total}} đang chọn",
     "selectAll": "Chọn tất cả",
@@ -490,7 +490,7 @@
     "missing": "{{count}} ảnh gốc không tìm thấy trong {{path}}.",
     "relink": "Trỏ lại folder",
     "changed": "{{count}} ảnh gốc đã đổi nội dung từ lúc thêm — nên gen lại các ảnh này.",
-    "skippedNote": "{{count}} file bị bỏ qua vì không phải PNG:",
+    "skippedNote": "{{count}} file bị bỏ qua vì không phải ảnh hỗ trợ:",
     "dismiss": "Ẩn",
     "type": {
       "normal": "Thường",
@@ -524,7 +524,8 @@
       "type": "Kiểu xử lý",
       "path": "Đường dẫn",
       "setType": "Kiểu xử lý cho {{count}} ảnh"
-    }
+    },
+    "formats": "Ưu tiên PNG · nhận cả JPG, WebP, AVIF, TIFF"
   },
   "style": {
     "groups": "NHÓM STYLE",
@@ -942,7 +943,7 @@
     "layoutFolder": "Folder @2x/",
     "layoutSuffix": "Tên@2x.png",
     "format": "Định dạng",
-    "formatVal": "PNG · giữ alpha, giữ nguyên tên file",
+    "formatVal": "Giữ định dạng gốc (PNG khuyên dùng) · giữ alpha, giữ nguyên tên file",
     "existing": "File đã tồn tại",
     "existingNone": "Chưa có — ghi mới",
     "policyBackup": "Backup rồi ghi",
@@ -1032,7 +1033,7 @@
       },
       "input": {
         "title": "Thêm ảnh gốc",
-        "body": "Kéo thả PNG hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất."
+        "body": "Kéo thả ảnh (ưu tiên PNG) hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất."
       },
       "style": {
         "title": "Nhóm style",
@@ -1070,10 +1071,10 @@
     "label": "Loại asset",
     "soon": "Sắp có",
     "soonHint": "Sắp có — đang phát triển",
-    "soonToast": "{{name}} sắp có — hiện app hỗ trợ ảnh PNG.",
+    "soonToast": "{{name}} sắp có — hiện app hỗ trợ ảnh tĩnh (ưu tiên PNG).",
     "png": {
-      "name": "Ảnh PNG",
-      "desc": "UI, icon, nút, panel 2D"
+      "name": "Ảnh 2D",
+      "desc": "PNG (khuyên dùng), JPG, WebP… — UI, icon, nút, panel"
     },
     "spine": {
       "name": "Spine",
@@ -1087,7 +1088,7 @@
   "intro": {
     "stepOf": "Bước {{n}}/{{total}}",
     "input": {
-      "what": "Thêm bộ ảnh PNG gốc cần đổi style — kéo thả folder hoặc file. Nút/khung co giãn thì bật 9-slice.",
+      "what": "Thêm bộ ảnh gốc cần đổi style — kéo thả folder hoặc file. Ưu tiên PNG (giữ nền trong suốt), JPG/WebP/AVIF/TIFF vẫn được. Nút/khung co giãn thì bật 9-slice.",
       "next": "Tiếp: chọn style"
     },
     "style": {

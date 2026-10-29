@@ -1,4 +1,5 @@
 import { net, protocol } from 'electron'
+import { imageMime } from '@shared/imageFormats'
 import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
@@ -24,11 +25,12 @@ export function handleFileScheme(isAllowed: (abs: string) => boolean): void {
     } catch {
       return new Response('bad request', { status: 400 })
     }
-    if (!abs.toLowerCase().endsWith('.png') || !isAllowed(abs)) return new Response('forbidden', { status: 403 })
+    const mime = imageMime(abs)
+    if (!mime || !isAllowed(abs)) return new Response('forbidden', { status: 403 })
     if (!existsSync(abs)) return new Response('not found', { status: 404 })
     const res = await net.fetch(pathToFileURL(abs).toString())
     const headers = new Headers(res.headers)
-    headers.set('Content-Type', 'image/png')
+    headers.set('Content-Type', mime)
     headers.set('Cache-Control', 'no-cache')
     return new Response(res.body, { status: res.status, headers })
   })
