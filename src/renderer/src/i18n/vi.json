@@ -1083,5 +1083,28 @@
       "name": "Sprite sheet",
       "desc": "Khung hình animation"
     }
+  },
+  "intro": {
+    "stepOf": "Bước {{n}}/{{total}}",
+    "input": {
+      "what": "Thêm bộ ảnh PNG gốc cần đổi style — kéo thả folder hoặc file. Nút/khung co giãn thì bật 9-slice.",
+      "next": "Tiếp: chọn style"
+    },
+    "style": {
+      "what": "Chọn ảnh cho nhóm, chọn 1 style (mẫu có sẵn hoặc nhờ AI gợi ý) rồi bấm Chốt. Style đã chốt là khuôn để vẽ lại cả bộ.",
+      "next": "Chốt xong mọi nhóm → tự sang Gen"
+    },
+    "gen": {
+      "what": "Bấm “Bắt đầu gen” để Codex vẽ lại từng ảnh theo style đã chốt. Chạy nền — ảnh xong có thể sang Duyệt xem dần.",
+      "next": "Tiếp: duyệt ảnh"
+    },
+    "review": {
+      "what": "So ảnh gốc với ảnh mới. Đạt thì Duyệt (A), chưa đạt thì Cần sửa (X) hoặc gen lại (R) kèm ghi chú. Chỉ ảnh đã duyệt mới được xuất.",
+      "next": "Duyệt xong → Xuất"
+    },
+    "export": {
+      "what": "Chọn folder đích và tỉ lệ ×1/×2/×4. App xuất ảnh đã duyệt, giữ nguyên tên file + cây thư mục, tự backup bản cũ.",
+      "next": "Xong — chép vào game"
+    }
   }
 }

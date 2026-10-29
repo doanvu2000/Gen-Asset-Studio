@@ -1083,5 +1083,28 @@
       "name": "Sprite sheet",
       "desc": "Animation frames"
     }
+  },
+  "intro": {
+    "stepOf": "Step {{n}}/{{total}}",
+    "input": {
+      "what": "Add the original PNG set you want to restyle — drag in a folder or files. Turn on 9-slice for stretchable buttons/frames.",
+      "next": "Next: pick a style"
+    },
+    "style": {
+      "what": "Choose assets for the group, pick one style (template or AI suggestion), then Lock. The locked style is the reference for redrawing the whole set.",
+      "next": "All groups locked → Gen"
+    },
+    "gen": {
+      "what": "Press “Generate” and Codex redraws each asset in the locked style. Runs in the background — review finished images as they come.",
+      "next": "Next: review"
+    },
+    "review": {
+      "what": "Compare original and new. Approve (A) if good, Needs fix (X) or regenerate (R) with a note otherwise. Only approved assets are exported.",
+      "next": "Approved → Export"
+    },
+    "export": {
+      "what": "Pick an output folder and scale ×1/×2/×4. Approved assets are exported with the same file names + folder tree; old files are backed up.",
+      "next": "Done — copy into your game"
+    }
   }
 }

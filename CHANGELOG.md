@@ -12,6 +12,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Ghi rõ cần tài khoản ChatGPT Plus trở lên ở màn đăng nhập
 
 ### Add
+- Dòng hướng dẫn đầu mỗi bước (Bước N/5): bước này làm gì + bước tiếp theo
 - Chọn loại asset: Ảnh PNG · Spine (sắp có) · Sprite sheet (sắp có) ở hộp Project mới và bước Ảnh gốc
 
 ## 1.0.0 — 2026-10-29

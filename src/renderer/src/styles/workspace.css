@@ -1368,3 +1368,57 @@ select.inp {
 .empty-drop .kinds-c {
   margin-top: 12px;
 }
+
+.step-intro {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--sep2);
+}
+
+.si-ic {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  background: var(--accent);
+  color: #fff;
+}
+
+.si-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.si-t b {
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.si-t span {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.si-next {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 13px;
+  background: var(--surface);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}

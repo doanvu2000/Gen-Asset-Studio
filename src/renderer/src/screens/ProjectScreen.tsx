@@ -1,5 +1,6 @@
 import type { ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
+import { StepIntro } from '@renderer/components/StepIntro'
 import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
@@ -159,6 +160,7 @@ export function ProjectScreen(): ReactElement {
             exit="exit"
             transition={viewTransition}
           >
+            <StepIntro step={key} n={step} total={STEPS.length} />
             {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : key === 'review' ? (
               <ReviewStep project={project} />
             ) : key === 'export' ? (
