@@ -2,7 +2,7 @@ import type { StyleGroup } from '@shared/style'
 import type { InputView, ProjectView } from '@shared/workspace'
 
 export function isLocked(g: StyleGroup): boolean {
-  return !!g.lockImage
+  return !!g.lockImage || g.lockPrompt === true
 }
 
 export function styleReady(p: ProjectView): boolean {

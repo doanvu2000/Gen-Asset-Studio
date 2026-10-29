@@ -150,6 +150,7 @@ export function sanitizeGroups(raw: unknown, inputIds: Set<string>): StyleGroup[
     if (tid) group.templateId = tid
     const lock = relPathOf(g.lockImage)
     if (lock) group.lockImage = lock
+    if (g.lockPrompt === true) group.lockPrompt = true
     const run = strOf(g.suggestRunId, 80)
     if (run && /^[a-z0-9-]+$/i.test(run)) group.suggestRunId = run
     if (Array.isArray(g.palette)) group.palette = g.palette.filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8)

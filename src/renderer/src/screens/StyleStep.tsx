@@ -504,6 +504,23 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
     }
   }
 
+  const afterLock = (): void => {
+    const allLocked = project.groups.every((x) => x.id === group.id || !x.assetIds.length || isLocked(x))
+    if (assets.length && allLocked) setTimeout(() => setStep(3), 700)
+  }
+
+  const lockFromPrompt = (): void => {
+    if (busy || locked || !hasCustom) return
+    const name = t('style.custom.lockName')
+    const next: StyleGroup = { ...group, lockPrompt: true, lockName: name, lockedAt: Date.now() }
+    delete next.lockImage
+    delete next.templateId
+    replace(next)
+    setPick(null)
+    toast(t('style.lockedToast', { name }))
+    afterLock()
+  }
+
   const doLock = async (): Promise<void> => {
     if (!pick || busy) return
     setBusy('lock')
@@ -522,8 +539,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
         toast(t('style.lockedToast', { name: tpl?.name[lang] ?? '' }))
       }
       setPick(null)
-      const allLocked = project.groups.every((x) => x.id === group.id || !x.assetIds.length || isLocked(x))
-      if (assets.length && allLocked) setTimeout(() => setStep(3), 700)
+      afterLock()
     } catch (e) {
       toast(`${t('style.lockFailed')}: ${errMsg(e)}`, 'err')
     } finally {
@@ -537,6 +553,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
       const clean = { ...next }
       delete clean.lockName
       delete clean.lockedAt
+      delete clean.lockPrompt
       replace(clean)
     } catch (e) {
       toast(errMsg(e), 'err')
@@ -588,6 +605,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const lockedSuggestion = (s: StyleSuggestion): boolean => locked && !group.templateId && group.lockName === s.name
   const canSuggest = !locked && !running && !busy
   const hasCustom = !!group.promptEn.trim() || group.refImages.length > 0
+  const promptLockable = src === 'custom' && hasCustom && !running
 
   const pickedSugg = pick?.kind === 'suggestion' ? run?.suggestions.find((s) => s.id === pick.id) : undefined
   const pickedTpl = pick?.kind === 'template' ? templates.find((x) => x.id === pick.id) : undefined
@@ -774,10 +792,16 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
                     {t('style.sugg.cancel')}
                   </button>
                 ) : (
-                  <button type="button" className="btn primary" disabled={!canSuggest || !hasCustom} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
-                    {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={14} />}
-                    {t('style.custom.draw')}
-                  </button>
+                  <>
+                    <button type="button" className="btn" disabled={!canSuggest || !hasCustom} onClick={() => void startSuggest(1, ONLY_PROMPT_FEEDBACK)}>
+                      {busy === 'suggest' ? <span className="spin" /> : <Icon name="sparkles" size={14} />}
+                      {t('style.custom.draw')}
+                    </button>
+                    <button type="button" className="btn primary" disabled={locked || !!busy || !hasCustom || !assets.length} title={t('style.custom.noPreviewDesc')} onClick={lockFromPrompt}>
+                      <Icon name="lock" size={14} />
+                      {t('style.custom.lockPrompt')}
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -920,7 +944,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
               <b>
                 {t('style.locked')}: {group.lockName || group.name}
               </b>
-              <span>{t('style.lockDesc')}</span>
+              <span>{group.lockPrompt && !group.lockImage ? t('style.custom.lockedDesc') : t('style.lockDesc')}</span>
             </div>
             <button type="button" className="btn" onClick={() => void doUnlock()}>
               <Icon name="unlock" size={14} />
@@ -933,14 +957,21 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
             <div className="lb-t">
               <b>
                 <span className="sn">3</span>
-                {pick ? t('style.pick.selected', { name: pickedName }) : t('style.pick.none')}
+                {pick ? t('style.pick.selected', { name: pickedName }) : promptLockable ? t('style.custom.noPreview') : t('style.pick.none')}
               </b>
-              <span>{pick ? t('style.lockDesc') : t('style.pick.noneDesc')}</span>
+              <span>{pick ? t('style.lockDesc') : promptLockable ? t('style.custom.noPreviewDesc') : t('style.pick.noneDesc')}</span>
             </div>
-            <button type="button" className="btn primary" data-coach="style-lock" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
-              {busy === 'lock' ? <span className="spin" /> : <Icon name="lock" size={14} />}
-              {t('style.lock')}
-            </button>
+            {pick || !promptLockable ? (
+              <button type="button" className="btn primary" data-coach="style-lock" disabled={!pick || !!busy || running} onClick={() => void doLock()}>
+                {busy === 'lock' ? <span className="spin" /> : <Icon name="lock" size={14} />}
+                {t('style.lock')}
+              </button>
+            ) : (
+              <button type="button" className="btn primary" data-coach="style-lock" disabled={!!busy} onClick={lockFromPrompt}>
+                <Icon name="lock" size={14} />
+                {t('style.custom.lockPrompt')}
+              </button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

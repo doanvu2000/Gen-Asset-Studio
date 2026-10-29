@@ -5,6 +5,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 ## Chưa phát hành
 
 ### Update
+- Tự tạo style: thêm "Chốt luôn theo mô tả" — không cần đợi gen preview, sang bước Gen ngay
 - Bước Style: 3 cách tạo style rõ ràng — Tự tạo (mô tả và/hoặc ảnh tham chiếu → Vẽ preview), Mẫu có sẵn, AI gợi ý
 - Logo mới: Jin Vũ bắt tay GPT (icon app, splash, sidebar)
 - Bước Style dễ dùng hơn: nhóm style thành tab ngang, gợi ý AI + mẫu có sẵn chung một chỗ chọn, mô tả / ảnh tham chiếu ở cột phải, thanh Chốt style luôn hiện ở đáy, có chỉ dẫn 3 bước

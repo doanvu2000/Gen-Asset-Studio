@@ -674,9 +674,14 @@
     },
     "custom": {
       "need": "Nhập mô tả hoặc thêm ít nhất 1 ảnh tham chiếu để vẽ preview.",
-      "ready": "Codex sẽ vẽ 1 ảnh preview đúng theo mô tả / ảnh tham chiếu của bạn (≈ 1 lượt gen).",
+      "ready": "Vẽ 1 preview để xem trước (≈ 1 lượt gen), hoặc chốt luôn theo mô tả để sang Gen ngay.",
       "draw": "Vẽ preview từ mô tả",
-      "results": "Preview đã vẽ — bấm để chọn"
+      "results": "Preview đã vẽ — bấm để chọn",
+      "lockPrompt": "Chốt luôn theo mô tả",
+      "lockName": "Theo mô tả",
+      "noPreview": "Chưa có preview — có thể chốt luôn theo mô tả",
+      "noPreviewDesc": "Không cần đợi preview: gen dùng thẳng mô tả + ảnh tham chiếu. Không có ảnh khoá style nên các ảnh có thể lệch nhau hơn một chút.",
+      "lockedDesc": "Chốt theo mô tả + ảnh tham chiếu (không có ảnh khoá style) — mọi lượt gen của nhóm dùng mô tả này."
     }
   },
   "gen": {

@@ -674,9 +674,14 @@
     },
     "custom": {
       "need": "Write a description or add at least one reference image to draw a preview.",
-      "ready": "Codex draws one preview that follows your description / reference images (≈ 1 generation).",
+      "ready": "Draw one preview first (≈ 1 generation), or lock the description right away to go straight to Gen.",
       "draw": "Draw preview from description",
-      "results": "Drawn previews — click to select"
+      "results": "Drawn previews — click to select",
+      "lockPrompt": "Lock description now",
+      "lockName": "From description",
+      "noPreview": "No preview yet — you can lock the description right away",
+      "noPreviewDesc": "No need to wait for a preview: generation uses your description + reference images directly. Without a style lock image, assets may vary a little more.",
+      "lockedDesc": "Locked from description + reference images (no style lock image) — every generation in this group uses it."
     }
   },
   "gen": {

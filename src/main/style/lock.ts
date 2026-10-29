@@ -57,5 +57,6 @@ export async function unlockStyle(projectPath: string, group: StyleGroup): Promi
   await fs.rm(file, { force: true })
   const next: StyleGroup = { ...group }
   delete next.lockImage
+  delete next.lockPrompt
   return next
 }

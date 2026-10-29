@@ -27,6 +27,7 @@ export interface StyleGroup {
   templateId?: string
   refImages: string[]
   lockImage?: string
+  lockPrompt?: boolean
   assetIds: string[]
   nineSliceOverrides: Record<string, NineSliceOverride>
   suggestRunId?: string
