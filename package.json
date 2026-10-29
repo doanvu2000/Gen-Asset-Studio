@@ -15,10 +15,13 @@
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "dist:win": "npm run build && electron-builder --win nsis",
-    "test:pipeline": "tsx scripts/pipeline-test.ts"
+    "test:pipeline": "tsx scripts/pipeline-test.ts",
+    "test:queue": "tsx --tsconfig tsconfig.node.json scripts/queue-test.ts",
+    "test:style": "tsx --tsconfig tsconfig.node.json scripts/style-test.ts"
   },
   "dependencies": {
     "chokidar": "^4.0.3",
+    "electron-updater": "^6.8.11",
     "i18next": "^26.5.11",
     "motion": "^14.7.1",
     "react": "^19.3.1",

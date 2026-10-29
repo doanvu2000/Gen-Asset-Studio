@@ -164,6 +164,36 @@ const PATHS = {
       <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2h8.5A1.5 1.5 0 0 1 21 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5z" />
       <path d="M12 10v6M9 13h6" />
     </>
+  ),
+  pause: <path d="M9 5v14M15 5v14" />,
+  play: <path d="M7 5v14l12-7z" />,
+  unlock: (
+    <>
+      <rect x="5" y="11" width="14" height="9" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 7.6-1.7" />
+    </>
+  ),
+  queue: <path d="M4 6h16M4 12h16M4 18h10" />,
+  up: <path d="m6 15 6-6 6 6" />,
+  copy: (
+    <>
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15V6a1 1 0 0 1 1-1h9" />
+    </>
+  ),
+  palette: (
+    <>
+      <path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.9 1.2-1.8-.5-1.1.2-2.2 1.4-2.2H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z" />
+      <circle cx="7.5" cy="11" r="1" />
+      <circle cx="10" cy="7" r="1" />
+      <circle cx="15" cy="7.5" r="1" />
+    </>
+  ),
+  save: (
+    <>
+      <path d="M5 4h11l3 3v12a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z" />
+      <path d="M8 4v5h7V4M8 20v-6h8v6" />
+    </>
   )
 } satisfies Record<string, ReactElement>
 

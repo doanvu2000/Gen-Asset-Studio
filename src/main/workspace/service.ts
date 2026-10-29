@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'
 import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
+import type { StyleGroup } from '@shared/style'
 import {
   addCollected,
   buildView,
@@ -16,6 +17,7 @@ import {
   pathKey,
   PROJECT_FILE,
   readProject,
+  sanitizeGroups,
   thumbPath,
   writeProject,
   type ProjectFile
@@ -77,6 +79,7 @@ export class WorkspaceService extends EventEmitter {
   private snap: WorkspaceSnapshot = { root: null, name: null, exists: false, tree: null, projects: [] }
   private chain: Promise<unknown> = Promise.resolve()
   private allowed = new Set<string>()
+  private readonly allowedDirs: string[] = []
 
   constructor(private readonly log: (message: string) => void) {
     super()
@@ -107,6 +110,7 @@ export class WorkspaceService extends EventEmitter {
   isAllowed(abs: string): boolean {
     const p = resolve(abs)
     if (this.root && isInside(p, this.root)) return true
+    if (this.allowedDirs.some((d) => isInside(p, d))) return true
     return this.allowed.has(pathKey(p))
   }
 
@@ -423,6 +427,51 @@ export class WorkspaceService extends EventEmitter {
       }
       return this.view(rel, dir, data, true)
     })
+  }
+
+  setGroups(rel: string, groups: unknown): Promise<StyleGroup[] | null> {
+    return this.run(async () => {
+      try {
+        const { dir, data } = await this.load(rel)
+        const clean = sanitizeGroups(groups, new Set(data.inputs.map((i) => i.id)))
+        data.groups = clean
+        await writeProject(dir, data)
+        return clean
+      } catch (e) {
+        this.log(`save groups failed: ${(e as Error).message}`)
+        return null
+      }
+    })
+  }
+
+  async addRefs(rel: string, groupId: string, win: BrowserWindow | null): Promise<string[]> {
+    if (!/^[a-z0-9_-]{1,64}$/i.test(groupId)) return []
+    const dir = this.projectDir(rel)
+    const picked = await this.pick(win, {
+      properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
+      filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }]
+    })
+    if (!picked.length) return []
+    const refDir = join(dir, 'styles', groupId, 'refs')
+    await fs.mkdir(refDir, { recursive: true })
+    const out: string[] = []
+    for (const src of picked.slice(0, 8)) {
+      const base = (basename(src).replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '_').slice(0, 40) || 'ref').toLowerCase()
+      let name = `${base}.png`
+      for (let n = 2; existsSync(join(refDir, name)); n++) name = `${base}-${n}.png`
+      try {
+        const sharp = (await import('sharp')).default
+        await sharp(src).png().toFile(join(refDir, name))
+        out.push(`styles/${groupId}/refs/${name}`)
+      } catch (e) {
+        this.log(`add ref failed ${src}: ${(e as Error).message}`)
+      }
+    }
+    return out
+  }
+
+  allowDir(dir: string | null): void {
+    if (dir) this.allowedDirs.push(resolve(dir))
   }
 
   async relink(rel: string, rootIndex: number, win: BrowserWindow | null): Promise<ProjectView | null> {

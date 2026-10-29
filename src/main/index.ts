@@ -12,6 +12,10 @@ import { SetupService } from './setup/service'
 import { FixService } from './setup/fix'
 import { WorkspaceService } from './workspace/service'
 import { handleFileScheme, registerFileScheme } from './workspace/protocol'
+import { registerStyleIpc, StyleService } from './style'
+import { userTemplatesDir } from './style/templates'
+import { JobQueue, queueStatePath, registerQueueIpc } from './queue'
+import { closePipeline, getPipeline } from './pipeline'
 
 const BG: Record<ResolvedTheme, string> = { light: '#F5F5F7', dark: '#1C1C1E' }
 
@@ -22,6 +26,8 @@ let codex: CodexService
 let setup: SetupService
 let fixer: FixService
 let workspace: WorkspaceService
+let style: StyleService
+let queue: JobQueue | null = null
 let quitting = false
 
 function resolveTheme(s: AppSettings): ResolvedTheme {
@@ -127,6 +133,27 @@ function initServices(): void {
   fixer.on('changed', (snap) => broadcast(IPC.fixChanged, snap))
   workspace = new WorkspaceService(logger.scoped('workspace'))
   workspace.on('changed', (snap) => broadcast(IPC.wsChanged, snap))
+  style = new StyleService({ codex, log: logger.scoped('style') })
+  workspace.allowDir(style.templates.builtinDir)
+  workspace.allowDir(userTemplatesDir)
+  void style.getModels()
+}
+
+function initQueue(): void {
+  const q = new JobQueue({
+    codex,
+    pipeline: getPipeline({ size: 2 }),
+    log: logger.scoped('queue'),
+    statePath: queueStatePath,
+    genSettings: () => style.modelsSync().assetGen,
+    concurrency: settings.get().gen.concurrency
+  })
+  queue = q
+  registerQueueIpc(ipcMain, () => mainWindow, q)
+  void q
+    .load()
+    .then(() => q.setConcurrency(settings.get().gen.concurrency))
+    .catch((e: Error) => logger.write('queue', `load failed: ${e.message}`))
 }
 
 function registerServiceIpc(): void {
@@ -181,7 +208,7 @@ function registerServiceIpc(): void {
   ipcMain.handle(IPC.fixStart, (_e, ctx: unknown) => {
     const c = (ctx ?? {}) as Partial<FixContext>
     const context: FixContext = {
-      source: c.source === 'env' ? 'env' : 'setup',
+      source: c.source === 'env' ? 'env' : c.source === 'gen' ? 'gen' : 'setup',
       target: String(c.target ?? ''),
       error: String(c.error ?? '')
     }
@@ -224,6 +251,8 @@ function registerWorkspaceIpc(): void {
     workspace.setType(str(rel), strs(ids), type === 'nine' ? 'nine' : type === 'sprite' ? 'sprite' : 'normal')
   )
   ipcMain.handle(IPC.projRelink, (e, rel: unknown, index: unknown) => workspace.relink(str(rel), typeof index === 'number' ? index : -1, win(e)))
+  ipcMain.handle(IPC.projSetGroups, (_e, rel: unknown, groups: unknown) => workspace.setGroups(str(rel), groups))
+  ipcMain.handle(IPC.projAddRefs, (e, rel: unknown, groupId: unknown) => workspace.addRefs(str(rel), str(groupId), win(e)))
 }
 
 function registerIpc(): void {
@@ -246,6 +275,7 @@ function registerIpc(): void {
   ipcMain.handle(IPC.settingsGet, () => settings.get())
   ipcMain.handle(IPC.settingsSet, async (_event, patch: unknown) => {
     const next = await settings.set(patch)
+    if (queue && queue.snapshot().concurrency !== next.gen.concurrency) queue.setConcurrency(next.gen.concurrency)
     applyWindowBackground()
     broadcast(IPC.settingsChanged, next)
     return next
@@ -302,6 +332,8 @@ if (!app.requestSingleInstanceLock()) {
     registerIpc()
     registerServiceIpc()
     registerWorkspaceIpc()
+    registerStyleIpc(ipcMain, () => mainWindow, { service: style })
+    initQueue()
     handleFileScheme((p) => workspace.isAllowed(p))
     void workspace.setRoot(settings.get().workspace)
     mainWindow = createWindow()
@@ -317,7 +349,11 @@ if (!app.requestSingleInstanceLock()) {
     event.preventDefault()
     logger.write('app', 'quit')
     void workspace?.dispose()
-    void Promise.race([codex.stop(), new Promise((r) => setTimeout(r, 2500))])
+    const stopQueue = queue ? Promise.race([queue.dispose(), new Promise((r) => setTimeout(r, 3000))]).catch(() => undefined) : Promise.resolve()
+    void stopQueue
+      .then(() => Promise.race([closePipeline(), new Promise((r) => setTimeout(r, 1500))]))
+      .catch(() => undefined)
+      .then(() => Promise.race([codex.stop(), new Promise((r) => setTimeout(r, 2500))]))
       .catch(() => undefined)
       .finally(() => {
         codex.killNow()

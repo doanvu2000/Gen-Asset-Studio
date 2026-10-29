@@ -277,7 +277,8 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
   const setStep = useWs((s) => s.setStep)
   const skipped = useWs((s) => s.skipped)
   const clearSkipped = useWs((s) => s.clearSkipped)
-  const [sel, setSel] = useState<Set<string>>(new Set())
+  const setInputSel = useWs((s) => s.setInputSel)
+  const [sel, setSel] = useState<Set<string>>(() => new Set(useWs.getState().inputSel))
   const [anchor, setAnchor] = useState<string | null>(null)
   const [focus, setFocus] = useState<string | null>(null)
   const [filter, setFilter] = useState<string | null>(null)
@@ -310,6 +311,10 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
     if (focus && !ids.has(focus)) setFocus(null)
     if (filter !== null && !inputs.some((i) => inDir(i, filter))) setFilter(null)
   }, [inputs, focus, filter])
+
+  useEffect(() => {
+    setInputSel([...sel])
+  }, [sel, setInputSel])
 
   const addPaths = useCallback((paths: string[]) => void runAdd(() => window.gas.project.addPaths(rel, paths)), [rel, runAdd])
 

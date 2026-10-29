@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type Lang, type ResolvedTheme, type
 import { changeLang } from '@renderer/i18n'
 
 export type Route = 'setup' | 'workspace' | 'project'
-export type SettingsTab = 'general' | 'account' | 'env'
+export type SettingsTab = 'general' | 'gen' | 'account' | 'env'
 
 interface AppState {
   route: Route

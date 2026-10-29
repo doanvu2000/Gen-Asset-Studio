@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { AddResult, FolderNode, OpResult, ProjectView, SkippedFile, WorkspaceSnapshot } from '@shared/workspace'
+import type { StyleGroup } from '@shared/style'
 import i18n from '@renderer/i18n'
 import { useApp } from './app'
 import { toast } from './toast'
@@ -27,6 +28,12 @@ interface WsStore {
   sort: SortKey
   busy: boolean
   skipped: SkippedFile[]
+  inputSel: string[]
+  activeGroup: string | null
+  setInputSel: (ids: string[]) => void
+  setActiveGroup: (id: string | null) => void
+  updateGroups: (fn: (groups: StyleGroup[]) => StyleGroup[], immediate?: boolean) => void
+  flushGroups: () => Promise<void>
   clearSkipped: () => void
   init: () => () => void
   openFolder: (rel: string) => void
@@ -80,6 +87,21 @@ function parentsOf(rel: string): string[] {
   return parts.slice(0, -1).map((_, i) => parts.slice(0, i + 1).join('/'))
 }
 
+let groupTimer: ReturnType<typeof setTimeout> | null = null
+let groupPending: { rel: string; groups: StyleGroup[] } | null = null
+
+async function persistGroups(): Promise<void> {
+  if (groupTimer) {
+    clearTimeout(groupTimer)
+    groupTimer = null
+  }
+  const job = groupPending
+  groupPending = null
+  if (!job) return
+  const saved = await window.gas.project.setGroups(job.rel, job.groups).catch(() => null)
+  if (!saved) toast(i18n.t('style.saveFailed'), 'err')
+}
+
 export const useWs = create<WsStore>()((set, get) => ({
   snap: null,
   curFolder: '',
@@ -95,6 +117,21 @@ export const useWs = create<WsStore>()((set, get) => ({
   sort: 'recent',
   busy: false,
   skipped: [],
+  inputSel: [],
+  activeGroup: null,
+  setInputSel: (inputSel) => set({ inputSel }),
+  setActiveGroup: (activeGroup) => set({ activeGroup }),
+  updateGroups: (fn, immediate) => {
+    const { project, curProject } = get()
+    if (!project || !curProject) return
+    const groups = fn(project.groups)
+    set({ project: { ...project, groups, groupCount: groups.length } })
+    groupPending = { rel: curProject, groups }
+    if (groupTimer) clearTimeout(groupTimer)
+    if (immediate) void persistGroups()
+    else groupTimer = setTimeout(() => void persistGroups(), 450)
+  },
+  flushGroups: () => persistGroups(),
   clearSkipped: () => set({ skipped: [] }),
   init: () => {
     void window.gas.workspace.get().then((snap) => set({ snap }))
@@ -119,23 +156,27 @@ export const useWs = create<WsStore>()((set, get) => ({
     const expanded = { ...get().expanded }
     for (const p of parentsOf(rel)) expanded[p] = true
     const same = get().curProject === rel && get().project
-    set({ curProject: rel, expanded, loading: !same, ...(same ? {} : { project: null, step: 1, skipped: [] }) })
+    await persistGroups()
+    set({ curProject: rel, expanded, loading: !same, ...(same ? {} : { project: null, step: 1, skipped: [], inputSel: [], activeGroup: null }) })
     useApp.getState().navigate('project')
     const view = await window.gas.project.open(rel)
     if (get().curProject !== rel) return
     set({ project: view, loading: false })
   },
   closeProject: () => {
+    void persistGroups()
     set({ curProject: null, project: null })
     useApp.getState().navigate('workspace')
   },
   reloadProject: async () => {
     const rel = get().curProject
     if (!rel) return
+    await persistGroups()
     const view = await window.gas.project.open(rel)
     if (get().curProject === rel) set({ project: view })
   },
-  setProject: (project) => set({ project }),
+  setProject: (project) =>
+    set({ project: project && groupPending && groupPending.rel === get().curProject ? { ...project, groups: groupPending.groups } : project }),
   setStep: (step) => set({ step, stepDir: step >= get().step ? 1 : -1 }),
   toggle: (rel, open) => set({ expanded: { ...get().expanded, [rel]: open ?? !get().expanded[rel] } }),
   setRenaming: (renaming) => set({ renaming }),

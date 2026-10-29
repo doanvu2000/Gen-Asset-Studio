@@ -73,13 +73,15 @@ function describeSamples(samples: StyleSample[]): string {
   return samples.map((s, i) => `image ${i + 1}: ${s.kind}${s.name ? ` "${s.name}"` : ''}`).join('; ')
 }
 
-export function buildDirectionsPrompt(samples: StyleSample[], refCount: number, prompt: string, count: number, feedback?: string): string {
+export function buildDirectionsPrompt(samples: StyleSample[], refCount: number, prompt: string, count: number, feedback?: string, avoidNames: string[] = []): string {
   return [
     `You are an art director for casual mobile games. The first ${samples.length} attached images are original UI assets from one game (${describeSamples(samples)}).`,
     refCount > 0 ? `The next ${refCount} attached images are style references chosen by the user.` : 'No style reference images were provided.',
     prompt.trim() ? `User wishes (may be Vietnamese): ${prompt.trim()}` : 'The user gave no style wishes; infer good options from the assets and the game genre they suggest.',
     feedback?.trim() ? `Feedback on previous suggestions: ${feedback.trim()}` : '',
     `Propose exactly ${count} clearly different visual reskin directions for this whole asset set.${prompt.trim() ? ' All of them must honour the user wishes; vary material, lighting, outline and palette.' : ''}`,
+    count > 1 ? 'Every direction must be clearly different from the others in material, rendering, palette and mood; never two variations of the same idea.' : '',
+    avoidNames.length ? `Do not use these names or close variants of them for any direction: ${avoidNames.join(', ')}.` : '',
     'Colors must be vivid and saturated; never pale, washed-out or pastel-glass looks.',
     'For each direction give:',
     '- name: 2 to 4 words, English title case;',
@@ -221,6 +223,7 @@ export class SuggestService extends EventEmitter {
       prompt: req.prompt ?? '',
       samples,
       refImages,
+      avoidNames: (req.avoidNames ?? []).filter((n) => typeof n === 'string' && n.trim()).map((n) => n.trim().slice(0, 80)).slice(0, 24),
       createdAt: Date.now(),
       phase: 'planning',
       error: null,
@@ -282,7 +285,7 @@ export class SuggestService extends EventEmitter {
     const threadId = await this.deps.codex.startThread({ cwd: run.dir, model: m.model, sandbox: 'read-only', ephemeral: true })
     let streamed = ''
     const input = [
-      { type: 'text' as const, text: buildDirectionsPrompt(run.samples, run.refImages.length, run.prompt, count, feedback), text_elements: [] as [] },
+      { type: 'text' as const, text: buildDirectionsPrompt(run.samples, run.refImages.length, run.prompt, count, feedback, run.avoidNames ?? []), text_elements: [] as [] },
       ...run.samples.map((s) => ({ type: 'localImage' as const, path: s.path })),
       ...run.refImages.map((p) => ({ type: 'localImage' as const, path: p }))
     ]

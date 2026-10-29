@@ -59,5 +59,7 @@ export const IPC = {
   projAddPaths: 'proj:add-paths',
   projRemove: 'proj:remove',
   projSetType: 'proj:set-type',
-  projRelink: 'proj:relink'
+  projRelink: 'proj:relink',
+  projSetGroups: 'proj:set-groups',
+  projAddRefs: 'proj:add-refs'
 } as const

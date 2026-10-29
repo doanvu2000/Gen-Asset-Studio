@@ -2,9 +2,9 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useApp } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
-
-const MODEL = 'luna'
-const EFFORT = 'medium'
+import { useQueue } from '@renderer/store/queue'
+import { useStyle } from '@renderer/store/style'
+import { modelLabel } from '@renderer/lib/files'
 
 export function StatusBar(): ReactElement {
   const { t } = useTranslation()
@@ -14,6 +14,15 @@ export function StatusBar(): ReactElement {
   const setupRunning = useEnv((s) => !!s.setup?.running)
   const workspace = useApp((s) => s.settings.workspace)
   const year = new Date().getFullYear()
+  const gen = useStyle((s) => s.models.assetGen)
+  const list = useStyle((s) => s.modelList)
+  const snap = useQueue((s) => s.snap)
+  const drawer = useQueue((s) => s.drawer)
+  const setDrawer = useQueue((s) => s.setDrawer)
+  const running = snap?.running ?? 0
+  const queued = snap?.queued ?? 0
+  const qPaused = !!snap?.paused
+  const qDot = qPaused ? 'warn' : running ? 'run' : queued ? 'warn' : 'idle'
 
   const items = env?.items ?? []
   const ok = items.filter((i) => i.state === 'installed').length
@@ -35,13 +44,19 @@ export function StatusBar(): ReactElement {
             {t('status.environment', { ok, total: items.length || 6 })}
             {hasErr && ` · ${t('status.hasErrors')}`}
           </button>
-          <span className="seg-i">
-            Codex · {MODEL} · {EFFORT}
-          </span>
-          <span className="seg-i">
-            <span className="dot idle" />
-            {t('status.queueIdle')}
-          </span>
+          <button type="button" className="st-btn" title={t('gen.modelHint')} onClick={() => openSettings('gen')}>
+            Codex · {modelLabel(gen.model, list)} · {gen.effort}
+          </button>
+          <button type="button" className={drawer ? 'st-btn on' : 'st-btn'} title={t('queue.title')} onClick={() => setDrawer(!drawer)}>
+            <span className={`dot ${qDot}`} />
+            {snap?.pauseReason === 'quota'
+              ? t('status.queueQuota', { queued: queued + running })
+              : qPaused && (running || queued)
+                ? t('status.queuePaused', { queued: queued + running })
+                : running || queued
+                  ? t('status.queueBusy', { running, queued })
+                  : t('status.queueIdle')}
+          </button>
         </>
       )}
       <div className="grow" />

@@ -63,6 +63,10 @@ export class StyleService {
     })
   }
 
+  modelsSync(): TaskModels {
+    return structuredClone(this.models)
+  }
+
   async getModels(): Promise<TaskModels> {
     if (!this.modelsLoaded) {
       const saved = await readJson<Partial<TaskModels>>(this.modelsFile)
@@ -159,6 +163,7 @@ export function registerStyleIpc(ipcMain: IpcMain, getWindow: () => BrowserWindo
     return true
   })
   ipcMain.handle(STYLE_IPC.lock, (_e, req: LockRequest) => service.lock(req))
+  ipcMain.handle(STYLE_IPC.unlock, (_e, projectPath: string, group: StyleGroup) => service.unlock(projectPath, group))
   ipcMain.handle(STYLE_IPC.modelsGet, () => service.getModels())
   ipcMain.handle(STYLE_IPC.modelsSet, (_e, patch: Partial<TaskModels>) => service.setModels(patch))
   return service

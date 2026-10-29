@@ -1,4 +1,6 @@
 import type { AddResult, InputType, OpResult, ProjectView, WorkspaceSnapshot } from './workspace'
+import type { StyleApi, StyleGroup } from './style'
+import type { QueueApi } from './queue'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
@@ -13,11 +15,28 @@ export interface SetupPersist {
   testGenOk: boolean
 }
 
+export type ExportScale = 1 | 2 | 4
+
+export interface GenPrefs {
+  concurrency: number
+  styleCount: number
+  scale: ExportScale
+}
+
+export const DEFAULT_GEN: GenPrefs = { concurrency: 3, styleCount: 3, scale: 1 }
+
 export interface AppSettings {
   theme: ThemePref
   lang: Lang
   workspace: string | null
   setup: SetupPersist
+  gen: GenPrefs
+}
+
+export interface SettingsPatch {
+  theme?: ThemePref
+  lang?: Lang
+  gen?: Partial<GenPrefs>
 }
 
 export const DEFAULT_SETUP: SetupPersist = {
@@ -31,7 +50,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   lang: 'vi',
   workspace: null,
-  setup: { ...DEFAULT_SETUP }
+  setup: { ...DEFAULT_SETUP },
+  gen: { ...DEFAULT_GEN }
 }
 
 export interface AppInfo {
@@ -142,7 +162,7 @@ export interface EnvStatus {
 
 export type CodexServiceState = 'stopped' | 'starting' | 'ready' | 'error'
 
-export type FixSource = 'setup' | 'env'
+export type FixSource = 'setup' | 'env' | 'gen'
 
 export interface FixContext {
   source: FixSource
@@ -187,7 +207,7 @@ export interface GasApi {
   }
   settings: {
     get: () => Promise<AppSettings>
-    set: (patch: Partial<Pick<AppSettings, 'theme' | 'lang'>>) => Promise<AppSettings>
+    set: (patch: SettingsPatch) => Promise<AppSettings>
     onChange: (cb: (settings: AppSettings) => void) => Unsubscribe
   }
   theme: {
@@ -253,7 +273,11 @@ export interface GasApi {
     remove: (rel: string, ids: string[]) => Promise<ProjectView | null>
     setType: (rel: string, ids: string[], type: InputType) => Promise<ProjectView | null>
     relink: (rel: string, rootIndex: number) => Promise<ProjectView | null>
+    setGroups: (rel: string, groups: StyleGroup[]) => Promise<StyleGroup[] | null>
+    addRefs: (rel: string, groupId: string) => Promise<string[]>
   }
+  style: StyleApi
+  queue: QueueApi
   files: {
     pathFor: (file: File) => string
   }

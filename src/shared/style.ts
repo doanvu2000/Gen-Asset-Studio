@@ -29,6 +29,10 @@ export interface StyleGroup {
   lockImage?: string
   assetIds: string[]
   nineSliceOverrides: Record<string, NineSliceOverride>
+  suggestRunId?: string
+  palette?: string[]
+  lockName?: string
+  lockedAt?: number
 }
 
 export interface StyleSuggestion {
@@ -87,6 +91,7 @@ export interface SuggestRequest {
   refImages?: string[]
   count?: number
   feedback?: string
+  avoidNames?: string[]
 }
 
 export interface SuggestRun {
@@ -96,6 +101,7 @@ export interface SuggestRun {
   prompt: string
   samples: StyleSample[]
   refImages: string[]
+  avoidNames?: string[]
   createdAt: number
   phase: 'planning' | 'rendering' | 'done' | 'error' | 'canceled'
   error: string | null
@@ -141,6 +147,23 @@ export const STYLE_IPC = {
   suggestRegen: 'style:suggest-regen',
   suggestProgress: 'style:suggest-progress',
   lock: 'style:lock',
+  unlock: 'style:unlock',
   modelsGet: 'style:models-get',
   modelsSet: 'style:models-set'
 } as const
+
+export interface StyleApi {
+  templates: () => Promise<StyleTemplate[]>
+  saveTemplate: (req: SaveTemplateRequest) => Promise<StyleTemplate>
+  deleteTemplate: (id: string) => Promise<boolean>
+  polish: (req: PromptPolishRequest) => Promise<PromptPolishResult>
+  suggestStart: (req: SuggestRequest) => Promise<SuggestRun>
+  suggestCancel: (runId: string) => Promise<void>
+  suggestGet: (projectPath: string, runId: string) => Promise<SuggestRun | null>
+  suggestRegen: (projectPath: string, runId: string, suggestionId: string | null, feedback?: string) => Promise<boolean>
+  lock: (req: LockRequest) => Promise<StyleGroup>
+  unlock: (projectPath: string, group: StyleGroup) => Promise<StyleGroup>
+  modelsGet: () => Promise<TaskModels>
+  modelsSet: (patch: Partial<TaskModels>) => Promise<TaskModels>
+  onSuggestProgress: (cb: (p: SuggestProgress) => void) => () => void
+}

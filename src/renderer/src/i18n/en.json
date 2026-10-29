@@ -26,7 +26,10 @@
     "queueIdle": "Queue idle",
     "copyright": "© {{year}} Jin Vũ. All rights reserved.",
     "hasErrors": "has errors",
-    "checking": "Checking environment…"
+    "checking": "Checking environment…",
+    "queueBusy": "{{running}} generating · {{queued}} queued",
+    "queuePaused": "Queue paused · {{queued}} images",
+    "queueQuota": "Waiting for quota · {{queued}} images"
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -208,7 +211,8 @@
     "tabs": {
       "general": "General",
       "account": "Account",
-      "env": "Environment"
+      "env": "Environment",
+      "gen": "Generation"
     },
     "appearance": "Appearance",
     "language": "Language",
@@ -223,7 +227,28 @@
     },
     "logs": "Log",
     "openLogs": "Open log folder",
-    "exportLog": "Export log"
+    "exportLog": "Export log",
+    "gen": {
+      "parallel": "Parallel generations",
+      "parallelHint": "Shared by the whole queue, applies immediately",
+      "styles": "Style directions to suggest",
+      "stylesHint": "Default for “Suggest styles”",
+      "scale": "Default export size",
+      "scaleHint": "×2/×4 is a plain resize, no regeneration",
+      "maxRun": "Max images per run",
+      "task": {
+        "promptPolish": "Prompt polishing",
+        "styleSuggest": "Style suggestions + previews",
+        "assetGen": "Asset generation"
+      },
+      "taskHint": {
+        "promptPolish": "rewrites prompts and notes into English",
+        "styleSuggest": "analyzes the set, draws preview sheets",
+        "assetGen": "every image generation / regeneration"
+      },
+      "modelsNote": "Default: luna · medium for all three. Higher effort is slower and uses more quota.",
+      "reset": "Reset"
+    }
   },
   "env": {
     "title": "Environment status",
@@ -495,5 +520,198 @@
       "path": "Path",
       "setType": "Processing for {{count}} images"
     }
+  },
+  "style": {
+    "groups": "STYLE GROUPS",
+    "newGroup": "New style group",
+    "newGroupName": "Group {{n}}",
+    "groupName": "Group name",
+    "locked": "Locked",
+    "notLocked": "Not locked",
+    "deleteGroup": "Delete group",
+    "delTitle": "Delete group “{{name}}”?",
+    "delDesc": "{{count}} images in this group become ungrouped (not generated, not exported). Source images and generated versions are kept.",
+    "saveFailed": "Could not save style groups to project.json",
+    "emptyTitle": "No style groups yet",
+    "emptyDesc": "Create a group, choose its images, then lock a style from a template or a Codex suggestion.",
+    "unassigned": {
+      "title": "{{count}} images in no group",
+      "desc": "These will not be generated or exported.",
+      "assign": "Add to the open group"
+    },
+    "spriteNote": "Sprite sheets are in development — sheets are skipped for now.",
+    "footHint": "Each group has its own style; an image belongs to one group only. Lock at least one group with images to continue.",
+    "footReady": "Ready to generate. Images outside locked groups will not be generated.",
+    "next": "Next: Generate",
+    "assets": {
+      "title": "Images in this group",
+      "count": "{{count}} images",
+      "choose": "Choose images…",
+      "fromInput": "Use {{count}} images selected in Source",
+      "empty": "No images yet — click “Choose images…”.",
+      "nineHint": "Toggle nine-slice for this image",
+      "remove": "Remove from group"
+    },
+    "picker": {
+      "title": "Choose images for the group",
+      "root": "(root)",
+      "freeOnly": "Only images without a group",
+      "selectFolder": "Select whole folder",
+      "count": "{{count}} selected",
+      "moving": "{{count}} will move from another group",
+      "apply": "Apply",
+      "applied": "Added {{count}} images to “{{name}}”"
+    },
+    "prompt": {
+      "label": "Prompt",
+      "optional": "optional · any language",
+      "placeholder": "Describe the style, e.g. cute, vivid candy colors, thick outlines"
+    },
+    "polish": {
+      "button": "Polish prompt with Codex (EN)",
+      "loading": "Codex is checking and rewriting the prompt…",
+      "title": "Suggested prompt (English)",
+      "use": "Use this prompt",
+      "again": "Rewrite again",
+      "keep": "Keep original",
+      "undo": "Undo",
+      "failed": "Prompt polishing failed",
+      "close": "Close",
+      "empty": "Type a prompt first"
+    },
+    "refs": {
+      "label": "Reference images",
+      "optional": "optional",
+      "add": "Add reference image",
+      "remove": "Remove reference",
+      "note": "Images are copied into the project (styles/…/refs) and attached to suggestions and generations."
+    },
+    "tpl": {
+      "title": "Style templates",
+      "desc": "quick start — fills the group prompt, still editable",
+      "mine": "yours",
+      "saveAs": "Save as template",
+      "saveDesc": "Save this group’s prompt and style lock image as a template for other projects.",
+      "name": "Template name",
+      "save": "Save template",
+      "saved": "Saved template “{{name}}”",
+      "delete": "Delete template",
+      "deleted": "Deleted template “{{name}}”"
+    },
+    "sugg": {
+      "title": "Style directions",
+      "count": "Number of directions",
+      "estimate": "≈ {{count}} generations",
+      "estimateQuota": "≈ {{count}} generations · 5h quota {{left}}% left",
+      "promptOnly": "Prompt only (1 preview)",
+      "promptOnlyHint": "No extra directions — draw one preview straight from the group prompt",
+      "start": "Suggest styles",
+      "again": "Suggest again",
+      "cancel": "Cancel",
+      "empty": "Codex looks at your images, prompt and references, then proposes {{count}} style directions, each with a preview sheet redrawing a few representative assets (sent as individual images).",
+      "planning": "Codex is analyzing the set and planning directions…",
+      "rendering": "Drawing previews · {{done}}/{{total}} done",
+      "waiting": "Waiting to draw",
+      "drawing": "Drawing preview…",
+      "failed": "Preview failed",
+      "startFailed": "Could not start suggestions",
+      "canceled": "Suggestion run canceled."
+    },
+    "fb": {
+      "label": "Feedback for Codex",
+      "placeholder": "e.g. bolder, drop the yellow rim, rounder buttons",
+      "regenPicked": "Regenerate selected",
+      "regenAll": "Regenerate all"
+    },
+    "lock": "Lock this style",
+    "unlock": "Unlock",
+    "lockDesc": "The preview becomes the style lock image attached to every generation in this group.",
+    "lockedToast": "Locked style “{{name}}”",
+    "lockFailed": "Could not lock style",
+    "zoom": "View large"
+  },
+  "gen": {
+    "title": "Generate images",
+    "desc": "Each image goes to Codex with its source and the group style lock, then the background is removed, it is fit to the source W×H and QA runs.",
+    "scope": "Scope",
+    "scopeNew": "Not generated ({{count}})",
+    "scopeAll": "All locked images ({{count}})",
+    "scopeCustom": "Custom",
+    "parallel": "Parallel",
+    "parallelHint": "images at once · shared across the queue",
+    "modelNote": "change model + effort in Settings → Generation",
+    "modelHint": "Model + effort — change in Settings",
+    "estimate": "Estimate",
+    "estCount": "{{count}} generations",
+    "estMin": "{{count}} min",
+    "quotaLeft": "5h quota {{left}}% left",
+    "quotaOk": "Quota OK",
+    "quotaLow": "Low quota — may pause midway",
+    "outOfQuota": "Out of quota",
+    "outOfQuotaDesc": "Pauses, counts down and resumes automatically when quota resets.",
+    "groups": "Groups to generate",
+    "selOf": "{{on}}/{{total}} images",
+    "notLocked": "Group “{{name}}” has no locked style — its images will not be generated.",
+    "lockIt": "Lock style",
+    "ungrouped": "{{count}} images are in no group — not generated, not exported.",
+    "new": "new",
+    "start": "Generate {{count}} images",
+    "enqueued": "Queued {{count}} images",
+    "running": "Generating {{done}}/{{total}}",
+    "finished": "Generated {{count}} images",
+    "metaRunning": "{{left}} left · ~{{min}} min · {{conc}} in parallel",
+    "metaDone": "{{done}} awaiting review · {{qa}} QA failures · {{err}} errors",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancelRest": "Cancel remaining",
+    "cancelOne": "Cancel this image",
+    "more": "Generate more",
+    "toReview": "Go to Review",
+    "somePaused": "Some images are paused.",
+    "retry": "Retry",
+    "sendFix": "Ask Codex to fix",
+    "copyError": "Copy error",
+    "copied": "Error copied",
+    "waiting": "Waiting in queue",
+    "doneReview": "Done · awaiting review",
+    "toastDone": "Generated {{count}} images · {{name}}",
+    "stage": {
+      "prepare": "Preparing",
+      "send": "Sending to Codex",
+      "receive": "Receiving image",
+      "cutout": "Removing background",
+      "qa": "Running QA"
+    },
+    "status": {
+      "queued": "Queued",
+      "paused": "Paused",
+      "running": "Generating",
+      "processing": "Processing",
+      "done": "Awaiting review",
+      "qaWarn": "QA failed",
+      "error": "Gen error",
+      "canceled": "Canceled"
+    }
+  },
+  "queue": {
+    "title": "Generation queue",
+    "pauseAll": "Pause all",
+    "resumeAll": "Resume",
+    "quota": "Codex quota",
+    "week": "Week",
+    "runningLabel": "RUNNING {{n}} · {{conc}} IN PARALLEL",
+    "progress": "{{done}}/{{total}} images",
+    "waitQuota": "waiting for quota",
+    "allDone": "done",
+    "errors": "{{count}} errors",
+    "clear": "Remove from list",
+    "clearAll": "Clear finished",
+    "empty": "No project is generating right now.",
+    "quotaTitle": "Codex quota used up — paused",
+    "quotaDesc": "Finished images are kept. The run resumes automatically when quota resets — you can leave it overnight.",
+    "resumeIn": "Resumes in",
+    "tryNow": "Try now",
+    "pausedTitle": "Queue paused",
+    "pausedDesc": "Nothing is sent to Codex until you resume."
   }
 }

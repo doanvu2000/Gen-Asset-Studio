@@ -26,7 +26,10 @@
     "queueIdle": "Hàng đợi trống",
     "copyright": "© {{year}} Jin Vũ. All rights reserved.",
     "hasErrors": "có lỗi",
-    "checking": "Đang kiểm tra môi trường…"
+    "checking": "Đang kiểm tra môi trường…",
+    "queueBusy": "{{running}} đang gen · {{queued}} chờ",
+    "queuePaused": "Hàng đợi tạm dừng · {{queued}} ảnh",
+    "queueQuota": "Chờ quota reset · {{queued}} ảnh"
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -208,7 +211,8 @@
     "tabs": {
       "general": "Chung",
       "account": "Tài khoản",
-      "env": "Môi trường"
+      "env": "Môi trường",
+      "gen": "Gen & QA"
     },
     "appearance": "Giao diện",
     "language": "Ngôn ngữ",
@@ -223,7 +227,28 @@
     },
     "logs": "Log",
     "openLogs": "Mở folder log",
-    "exportLog": "Xuất log"
+    "exportLog": "Xuất log",
+    "gen": {
+      "parallel": "Gen song song",
+      "parallelHint": "Chung cho toàn bộ hàng đợi, áp dụng ngay",
+      "styles": "Số hướng style gợi ý",
+      "stylesHint": "Mặc định khi bấm “Gợi ý style”",
+      "scale": "Kích thước xuất mặc định",
+      "scaleHint": "×2/×4 là resize thường, không gen lại",
+      "maxRun": "Ảnh tối đa mỗi lần chạy",
+      "task": {
+        "promptPolish": "Chuẩn hoá prompt",
+        "styleSuggest": "Gợi ý style + preview",
+        "assetGen": "Gen asset"
+      },
+      "taskHint": {
+        "promptPolish": "viết lại prompt / ghi chú sang tiếng Anh",
+        "styleSuggest": "phân tích bộ ảnh, vẽ sheet preview",
+        "assetGen": "mỗi lượt gen / regen ảnh"
+      },
+      "modelsNote": "Mặc định: luna · medium cho cả 3. Effort cao hơn chậm hơn và tốn quota hơn.",
+      "reset": "Về mặc định"
+    }
   },
   "env": {
     "title": "Trạng thái môi trường",
@@ -495,5 +520,198 @@
       "path": "Đường dẫn",
       "setType": "Kiểu xử lý cho {{count}} ảnh"
     }
+  },
+  "style": {
+    "groups": "NHÓM STYLE",
+    "newGroup": "Nhóm style mới",
+    "newGroupName": "Nhóm {{n}}",
+    "groupName": "Tên nhóm",
+    "locked": "Đã chốt",
+    "notLocked": "Chưa chốt",
+    "deleteGroup": "Xoá nhóm",
+    "delTitle": "Xoá nhóm “{{name}}”?",
+    "delDesc": "{{count}} ảnh trong nhóm sẽ thành chưa có nhóm (không gen, không xuất). Ảnh gốc và các bản đã gen vẫn giữ nguyên.",
+    "saveFailed": "Không lưu được nhóm style vào project.json",
+    "emptyTitle": "Chưa có nhóm style",
+    "emptyDesc": "Tạo nhóm, chọn ảnh áp dụng rồi chốt style bằng template hoặc gợi ý của Codex.",
+    "unassigned": {
+      "title": "{{count}} ảnh chưa thuộc nhóm nào",
+      "desc": "Các ảnh này sẽ không được gen và không được xuất.",
+      "assign": "Gán vào nhóm đang mở"
+    },
+    "spriteNote": "Sprite sheet đang phát triển — các sheet trong project tạm thời bị bỏ qua.",
+    "footHint": "Mỗi nhóm có style riêng, một ảnh chỉ thuộc một nhóm. Chốt ít nhất 1 nhóm có ảnh để sang bước Gen.",
+    "footReady": "Sẵn sàng gen. Ảnh không thuộc nhóm đã chốt sẽ không được gen.",
+    "next": "Tiếp: Gen ảnh",
+    "assets": {
+      "title": "Ảnh áp dụng",
+      "count": "{{count}} ảnh",
+      "choose": "Chọn ảnh…",
+      "fromInput": "Dùng {{count}} ảnh đang chọn ở bước Ảnh gốc",
+      "empty": "Chưa có ảnh nào — bấm “Chọn ảnh…”.",
+      "nineHint": "Bật/tắt 9-slice cho ảnh này",
+      "remove": "Bỏ khỏi nhóm"
+    },
+    "picker": {
+      "title": "Chọn ảnh cho nhóm",
+      "root": "(gốc)",
+      "freeOnly": "Chỉ ảnh chưa có nhóm",
+      "selectFolder": "Chọn cả folder",
+      "count": "Đã chọn {{count}} ảnh",
+      "moving": "{{count}} ảnh sẽ chuyển từ nhóm khác sang",
+      "apply": "Áp dụng",
+      "applied": "Đã gán {{count}} ảnh vào “{{name}}”"
+    },
+    "prompt": {
+      "label": "Prompt",
+      "optional": "không bắt buộc · viết tiếng Việt cũng được",
+      "placeholder": "Mô tả style mong muốn, vd: dễ thương, màu kẹo rực, viền dày"
+    },
+    "polish": {
+      "button": "Codex chuẩn hoá prompt (EN)",
+      "loading": "Codex đang kiểm tra và viết lại prompt…",
+      "title": "Prompt đề xuất (tiếng Anh)",
+      "use": "Dùng prompt này",
+      "again": "Gen lại",
+      "keep": "Giữ bản gốc",
+      "undo": "Hoàn tác",
+      "failed": "Chuẩn hoá prompt lỗi",
+      "close": "Đóng",
+      "empty": "Nhập prompt trước rồi mới chuẩn hoá"
+    },
+    "refs": {
+      "label": "Ảnh tham chiếu",
+      "optional": "không bắt buộc",
+      "add": "Thêm ảnh tham chiếu",
+      "remove": "Bỏ ảnh tham chiếu",
+      "note": "Ảnh được chép vào project (styles/…/refs), đính kèm khi gợi ý và khi gen."
+    },
+    "tpl": {
+      "title": "Template style",
+      "desc": "chọn nhanh — điền prompt nhóm, vẫn sửa được",
+      "mine": "của bạn",
+      "saveAs": "Lưu làm template",
+      "saveDesc": "Lưu prompt + ảnh khoá style của nhóm thành template để dùng cho project khác.",
+      "name": "Tên template",
+      "save": "Lưu template",
+      "saved": "Đã lưu template “{{name}}”",
+      "delete": "Xoá template",
+      "deleted": "Đã xoá template “{{name}}”"
+    },
+    "sugg": {
+      "title": "Hướng style",
+      "count": "Số hướng gợi ý",
+      "estimate": "≈ {{count}} lượt gen",
+      "estimateQuota": "≈ {{count}} lượt gen · quota 5h còn {{left}}%",
+      "promptOnly": "Chỉ dùng prompt (1 preview)",
+      "promptOnlyHint": "Không gợi ý thêm hướng — vẽ 1 preview đúng theo prompt của nhóm",
+      "start": "Gợi ý style",
+      "again": "Gợi ý lại",
+      "cancel": "Huỷ",
+      "empty": "Codex xem bộ ảnh + prompt + ảnh tham chiếu rồi đề xuất {{count}} hướng style, mỗi hướng kèm 1 sheet preview vẽ lại vài asset đại diện (gửi từng ảnh lẻ).",
+      "planning": "Codex đang phân tích bộ ảnh và lên hướng style…",
+      "rendering": "Đang vẽ preview · {{done}}/{{total}} xong",
+      "waiting": "Chờ lượt vẽ",
+      "drawing": "Đang vẽ preview…",
+      "failed": "Gen preview lỗi",
+      "startFailed": "Không bắt đầu gợi ý được",
+      "canceled": "Đã huỷ lượt gợi ý."
+    },
+    "fb": {
+      "label": "Nhận xét cho Codex",
+      "placeholder": "vd: đậm hơn, bỏ viền vàng, nút bo tròn hơn",
+      "regenPicked": "Gen lại hướng đã chọn",
+      "regenAll": "Gen lại cả bộ"
+    },
+    "lock": "Chốt style này",
+    "unlock": "Mở khoá",
+    "lockDesc": "Ảnh preview thành ảnh khoá style, đính kèm vào mọi lượt gen của nhóm này.",
+    "lockedToast": "Đã chốt style “{{name}}”",
+    "lockFailed": "Chốt style lỗi",
+    "zoom": "Xem lớn"
+  },
+  "gen": {
+    "title": "Gen ảnh",
+    "desc": "Mỗi ảnh gửi Codex kèm ảnh gốc + ảnh khoá style của nhóm, rồi tự tách nền, fit đúng W×H gốc và kiểm QA.",
+    "scope": "Phạm vi",
+    "scopeNew": "Chưa gen ({{count}})",
+    "scopeAll": "Mọi ảnh đã chốt ({{count}})",
+    "scopeCustom": "Tuỳ chọn",
+    "parallel": "Song song",
+    "parallelHint": "ảnh cùng lúc · chung cho cả hàng đợi",
+    "modelNote": "đổi model + effort trong Cài đặt → Gen & QA",
+    "modelHint": "Model + effort — bấm để đổi trong Cài đặt",
+    "estimate": "Ước tính",
+    "estCount": "{{count}} lượt gen",
+    "estMin": "{{count}} phút",
+    "quotaLeft": "quota 5h còn {{left}}%",
+    "quotaOk": "Đủ quota",
+    "quotaLow": "Quota thấp — có thể dừng giữa chừng",
+    "outOfQuota": "Hết quota",
+    "outOfQuotaDesc": "Tự dừng, đếm ngược và tự chạy tiếp khi quota reset.",
+    "groups": "Nhóm sẽ gen",
+    "selOf": "{{on}}/{{total}} ảnh",
+    "notLocked": "Nhóm “{{name}}” chưa chốt style — ảnh trong nhóm sẽ không được gen.",
+    "lockIt": "Chốt style",
+    "ungrouped": "{{count}} ảnh chưa thuộc nhóm nào — không gen, không xuất.",
+    "new": "mới",
+    "start": "Bắt đầu gen {{count}} ảnh",
+    "enqueued": "Đã đưa {{count}} ảnh vào hàng đợi",
+    "running": "Đang gen {{done}}/{{total}}",
+    "finished": "Đã gen xong {{count}} ảnh",
+    "metaRunning": "Còn {{left}} ảnh · ~{{min}} phút · {{conc}} song song",
+    "metaDone": "{{done}} chờ duyệt · {{qa}} lỗi QA · {{err}} lỗi gen",
+    "pause": "Tạm dừng",
+    "resume": "Tiếp tục",
+    "cancelRest": "Huỷ phần còn lại",
+    "cancelOne": "Huỷ ảnh này",
+    "more": "Gen thêm",
+    "toReview": "Sang bước Duyệt",
+    "somePaused": "Một số ảnh đang tạm dừng.",
+    "retry": "Thử lại",
+    "sendFix": "Gửi lỗi cho Codex sửa",
+    "copyError": "Chép lỗi",
+    "copied": "Đã chép lỗi",
+    "waiting": "Đang chờ lượt",
+    "doneReview": "Xong · chờ duyệt",
+    "toastDone": "Đã gen xong {{count}} ảnh · {{name}}",
+    "stage": {
+      "prepare": "Chuẩn bị",
+      "send": "Gửi Codex",
+      "receive": "Nhận ảnh",
+      "cutout": "Tách nền",
+      "qa": "Kiểm QA"
+    },
+    "status": {
+      "queued": "Chờ",
+      "paused": "Tạm dừng",
+      "running": "Đang gen",
+      "processing": "Đang xử lý",
+      "done": "Chờ duyệt",
+      "qaWarn": "Lỗi QA",
+      "error": "Lỗi gen",
+      "canceled": "Đã huỷ"
+    }
+  },
+  "queue": {
+    "title": "Hàng đợi gen",
+    "pauseAll": "Dừng tất cả",
+    "resumeAll": "Chạy tiếp",
+    "quota": "Quota Codex",
+    "week": "Tuần",
+    "runningLabel": "ĐANG CHẠY {{n}} · {{conc}} SONG SONG",
+    "progress": "{{done}}/{{total}} ảnh",
+    "waitQuota": "chờ quota reset",
+    "allDone": "xong",
+    "errors": "{{count}} lỗi",
+    "clear": "Xoá khỏi danh sách",
+    "clearAll": "Xoá các mục đã xong",
+    "empty": "Chưa có project nào đang gen.",
+    "quotaTitle": "Hết quota Codex — đã tạm dừng",
+    "quotaDesc": "Ảnh đã gen được giữ nguyên. App tự chạy tiếp khi quota reset, có thể để máy chạy qua đêm.",
+    "resumeIn": "Tự chạy tiếp sau",
+    "tryNow": "Thử chạy ngay",
+    "pausedTitle": "Hàng đợi đang tạm dừng",
+    "pausedDesc": "Không ảnh nào được gửi Codex cho tới khi chạy tiếp."
   }
 }

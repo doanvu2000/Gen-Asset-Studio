@@ -15,6 +15,9 @@ import { ProjectScreen } from '@renderer/screens/ProjectScreen'
 import { Toasts } from '@renderer/components/Toasts'
 import { WorkspaceDialogs } from '@renderer/components/WorkspaceDialogs'
 import { useWs } from '@renderer/store/workspace'
+import { useStyle } from '@renderer/store/style'
+import { useQueue } from '@renderer/store/queue'
+import { QueueDrawer } from '@renderer/components/QueueDrawer'
 
 const SCREENS: Record<Route, () => ReactElement> = {
   setup: SetupScreen,
@@ -46,8 +49,17 @@ function useBridgeEvents(): void {
 function useEnvBridge(): void {
   const init = useEnv((s) => s.init)
   const initWs = useWs((s) => s.init)
+  const initStyle = useStyle((s) => s.init)
+  const initQueue = useQueue((s) => s.init)
+  const loadModels = useStyle((s) => s.loadModelList)
+  const loggedIn = useEnv((s) => !!s.account?.loggedIn)
   useEffect(() => init(), [init])
   useEffect(() => initWs(), [initWs])
+  useEffect(() => initStyle(), [initStyle])
+  useEffect(() => initQueue(), [initQueue])
+  useEffect(() => {
+    if (loggedIn) void loadModels()
+  }, [loggedIn, loadModels])
   useEffect(() => {
     const block = (e: DragEvent): void => {
       if (!e.dataTransfer || e.defaultPrevented || ![...e.dataTransfer.types].includes('Files')) return
@@ -117,6 +129,7 @@ export function App(): ReactElement {
           </div>
         </div>
         <StatusBar />
+        {route !== 'setup' && <QueueDrawer />}
         <SettingsDialog />
         <UacDialog />
         <FixDialog />

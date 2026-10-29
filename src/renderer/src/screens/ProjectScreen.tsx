@@ -6,6 +6,9 @@ import { Icon } from '@renderer/components/Icon'
 import { EASE, viewTransition } from '@renderer/lib/motion'
 import { useWs } from '@renderer/store/workspace'
 import { InputStep } from './InputStep'
+import { StyleStep } from './StyleStep'
+import { GenStep } from './GenStep'
+import { hasVersions, isLocked, styleReady } from '@renderer/lib/project'
 
 const STEPS = ['input', 'style', 'gen', 'review', 'export'] as const
 type StepKey = (typeof STEPS)[number]
@@ -14,8 +17,8 @@ const LOCK: Record<Exclude<StepKey, 'input'>, string> = { style: 'style', gen: '
 function canStep(p: ProjectView, n: number): true | string {
   if (n === 1) return true
   if (n === 2) return p.inputs.length ? true : LOCK.style
-  if (n === 3) return LOCK.gen
-  if (n === 4) return LOCK.review
+  if (n === 3) return p.inputs.length && styleReady(p) ? true : LOCK.gen
+  if (n === 4) return hasVersions(p) ? true : LOCK.review
   return LOCK.export
 }
 
@@ -25,8 +28,8 @@ function StepBar({ p }: { p: ProjectView }): ReactElement {
   const setStep = useWs((s) => s.setStep)
   const subs = [
     t('project.sub.images', { count: p.inputs.length }),
-    t('project.sub.groups', { locked: 0, total: p.groupCount }),
-    t('project.sub.generated', { done: 0, total: 0 }),
+    t('project.sub.groups', { locked: p.groups.filter(isLocked).length, total: p.groups.length }),
+    t('project.sub.generated', { done: p.inputs.filter((i) => i.versions.length > 0).length, total: p.groups.filter(isLocked).reduce((n, g) => n + g.assetIds.length, 0) }),
     t('project.sub.approved', { count: 0 }),
     t('project.sub.notExported')
   ]
@@ -143,7 +146,7 @@ export function ProjectScreen(): ReactElement {
             exit="exit"
             transition={viewTransition}
           >
-            {key === 'input' ? <InputStep project={project} /> : <Soon step={key} />}
+            {key === 'input' ? <InputStep project={project} /> : key === 'style' ? <StyleStep project={project} /> : key === 'gen' ? <GenStep project={project} /> : <Soon step={key} />}
           </motion.div>
         </AnimatePresence>
       </div>

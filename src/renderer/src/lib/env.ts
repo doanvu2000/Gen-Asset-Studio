@@ -38,6 +38,7 @@ export function retryTarget(target: string): Promise<void> {
 
 export function retryContext(ctx: FixContext | null): Promise<void> {
   if (!ctx) return Promise.resolve()
+  if (ctx.source === 'gen') return window.gas.queue.retry(ctx.target)
   return retryTarget(ctx.target)
 }
 

@@ -1,3 +1,5 @@
+import type { StyleGroup } from './style'
+
 export type ProjectStatus = 'new' | 'draft'
 
 export interface FolderNode {
@@ -50,6 +52,9 @@ export interface InputView {
   status: InputStatus
   thumb: string | null
   url: string
+  outRel: string
+  versions: number[]
+  latest: string | null
 }
 
 export interface RootView {
@@ -67,6 +72,7 @@ export interface ProjectView {
   roots: RootView[]
   commonRoot: string | null
   inputs: InputView[]
+  groups: StyleGroup[]
   groupCount: number
   updatedAt: number
 }

@@ -13,6 +13,8 @@ import type {
   Unsubscribe
 } from '@shared/types'
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
+import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
+import { QUEUE_IPC, type JobSpec, type QueueJobEvent, type QueueSnapshot, type QuotaPause } from '@shared/queue'
 
 function subscribe<T>(channel: string, cb: (value: T) => void): Unsubscribe {
   const listener = (_event: IpcRendererEvent, value: T): void => cb(value)
@@ -102,7 +104,45 @@ const api: GasApi = {
     addPaths: (rel: string, paths: string[]) => ipcRenderer.invoke(IPC.projAddPaths, rel, paths),
     remove: (rel: string, ids: string[]) => ipcRenderer.invoke(IPC.projRemove, rel, ids),
     setType: (rel: string, ids: string[], type: InputType) => ipcRenderer.invoke(IPC.projSetType, rel, ids, type),
-    relink: (rel: string, rootIndex: number) => ipcRenderer.invoke(IPC.projRelink, rel, rootIndex)
+    relink: (rel: string, rootIndex: number) => ipcRenderer.invoke(IPC.projRelink, rel, rootIndex),
+    setGroups: (rel: string, groups: StyleGroup[]) => ipcRenderer.invoke(IPC.projSetGroups, rel, groups),
+    addRefs: (rel: string, groupId: string) => ipcRenderer.invoke(IPC.projAddRefs, rel, groupId)
+  },
+  style: {
+    templates: () => ipcRenderer.invoke(STYLE_IPC.templatesList),
+    saveTemplate: (req: SaveTemplateRequest) => ipcRenderer.invoke(STYLE_IPC.templateSave, req),
+    deleteTemplate: (id: string) => ipcRenderer.invoke(STYLE_IPC.templateDelete, id),
+    polish: (req: PromptPolishRequest) => ipcRenderer.invoke(STYLE_IPC.promptPolish, req),
+    suggestStart: (req: SuggestRequest) => ipcRenderer.invoke(STYLE_IPC.suggestStart, req),
+    suggestCancel: (runId: string) => ipcRenderer.invoke(STYLE_IPC.suggestCancel, runId),
+    suggestGet: (projectPath: string, runId: string) => ipcRenderer.invoke(STYLE_IPC.suggestGet, projectPath, runId),
+    suggestRegen: (projectPath: string, runId: string, suggestionId: string | null, feedback?: string) =>
+      ipcRenderer.invoke(STYLE_IPC.suggestRegen, projectPath, runId, suggestionId, feedback),
+    lock: (req: LockRequest) => ipcRenderer.invoke(STYLE_IPC.lock, req),
+    unlock: (projectPath: string, group: StyleGroup) => ipcRenderer.invoke(STYLE_IPC.unlock, projectPath, group),
+    modelsGet: () => ipcRenderer.invoke(STYLE_IPC.modelsGet),
+    modelsSet: (patch: Partial<TaskModels>) => ipcRenderer.invoke(STYLE_IPC.modelsSet, patch),
+    onSuggestProgress: (cb) => subscribe<SuggestProgress>(STYLE_IPC.suggestProgress, cb)
+  },
+  queue: {
+    snapshot: () => ipcRenderer.invoke(QUEUE_IPC.snapshot),
+    enqueue: (specs: JobSpec[]) => ipcRenderer.invoke(QUEUE_IPC.enqueue, specs),
+    pause: () => ipcRenderer.invoke(QUEUE_IPC.pause),
+    resume: () => ipcRenderer.invoke(QUEUE_IPC.resume),
+    pauseJob: (id: string) => ipcRenderer.invoke(QUEUE_IPC.pauseJob, id),
+    resumeJob: (id: string) => ipcRenderer.invoke(QUEUE_IPC.resumeJob, id),
+    pauseProject: (projectPath: string) => ipcRenderer.invoke(QUEUE_IPC.pauseProject, projectPath),
+    resumeProject: (projectPath: string) => ipcRenderer.invoke(QUEUE_IPC.resumeProject, projectPath),
+    cancel: (id: string) => ipcRenderer.invoke(QUEUE_IPC.cancel, id),
+    cancelAll: (projectPath?: string) => ipcRenderer.invoke(QUEUE_IPC.cancelAll, projectPath),
+    retry: (id: string) => ipcRenderer.invoke(QUEUE_IPC.retry, id),
+    remove: (id: string) => ipcRenderer.invoke(QUEUE_IPC.remove, id),
+    move: (id: string, toIndex: number) => ipcRenderer.invoke(QUEUE_IPC.move, id, toIndex),
+    clearFinished: (projectPath?: string) => ipcRenderer.invoke(QUEUE_IPC.clearFinished, projectPath),
+    setConcurrency: (n: number) => ipcRenderer.invoke(QUEUE_IPC.setConcurrency, n),
+    onChange: (cb) => subscribe<QueueSnapshot>(QUEUE_IPC.changed, cb),
+    onJob: (cb) => subscribe<QueueJobEvent>(QUEUE_IPC.job, cb),
+    onQuota: (cb) => subscribe<QuotaPause | null>(QUEUE_IPC.quota, cb)
   },
   files: {
     pathFor: (file: File) => webUtils.getPathForFile(file)

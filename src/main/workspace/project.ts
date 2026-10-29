@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { InputKind, InputStatus, InputType, InputView, ProjectView, RootView, SkippedFile } from '@shared/workspace'
+import type { NineSliceOverride, StyleGroup } from '@shared/style'
 import { analyzeImage, hashFile, makeThumb, mapLimit } from './analyze'
 import { fileUrl } from './protocol'
 
@@ -85,6 +86,88 @@ function sanitizeInput(raw: unknown, rootCount: number): InputRecord | null {
     typeAuto: r.typeAuto !== false,
     kind: KINDS.includes(r.kind as InputKind) ? (r.kind as InputKind) : 'icon'
   }
+}
+
+function strOf(v: unknown, max: number): string {
+  return typeof v === 'string' ? v.slice(0, max) : ''
+}
+
+function relPathOf(v: unknown): string | null {
+  if (typeof v !== 'string' || !v) return null
+  const clean = v.replace(/\\/g, '/')
+  if (clean.split('/').some((p) => p === '..')) return null
+  return clean
+}
+
+export function sanitizeGroups(raw: unknown, inputIds: Set<string>): StyleGroup[] {
+  if (!Array.isArray(raw)) return []
+  const taken = new Set<string>()
+  const seen = new Set<string>()
+  const out: StyleGroup[] = []
+  for (const r of raw) {
+    if (!r || typeof r !== 'object') continue
+    const g = r as Record<string, unknown>
+    const id = typeof g.id === 'string' && /^[a-z0-9_-]{1,64}$/i.test(g.id) ? g.id : ''
+    if (!id || seen.has(id)) continue
+    seen.add(id)
+    const assetIds: string[] = []
+    for (const a of Array.isArray(g.assetIds) ? g.assetIds : []) {
+      if (typeof a !== 'string' || taken.has(a) || !inputIds.has(a)) continue
+      taken.add(a)
+      assetIds.push(a)
+    }
+    const overrides: Record<string, NineSliceOverride> = {}
+    if (g.nineSliceOverrides && typeof g.nineSliceOverrides === 'object') {
+      for (const [k, v] of Object.entries(g.nineSliceOverrides as Record<string, unknown>)) {
+        if (inputIds.has(k) && (v === 'on' || v === 'off')) overrides[k] = v
+      }
+    }
+    const group: StyleGroup = {
+      id,
+      name: strOf(g.name, 120) || id,
+      promptEn: strOf(g.promptEn, 6000),
+      notes: strOf(g.notes, 4000),
+      refImages: (Array.isArray(g.refImages) ? g.refImages : []).map(relPathOf).filter((x): x is string => !!x).slice(0, 8),
+      assetIds,
+      nineSliceOverrides: overrides
+    }
+    const tid = strOf(g.templateId, 120)
+    if (tid) group.templateId = tid
+    const lock = relPathOf(g.lockImage)
+    if (lock) group.lockImage = lock
+    const run = strOf(g.suggestRunId, 80)
+    if (run && /^[a-z0-9-]+$/i.test(run)) group.suggestRunId = run
+    if (Array.isArray(g.palette)) group.palette = g.palette.filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 8)
+    const lockName = strOf(g.lockName, 120)
+    if (lockName) group.lockName = lockName
+    if (typeof g.lockedAt === 'number' && Number.isFinite(g.lockedAt)) group.lockedAt = g.lockedAt
+    out.push(group)
+  }
+  return out
+}
+
+export function assetSegments(outRel: string): string[] {
+  const parts = outRel.split(/[\\/]+/).filter((p) => p && p !== '.' && p !== '..')
+  if (!parts.length) return ['_']
+  const last = parts[parts.length - 1]
+  const dot = last.lastIndexOf('.')
+  parts[parts.length - 1] = dot > 0 ? last.slice(0, dot) : last
+  return parts
+}
+
+async function listVersions(dir: string, outRel: string): Promise<number[]> {
+  let names: string[] = []
+  try {
+    names = await fs.readdir(join(dir, 'versions', ...assetSegments(outRel)))
+  } catch {
+    return []
+  }
+  const out: number[] = []
+  for (const n of names) {
+    const m = /^v(\d+)\.png$/i.exec(n)
+    if (m) out.push(Number(m[1]))
+  }
+  return out.sort((a, b) => a - b)
 }
 
 export function emptyProject(name: string): ProjectFile {
@@ -197,10 +280,15 @@ export async function checkInputs(data: ProjectFile): Promise<{ checked: Checked
 export async function buildView(dir: string, rel: string, data: ProjectFile, checked: CheckedInput[]): Promise<ProjectView> {
   const labels = rootLabels(data.roots)
   const multi = data.roots.length > 1
+  const common = data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots)
   const inputs: InputView[] = await mapLimit(checked, 4, async ({ record, abs, status }) => {
     const thumb = status === 'missing' ? null : await ensureThumb(dir, abs, record.hash)
     const d = dirname(record.rel).replace(/\\/g, '/')
     const dirRel = d === '.' ? '' : d
+    const fromCommon = common ? toPosix(relative(common, abs)) : ''
+    const outRel = fromCommon && !fromCommon.startsWith('..') && !isAbsolute(fromCommon) ? fromCommon : multi ? `${labels[record.root]}/${record.rel}` : record.rel
+    const versions = await listVersions(dir, outRel)
+    const last = versions.length ? versions[versions.length - 1] : 0
     return {
       id: record.id,
       root: record.root,
@@ -217,7 +305,10 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
       kind: record.kind,
       status,
       thumb: thumb ? fileUrl(thumb, record.hash) : null,
-      url: fileUrl(abs, `${record.mtime}`)
+      url: fileUrl(abs, `${record.mtime}`),
+      outRel,
+      versions,
+      latest: last ? fileUrl(join(dir, 'versions', ...assetSegments(outRel), `v${last}.png`), `${last}`) : null
     }
   })
   const roots: RootView[] = data.roots.map((p, index) => {
@@ -230,8 +321,9 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
     name: basename(dir),
     dir,
     roots,
-    commonRoot: data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots),
+    commonRoot: common,
     inputs,
+    groups: sanitizeGroups(data.groups, new Set(data.inputs.map((i) => i.id))),
     groupCount: data.groups.length,
     updatedAt: Date.parse(data.updatedAt) || 0
   }

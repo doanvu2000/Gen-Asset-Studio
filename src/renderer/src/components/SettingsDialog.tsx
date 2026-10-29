@@ -1,7 +1,10 @@
 import { useEffect, useRef, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import type { EnvItem, Lang, RateWindow, ThemePref } from '@shared/types'
+import type { EnvItem, ExportScale, Lang, RateWindow, ThemePref } from '@shared/types'
+import { SUGGEST_MAX, SUGGEST_MIN, type StyleTask } from '@shared/style'
+import { useStyle } from '@renderer/store/style'
+import { Stepper } from './Stepper'
 import { useApp, type SettingsTab } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
 import { fadeTransition, sheetTransition } from '@renderer/lib/motion'
@@ -51,6 +54,107 @@ function GeneralTab(): ReactElement {
           <button type="button" className="btn sm" onClick={() => void window.gas.app.exportLog()}>
             <Icon name="download" size={13} />
             {t('settings.exportLog')}
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+const TASKS: StyleTask[] = ['promptPolish', 'styleSuggest', 'assetGen']
+const FALLBACK_EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+
+function GenTab(): ReactElement {
+  const { t } = useTranslation()
+  const gen = useApp((s) => s.settings.gen)
+  const models = useStyle((s) => s.models)
+  const list = useStyle((s) => s.modelList)
+  const loadList = useStyle((s) => s.loadModelList)
+  const setModel = useStyle((s) => s.setModel)
+  const resetModels = useStyle((s) => s.resetModels)
+
+  useEffect(() => {
+    void loadList()
+  }, [loadList])
+
+  const setGen = (patch: Partial<typeof gen>): void => {
+    void window.gas.settings.set({ gen: patch })
+  }
+
+  const scaleOptions = [
+    { value: '1', label: '×1' },
+    { value: '2', label: '×2' },
+    { value: '4', label: '×4' }
+  ] as const
+
+  return (
+    <>
+      <div className="group">
+        <div className="row">
+          <div className="rl">
+            {t('settings.gen.parallel')}
+            <small className="muted">{t('settings.gen.parallelHint')}</small>
+          </div>
+          <Stepper value={gen.concurrency} min={1} max={6} label={t('settings.gen.parallel')} onChange={(v) => setGen({ concurrency: v })} />
+        </div>
+        <div className="row">
+          <div className="rl">
+            {t('settings.gen.styles')}
+            <small className="muted">{t('settings.gen.stylesHint')}</small>
+          </div>
+          <Stepper value={gen.styleCount} min={SUGGEST_MIN} max={SUGGEST_MAX} label={t('settings.gen.styles')} onChange={(v) => setGen({ styleCount: v })} />
+        </div>
+        <div className="row">
+          <div className="rl">
+            {t('settings.gen.scale')}
+            <small className="muted">{t('settings.gen.scaleHint')}</small>
+          </div>
+          <Segmented value={String(gen.scale) as '1' | '2' | '4'} options={scaleOptions} onChange={(v) => setGen({ scale: Number(v) as ExportScale })} ariaLabel={t('settings.gen.scale')} />
+        </div>
+        <div className="row">
+          <div className="rl">{t('settings.gen.maxRun')}</div>
+          <b>100</b>
+        </div>
+      </div>
+      <div className="group">
+        {TASKS.map((task) => {
+          const cur = models[task]
+          const info = list.find((m) => m.id === cur.model || m.model === cur.model)
+          const efforts = info?.efforts.length ? info.efforts : FALLBACK_EFFORTS
+          const options = list.length ? list : [{ id: cur.model, model: cur.model, displayName: cur.model, efforts: FALLBACK_EFFORTS, defaultEffort: 'medium', isDefault: true, hidden: false }]
+          return (
+            <div className="row" key={task}>
+              <div className="rl">
+                {t(`settings.gen.task.${task}`)}
+                <small className="muted">{t(`settings.gen.taskHint.${task}`)}</small>
+              </div>
+              <select className="dd" aria-label="Model" value={info?.id ?? cur.model} onChange={(e) => {
+                const m = list.find((x) => x.id === e.target.value)
+                const eff = m && !m.efforts.includes(cur.effort) ? (m.defaultEffort ?? m.efforts[0] ?? cur.effort) : cur.effort
+                void setModel(task, m?.model ?? e.target.value, eff)
+              }}>
+                {!info && <option value={cur.model}>{cur.model}</option>}
+                {options.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.displayName || m.model}
+                  </option>
+                ))}
+              </select>
+              <select className="dd" aria-label="Effort" value={cur.effort} onChange={(e) => void setModel(task, cur.model, e.target.value)}>
+                {!efforts.includes(cur.effort) && <option value={cur.effort}>{cur.effort}</option>}
+                {efforts.map((x) => (
+                  <option key={x} value={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )
+        })}
+        <div className="row">
+          <div className="rl muted small">{t('settings.gen.modelsNote')}</div>
+          <button type="button" className="btn sm ghost" onClick={() => void resetModels()}>
+            {t('settings.gen.reset')}
           </button>
         </div>
       </div>
@@ -298,6 +402,7 @@ function EnvTab(): ReactElement {
 
 const TABS: { id: SettingsTab; icon: IconName }[] = [
   { id: 'general', icon: 'gear' },
+  { id: 'gen', icon: 'sparkles' },
   { id: 'account', icon: 'user' },
   { id: 'env', icon: 'box' }
 ]
@@ -367,6 +472,7 @@ export function SettingsDialog(): ReactElement {
             </header>
             <div className="set-b" role="tabpanel">
               {tab === 'general' && <GeneralTab />}
+              {tab === 'gen' && <GenTab />}
               {tab === 'account' && <AccountTab />}
               {tab === 'env' && <EnvTab />}
             </div>
