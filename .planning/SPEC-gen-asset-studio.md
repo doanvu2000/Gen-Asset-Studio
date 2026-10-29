@@ -29,6 +29,8 @@ Ngoài phạm vi: gen ảnh bằng AI khác Codex; recolor/hue-shift thay cho ge
 | Workspace | Folder trên đĩa, mỗi người 1 workspace riêng, folder tree = thư mục thật |
 | Hàng đợi | 1 queue chung toàn app cho mọi project |
 | Phát hành | GitHub Releases + electron-updater, chưa ký code (chấp nhận SmartScreen) |
+| Cập nhật app (in-app) | Mở app tự kiểm tra; có bản mới → thông báo + changelog, **hỏi trước khi tải**; tải xong hỏi khởi động lại (không restart khi đang có job gen). Nút "Kiểm tra cập nhật" trong Cài đặt |
+| Cập nhật Codex CLI | App cài sẵn bản Codex đã test; kiểm tra bản mới nhất trên GitHub → **báo khi có bản mới**, user tự bấm nâng (cảnh báo có thể chưa tương thích, giữ bản cũ để quay lại) |
 | Cửa sổ | Giống hệt macOS kể cả trên Windows (nút đèn giao thông bên trái) |
 | Thiết kế | macOS HIG, accent system blue, Light/Dark (mặc định Light), Việt/Anh (mặc định Việt) |
 | Onboarding | Coach mark + project mẫu |
@@ -37,7 +39,7 @@ Ngoài phạm vi: gen ảnh bằng AI khác Codex; recolor/hue-shift thay cho ge
 ## 2b. Bổ sung v0.3 (2026-10-29)
 
 - **Chuẩn hoá prompt:** nút "Codex chuẩn hoá prompt (EN)" ở ô prompt nhóm style và ô ghi chú regen. Codex kiểm tra + viết lại thành prompt tiếng Anh chuyên nghiệp (câu mệnh lệnh rõ, thêm ràng buộc giữ hình/bố cục/chữ/ký hiệu, màu theo vai trò, nền chroma). Hiện bản đề xuất + ghi chú đã sửa gì; user chọn Dùng / Gen lại / Giữ bản gốc; có Hoàn tác.
-- **Model + effort:** chọn riêng cho 3 việc — chuẩn hoá prompt, gợi ý style + preview, gen asset. Mặc định `luna` + `medium` cho cả 3. Danh sách model lấy từ Codex khi chạy thật; effort low/medium/high. Chip "model · effort" hiện cạnh nút liên quan, bấm mở Cài đặt.
+- **Model + effort:** chọn riêng cho 3 việc — chuẩn hoá prompt, gợi ý style + preview, gen asset. Mặc định `gpt-6-luna` + `medium` cho cả 3 (M0 xác minh: id thật `gpt-6-luna`, UI hiện "luna"). Danh sách model + effort lấy từ `model/list` khi chạy (luna: low/medium/high/xhigh/max). Chip "model · effort" hiện cạnh nút liên quan, bấm mở Cài đặt.
 - **Trạng thái môi trường:** Cài đặt → Môi trường liệt kê Codex CLI, PATH, đường dẫn dài, đăng nhập, image gen, xử lý ảnh với trạng thái Đã cài / Đang cài / Chưa cài / Cài lỗi (+ nút Cài, Thử lại, Cài lại, Kiểm tra lại tất cả). Thanh trạng thái dưới cùng hiện "Môi trường x/6", có lỗi thì chấm đỏ.
 - **Gửi lỗi cho Codex sửa:** ở lỗi setup, lỗi môi trường, lỗi gen từng ảnh (trạng thái mới `Lỗi gen`). Codex đọc lỗi + log → nêu nguyên nhân → đề xuất bước sửa + lệnh/config → user bấm "Cho Codex sửa" → áp dụng rồi tự thử lại. Codex chỉ sửa trong thư mục app và config Codex của app; thay đổi hệ thống hỏi quyền riêng. Lỗi khi chính Codex CLI chưa cài được → chỉ Thử lại + Xuất log.
 
