@@ -2,6 +2,9 @@
   "app": {
     "name": "Gen Asset Studio"
   },
+  "splash": {
+    "tagline": "Đổi style bộ asset 2D bằng Codex"
+  },
   "window": {
     "close": "Đóng",
     "minimize": "Thu nhỏ",
@@ -21,7 +24,9 @@
     "environment": "Môi trường {{ok}}/{{total}}",
     "environmentTitle": "Xem trạng thái môi trường",
     "queueIdle": "Hàng đợi trống",
-    "copyright": "© {{year}} Jin Vũ. All rights reserved."
+    "copyright": "© {{year}} Jin Vũ. All rights reserved.",
+    "hasErrors": "có lỗi",
+    "checking": "Đang kiểm tra môi trường…"
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -66,6 +71,95 @@
         "title": "Chọn workspace",
         "desc": "Tạo workspace mới hoặc mở một folder có sẵn. Mỗi folder con là một nhóm project."
       }
+    },
+    "showLog": "Xem log",
+    "hideLog": "Ẩn log",
+    "noLog": "Chưa có log.",
+    "exportLog": "Xuất log",
+    "retry": "Thử lại",
+    "sendFix": "Gửi lỗi cho Codex sửa",
+    "quickChecking": "Đang kiểm tra nhanh môi trường…",
+    "optional": "Tuỳ chọn",
+    "sub": {
+      "perm": {
+        "checking": "Đang kiểm tra quyền…",
+        "admin": "Đang chạy bằng Administrator — các bước cần quyền sẽ tự làm.",
+        "user": "Đang chạy quyền thường — bước nào cần quyền sẽ hỏi bạn cấp."
+      },
+      "codex": {
+        "checking": "Đang tìm bản Codex CLI đã cài…",
+        "downloading": "Đang tải Codex CLI {{version}}…",
+        "verifying": "Đang kiểm SHA-256…",
+        "extracting": "Đang giải nén…",
+        "probing": "Đang chạy thử codex --version…",
+        "activating": "Đang kích hoạt bản mới…",
+        "ready": "Codex CLI {{version}} sẵn sàng trong %LOCALAPPDATA%\\GenAssetStudio\\codex."
+      },
+      "path": {
+        "checking": "Đang kiểm tra PATH…",
+        "ask": "Thêm Codex vào PATH của user để gọi codex từ terminal. App không cần bước này — có thể bỏ qua.",
+        "adding": "Đang thêm vào PATH…",
+        "added": "Đã thêm vào PATH của user.",
+        "skipped": "Đã bỏ qua — app vẫn dùng Codex bằng đường dẫn riêng."
+      },
+      "longPath": {
+        "checking": "Đang kiểm tra LongPathsEnabled…",
+        "needAdmin": "Đường dẫn dài đang tắt. Bật cần quyền Administrator.",
+        "waitingUac": "Đang chờ bạn xác nhận UAC…",
+        "enabling": "Đang bật LongPathsEnabled…",
+        "enabled": "Đã bật LongPathsEnabled.",
+        "skipped": "Đã bỏ qua — đường dẫn dài hơn 260 ký tự có thể lỗi khi xuất."
+      },
+      "login": {
+        "checking": "Đang đọc tài khoản…",
+        "signedOut": "Chưa đăng nhập. Đăng nhập Codex bằng tài khoản ChatGPT của bạn.",
+        "waiting": "Đang chờ trình duyệt — đăng nhập xong thì quay lại app.",
+        "signedIn": "{{email}} · {{plan}}"
+      },
+      "quota": {
+        "reading": "Đang đọc quota…",
+        "quota": "Quota 5h còn {{h5}}% · tuần còn {{week}}%."
+      },
+      "workspace": {
+        "checking": "Đang kiểm tra workspace…",
+        "choose": "Tạo workspace mới hoặc mở một folder có sẵn. Mỗi folder con là một nhóm project.",
+        "chosen": "{{path}}"
+      }
+    },
+    "progressMb": "{{received}} / {{total}} MB",
+    "path": {
+      "add": "Thêm vào PATH",
+      "skip": "Bỏ qua"
+    },
+    "longPath": {
+      "grant": "Cấp quyền",
+      "skip": "Bỏ qua bước này"
+    },
+    "login": {
+      "signIn": "Đăng nhập bằng ChatGPT",
+      "reopen": "Mở lại trình duyệt",
+      "cancel": "Huỷ"
+    },
+    "testGen": {
+      "run": "Gen thử 1 ảnh",
+      "running": "Đang gen ảnh test…",
+      "done": "Ảnh test OK · {{sec}} s",
+      "error": "Gen thử thất bại",
+      "hint": "Tuỳ chọn — tốn một chút quota. Có thể bỏ qua.",
+      "alt": "Ảnh test"
+    },
+    "workspace": {
+      "new": "Tạo workspace mới",
+      "newDesc": "Chọn hoặc tạo folder trống",
+      "open": "Mở folder có sẵn",
+      "openDesc": "Chọn folder đã dùng làm workspace"
+    },
+    "uac": {
+      "title": "Cần quyền Administrator",
+      "body": "Bước “Bật đường dẫn dài” sửa một khoá registry hệ thống (LongPathsEnabled). Windows sẽ hiện hộp thoại UAC để bạn xác nhận.",
+      "tip": "Mở app bằng “Run as administrator” thì các bước cần quyền sẽ tự chạy, không phải xác nhận từng bước.",
+      "grant": "Cấp quyền",
+      "skip": "Bỏ qua bước này"
     }
   },
   "workspace": {
@@ -80,7 +174,9 @@
     "title": "Cài đặt",
     "close": "Đóng",
     "tabs": {
-      "general": "Chung"
+      "general": "Chung",
+      "account": "Tài khoản",
+      "env": "Môi trường"
     },
     "appearance": "Giao diện",
     "language": "Ngôn ngữ",
@@ -92,6 +188,132 @@
     "langs": {
       "vi": "Tiếng Việt",
       "en": "English"
-    }
+    },
+    "logs": "Log",
+    "openLogs": "Mở folder log",
+    "exportLog": "Xuất log"
+  },
+  "env": {
+    "title": "Trạng thái môi trường",
+    "ready": "{{ok}}/{{total}} sẵn sàng",
+    "recheck": "Kiểm tra lại tất cả",
+    "rerun": "Mở màn cài đặt môi trường",
+    "items": {
+      "codex": {
+        "name": "Codex CLI",
+        "desc": "Bản đã ghim · %LOCALAPPDATA%\\GenAssetStudio\\codex",
+        "version": "Phiên bản {{v}}"
+      },
+      "path": {
+        "name": "PATH (user)",
+        "desc": "Gọi được codex từ terminal"
+      },
+      "longPath": {
+        "name": "Đường dẫn dài",
+        "desc": "LongPathsEnabled · cần Admin"
+      },
+      "login": {
+        "name": "Đăng nhập Codex",
+        "desc": "Tài khoản ChatGPT"
+      },
+      "imageGen": {
+        "name": "Image gen",
+        "desc": "Gen thử 1 ảnh để xác nhận"
+      },
+      "workspace": {
+        "name": "Workspace",
+        "desc": "Folder chứa các project"
+      }
+    },
+    "chip": {
+      "install": {
+        "installed": "Đã cài",
+        "installing": "Đang cài",
+        "missing": "Chưa cài",
+        "error": "Cài lỗi"
+      },
+      "toggle": {
+        "installed": "Đã bật",
+        "installing": "Đang bật",
+        "missing": "Chưa bật",
+        "error": "Lỗi"
+      },
+      "login": {
+        "installed": "Đã đăng nhập",
+        "installing": "Đang đăng nhập",
+        "missing": "Chưa đăng nhập",
+        "error": "Lỗi"
+      },
+      "check": {
+        "installed": "Chạy tốt",
+        "installing": "Đang kiểm tra",
+        "missing": "Chưa kiểm tra",
+        "error": "Lỗi"
+      },
+      "pick": {
+        "installed": "Đã chọn",
+        "installing": "Đang chọn",
+        "missing": "Chưa chọn",
+        "error": "Lỗi"
+      }
+    },
+    "skipped": "đã bỏ qua",
+    "act": {
+      "install": "Cài",
+      "signIn": "Đăng nhập",
+      "check": "Kiểm tra",
+      "retry": "Thử lại",
+      "reinstall": "Cài lại",
+      "enable": "Bật",
+      "add": "Thêm",
+      "choose": "Chọn",
+      "sendFix": "Gửi Codex sửa"
+    },
+    "update": {
+      "available": "Có bản Codex mới {{v}}",
+      "button": "Cập nhật lên {{v}}",
+      "warn": "Bản mới có thể chưa tương thích với app. Bản cũ vẫn được giữ lại để quay về.",
+      "checking": "Kiểm tra bản mới",
+      "latest": "Đang dùng bản mới nhất"
+    },
+    "paths": "Thư mục app: {{dir}} · CODEX_HOME: {{home}}"
+  },
+  "account": {
+    "connected": "Đã kết nối",
+    "viaChatgpt": "đăng nhập qua ChatGPT",
+    "notSignedIn": "Chưa đăng nhập Codex",
+    "notSignedInDesc": "Đăng nhập bằng tài khoản ChatGPT để gen ảnh.",
+    "signIn": "Đăng nhập bằng ChatGPT",
+    "q5": "Quota 5 giờ",
+    "qWeek": "Quota tuần",
+    "left": "còn {{n}}%",
+    "resetsIn": "Reset sau {{t}}",
+    "resetsAt": "Reset {{t}}",
+    "noData": "Chưa có dữ liệu quota",
+    "logout": "Đăng xuất",
+    "switch": "Đổi tài khoản",
+    "waiting": "Đang chờ đăng nhập trên trình duyệt…",
+    "reopen": "Mở lại trình duyệt",
+    "cancel": "Huỷ",
+    "refresh": "Làm mới",
+    "limitReached": "Đã chạm giới hạn quota"
+  },
+  "fix": {
+    "title": "Gửi lỗi cho Codex sửa",
+    "error": "LỖI",
+    "cause": "NGUYÊN NHÂN",
+    "proposed": "CODEX ĐỀ XUẤT",
+    "commands": "THAY ĐỔI SẼ ÁP DỤNG",
+    "result": "ĐÃ SỬA",
+    "analyzing": "Codex đang đọc log và tìm nguyên nhân…",
+    "applying": "Codex đang áp dụng cách sửa…",
+    "applied": "Codex đã sửa xong. Bấm Thử lại để chạy lại bước.",
+    "tip": "Codex chỉ sửa trong thư mục app và config Codex của app. Việc nào đụng hệ thống sẽ hỏi quyền riêng. Nếu chính Codex CLI chưa cài được thì chỉ có Thử lại và Xuất log.",
+    "apply": "Cho Codex sửa",
+    "cancel": "Huỷ",
+    "close": "Đóng",
+    "retry": "Thử lại",
+    "failed": "Codex không xử lý được",
+    "unavailable": "Codex CLI chưa cài hoặc chưa đăng nhập — chỉ có Thử lại và Xuất log."
   }
 }

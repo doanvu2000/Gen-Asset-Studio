@@ -52,7 +52,58 @@ const PATHS = {
       <path d="m7 9 3 3-3 3M13 15h4" />
     </>
   ),
-  sparkles: <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />
+  sparkles: <path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z" />,
+  refresh: (
+    <>
+      <path d="M20 11a8 8 0 0 0-14.6-4.4L4 8" />
+      <path d="M4 3v5h5" />
+      <path d="M4 13a8 8 0 0 0 14.6 4.4L20 16" />
+      <path d="M20 21v-5h-5" />
+    </>
+  ),
+  alert: (
+    <>
+      <path d="M12 4 2.5 20h19z" />
+      <path d="M12 10v4M12 17.5v.01" />
+    </>
+  ),
+  clock: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+      <path d="M10 8l-4 4 4 4M6 12h10" />
+    </>
+  ),
+  download: (
+    <>
+      <path d="M12 4v11M7 10l5 5 5-5" />
+      <path d="M5 20h14" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2.2-2.4 3.7M12 17v.01" />
+    </>
+  ),
+  external: (
+    <>
+      <path d="M14 4h6v6M20 4l-9 9" />
+      <path d="M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </>
+  ),
+  cloud: <path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 9.5a4.2 4.2 0 0 1-.5 8.5z" />
 } satisfies Record<string, ReactElement>
 
 export type IconName = keyof typeof PATHS

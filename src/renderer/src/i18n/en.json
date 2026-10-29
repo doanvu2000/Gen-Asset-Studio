@@ -2,6 +2,9 @@
   "app": {
     "name": "Gen Asset Studio"
   },
+  "splash": {
+    "tagline": "Restyle 2D asset sets with Codex"
+  },
   "window": {
     "close": "Close",
     "minimize": "Minimize",
@@ -21,7 +24,9 @@
     "environment": "Environment {{ok}}/{{total}}",
     "environmentTitle": "View environment status",
     "queueIdle": "Queue idle",
-    "copyright": "© {{year}} Jin Vũ. All rights reserved."
+    "copyright": "© {{year}} Jin Vũ. All rights reserved.",
+    "hasErrors": "has errors",
+    "checking": "Checking environment…"
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -66,6 +71,95 @@
         "title": "Choose a workspace",
         "desc": "Create a new workspace or open an existing folder. Each subfolder groups projects."
       }
+    },
+    "showLog": "Show log",
+    "hideLog": "Hide log",
+    "noLog": "No log yet.",
+    "exportLog": "Export log",
+    "retry": "Try again",
+    "sendFix": "Send to Codex to fix",
+    "quickChecking": "Quickly checking your environment…",
+    "optional": "Optional",
+    "sub": {
+      "perm": {
+        "checking": "Checking permissions…",
+        "admin": "Running as Administrator — steps that need it run automatically.",
+        "user": "Running as a standard user — you will be asked when a step needs admin rights."
+      },
+      "codex": {
+        "checking": "Looking for an installed Codex CLI…",
+        "downloading": "Downloading Codex CLI {{version}}…",
+        "verifying": "Verifying SHA-256…",
+        "extracting": "Extracting…",
+        "probing": "Running codex --version…",
+        "activating": "Activating the new version…",
+        "ready": "Codex CLI {{version}} ready in %LOCALAPPDATA%\\GenAssetStudio\\codex."
+      },
+      "path": {
+        "checking": "Checking PATH…",
+        "ask": "Add Codex to your user PATH to run codex from a terminal. The app does not need this — you can skip it.",
+        "adding": "Adding to PATH…",
+        "added": "Added to the user PATH.",
+        "skipped": "Skipped — the app still uses its own Codex path."
+      },
+      "longPath": {
+        "checking": "Checking LongPathsEnabled…",
+        "needAdmin": "Long paths are off. Enabling them needs Administrator rights.",
+        "waitingUac": "Waiting for you to confirm UAC…",
+        "enabling": "Enabling LongPathsEnabled…",
+        "enabled": "LongPathsEnabled is on.",
+        "skipped": "Skipped — paths longer than 260 characters may fail on export."
+      },
+      "login": {
+        "checking": "Reading your account…",
+        "signedOut": "Not signed in. Sign in to Codex with your ChatGPT account.",
+        "waiting": "Waiting for the browser — come back once you have signed in.",
+        "signedIn": "{{email}} · {{plan}}"
+      },
+      "quota": {
+        "reading": "Reading quota…",
+        "quota": "5h quota {{h5}}% left · week {{week}}% left."
+      },
+      "workspace": {
+        "checking": "Checking workspace…",
+        "choose": "Create a new workspace or open an existing folder. Each subfolder groups projects.",
+        "chosen": "{{path}}"
+      }
+    },
+    "progressMb": "{{received}} / {{total}} MB",
+    "path": {
+      "add": "Add to PATH",
+      "skip": "Skip"
+    },
+    "longPath": {
+      "grant": "Grant permission",
+      "skip": "Skip this step"
+    },
+    "login": {
+      "signIn": "Sign in with ChatGPT",
+      "reopen": "Open browser again",
+      "cancel": "Cancel"
+    },
+    "testGen": {
+      "run": "Generate a test image",
+      "running": "Generating test image…",
+      "done": "Test image OK · {{sec}} s",
+      "error": "Test generation failed",
+      "hint": "Optional — uses a little quota. You can skip it.",
+      "alt": "Test image"
+    },
+    "workspace": {
+      "new": "Create new workspace",
+      "newDesc": "Pick or create an empty folder",
+      "open": "Open existing folder",
+      "openDesc": "Pick a folder used as a workspace"
+    },
+    "uac": {
+      "title": "Administrator rights needed",
+      "body": "The “Enable long paths” step changes a system registry key (LongPathsEnabled). Windows will show a UAC prompt to confirm.",
+      "tip": "Run the app with “Run as administrator” to skip these confirmations.",
+      "grant": "Grant permission",
+      "skip": "Skip this step"
     }
   },
   "workspace": {
@@ -80,7 +174,9 @@
     "title": "Settings",
     "close": "Close",
     "tabs": {
-      "general": "General"
+      "general": "General",
+      "account": "Account",
+      "env": "Environment"
     },
     "appearance": "Appearance",
     "language": "Language",
@@ -92,6 +188,132 @@
     "langs": {
       "vi": "Tiếng Việt",
       "en": "English"
-    }
+    },
+    "logs": "Log",
+    "openLogs": "Open log folder",
+    "exportLog": "Export log"
+  },
+  "env": {
+    "title": "Environment status",
+    "ready": "{{ok}}/{{total}} ready",
+    "recheck": "Re-check all",
+    "rerun": "Open environment setup",
+    "items": {
+      "codex": {
+        "name": "Codex CLI",
+        "desc": "Pinned version · %LOCALAPPDATA%\\GenAssetStudio\\codex",
+        "version": "Version {{v}}"
+      },
+      "path": {
+        "name": "PATH (user)",
+        "desc": "codex available in terminals"
+      },
+      "longPath": {
+        "name": "Long paths",
+        "desc": "LongPathsEnabled · needs Admin"
+      },
+      "login": {
+        "name": "Codex sign-in",
+        "desc": "ChatGPT account"
+      },
+      "imageGen": {
+        "name": "Image gen",
+        "desc": "One test image to confirm"
+      },
+      "workspace": {
+        "name": "Workspace",
+        "desc": "Folder that holds your projects"
+      }
+    },
+    "chip": {
+      "install": {
+        "installed": "Installed",
+        "installing": "Installing",
+        "missing": "Not installed",
+        "error": "Install failed"
+      },
+      "toggle": {
+        "installed": "Enabled",
+        "installing": "Enabling",
+        "missing": "Off",
+        "error": "Failed"
+      },
+      "login": {
+        "installed": "Signed in",
+        "installing": "Signing in",
+        "missing": "Signed out",
+        "error": "Failed"
+      },
+      "check": {
+        "installed": "Working",
+        "installing": "Checking",
+        "missing": "Not checked",
+        "error": "Failed"
+      },
+      "pick": {
+        "installed": "Chosen",
+        "installing": "Choosing",
+        "missing": "Not chosen",
+        "error": "Failed"
+      }
+    },
+    "skipped": "skipped",
+    "act": {
+      "install": "Install",
+      "signIn": "Sign in",
+      "check": "Check",
+      "retry": "Retry",
+      "reinstall": "Reinstall",
+      "enable": "Enable",
+      "add": "Add",
+      "choose": "Choose",
+      "sendFix": "Ask Codex to fix"
+    },
+    "update": {
+      "available": "Codex {{v}} is available",
+      "button": "Update to {{v}}",
+      "warn": "A newer version may not be compatible with the app yet. The current version is kept so you can go back.",
+      "checking": "Check for update",
+      "latest": "You have the latest version"
+    },
+    "paths": "App folder: {{dir}} · CODEX_HOME: {{home}}"
+  },
+  "account": {
+    "connected": "Connected",
+    "viaChatgpt": "signed in with ChatGPT",
+    "notSignedIn": "Not signed in to Codex",
+    "notSignedInDesc": "Sign in with your ChatGPT account to generate images.",
+    "signIn": "Sign in with ChatGPT",
+    "q5": "5-hour quota",
+    "qWeek": "Weekly quota",
+    "left": "{{n}}% left",
+    "resetsIn": "Resets in {{t}}",
+    "resetsAt": "Resets {{t}}",
+    "noData": "No quota data yet",
+    "logout": "Sign out",
+    "switch": "Switch account",
+    "waiting": "Waiting for sign-in in your browser…",
+    "reopen": "Open browser again",
+    "cancel": "Cancel",
+    "refresh": "Refresh",
+    "limitReached": "Quota limit reached"
+  },
+  "fix": {
+    "title": "Ask Codex to fix this",
+    "error": "ERROR",
+    "cause": "CAUSE",
+    "proposed": "PROPOSED FIX",
+    "commands": "CHANGES TO APPLY",
+    "result": "FIXED",
+    "analyzing": "Codex is reading the log and finding the cause…",
+    "applying": "Codex is applying the fix…",
+    "applied": "Codex applied the fix. Press Try again to re-run the step.",
+    "tip": "Codex only changes the app folder and the app’s Codex config. System changes ask for permission separately. If Codex CLI itself is not installed, only Retry and Export log are available.",
+    "apply": "Let Codex fix it",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Try again",
+    "failed": "Codex could not handle this",
+    "unavailable": "Codex CLI is not installed or not signed in — only Retry and Export log are available."
   }
 }

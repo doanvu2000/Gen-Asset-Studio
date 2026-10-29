@@ -6,6 +6,9 @@ import { TitleBar } from '@renderer/components/TitleBar'
 import { StatusBar } from '@renderer/components/StatusBar'
 import { Sidebar } from '@renderer/components/Sidebar'
 import { SettingsDialog } from '@renderer/components/SettingsDialog'
+import { UacDialog } from '@renderer/components/UacDialog'
+import { FixDialog } from '@renderer/components/FixDialog'
+import { useEnv } from '@renderer/store/env'
 import { SetupScreen } from '@renderer/screens/SetupScreen'
 import { WorkspaceScreen } from '@renderer/screens/WorkspaceScreen'
 
@@ -35,6 +38,11 @@ function useBridgeEvents(): void {
   }, [applySettings, setSystemDark, setMaximized])
 }
 
+function useEnvBridge(): void {
+  const init = useEnv((s) => s.init)
+  useEffect(() => init(), [init])
+}
+
 function useWindowFocus(): boolean {
   const [focused, setFocused] = useState(() => document.hasFocus())
   useEffect(() => {
@@ -53,6 +61,7 @@ function useWindowFocus(): boolean {
 export function App(): ReactElement {
   useThemeSync()
   useBridgeEvents()
+  useEnvBridge()
   const focused = useWindowFocus()
   const route = useApp((s) => s.route)
   const direction = useApp((s) => s.direction)
@@ -89,6 +98,8 @@ export function App(): ReactElement {
         </div>
         <StatusBar />
         <SettingsDialog />
+        <UacDialog />
+        <FixDialog />
       </div>
     </MotionConfig>
   )

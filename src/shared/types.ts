@@ -2,14 +2,34 @@ export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 export type Lang = 'vi' | 'en'
 
+export type PathChoice = 'added' | 'skipped' | null
+
+export interface SetupPersist {
+  completed: boolean
+  pathChoice: PathChoice
+  longPathSkipped: boolean
+  testGenOk: boolean
+}
+
 export interface AppSettings {
   theme: ThemePref
   lang: Lang
+  workspace: string | null
+  setup: SetupPersist
+}
+
+export const DEFAULT_SETUP: SetupPersist = {
+  completed: false,
+  pathChoice: null,
+  longPathSkipped: false,
+  testGenOk: false
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
-  lang: 'vi'
+  lang: 'vi',
+  workspace: null,
+  setup: { ...DEFAULT_SETUP }
 }
 
 export interface AppInfo {
@@ -19,9 +39,141 @@ export interface AppInfo {
 
 export type Unsubscribe = () => void
 
+export type SetupStepId = 'perm' | 'codex' | 'path' | 'longPath' | 'login' | 'quota' | 'workspace'
+export const SETUP_STEPS: readonly SetupStepId[] = ['perm', 'codex', 'path', 'longPath', 'login', 'quota', 'workspace']
+
+export type StepState = 'idle' | 'running' | 'done' | 'error' | 'skipped'
+export type StepNeed = 'pathChoice' | 'uac' | 'login' | 'loginWait' | 'workspace' | null
+export type StepParams = Record<string, string | number>
+
+export interface StepInfo {
+  id: SetupStepId
+  state: StepState
+  need: StepNeed
+  sub: string | null
+  params: StepParams
+  progress: number | null
+  error: string | null
+}
+
+export interface DownloadProgress {
+  phase: 'download' | 'verify' | 'extract' | 'check' | 'activate'
+  received: number
+  total: number
+  source: string
+}
+
+export type TestGenState = 'idle' | 'running' | 'done' | 'error'
+
+export interface TestGenInfo {
+  state: TestGenState
+  error: string | null
+  savedPath: string | null
+  imageDataUrl: string | null
+  ms: number | null
+}
+
+export interface SetupSnapshot {
+  steps: StepInfo[]
+  started: boolean
+  running: boolean
+  quick: boolean
+  isAdmin: boolean | null
+  canEnter: boolean
+  completedBefore: boolean
+  download: DownloadProgress | null
+  login: { loginId: string; authUrl: string } | null
+  testGen: TestGenInfo
+}
+
+export interface AccountInfo {
+  loggedIn: boolean
+  type: string | null
+  email: string | null
+  planType: string | null
+}
+
+export interface RateWindow {
+  usedPercent: number
+  windowDurationMins: number | null
+  resetsAt: number | null
+}
+
+export interface RateLimits {
+  primary: RateWindow | null
+  secondary: RateWindow | null
+  reachedType: string | null
+  planType: string | null
+  updatedAt: number
+}
+
+export interface ModelInfo {
+  id: string
+  model: string
+  displayName: string
+  isDefault: boolean
+  hidden: boolean
+  efforts: string[]
+  defaultEffort: string | null
+}
+
+export type EnvItemId = 'codex' | 'path' | 'longPath' | 'login' | 'imageGen' | 'workspace'
+export type EnvState = 'installed' | 'installing' | 'missing' | 'error'
+
+export interface EnvItem {
+  id: EnvItemId
+  state: EnvState
+  detail: string | null
+  error: string | null
+}
+
+export interface EnvStatus {
+  items: EnvItem[]
+  codexVersion: string | null
+  latestVersion: string | null
+  updateAvailable: boolean
+  upgrading: boolean
+  codexHome: string
+  appDataDir: string
+}
+
+export type CodexServiceState = 'stopped' | 'starting' | 'ready' | 'error'
+
+export type FixSource = 'setup' | 'env'
+
+export interface FixContext {
+  source: FixSource
+  target: string
+  error: string
+}
+
+export interface FixProposal {
+  cause: string
+  steps: string[]
+  commands: string
+}
+
+export type FixPhase = 'idle' | 'analyzing' | 'proposal' | 'applying' | 'applied' | 'error'
+
+export interface FixSnapshot {
+  phase: FixPhase
+  context: FixContext | null
+  text: string
+  proposal: FixProposal | null
+  result: string | null
+  error: string | null
+}
+
+export interface ExportResult {
+  ok: boolean
+  path: string | null
+}
+
 export interface GasApi {
   app: {
     info: () => Promise<AppInfo>
+    openLogs: () => Promise<void>
+    exportLog: () => Promise<ExportResult>
   }
   window: {
     minimize: () => void
@@ -32,11 +184,51 @@ export interface GasApi {
   }
   settings: {
     get: () => Promise<AppSettings>
-    set: (patch: Partial<AppSettings>) => Promise<AppSettings>
+    set: (patch: Partial<Pick<AppSettings, 'theme' | 'lang'>>) => Promise<AppSettings>
     onChange: (cb: (settings: AppSettings) => void) => Unsubscribe
   }
   theme: {
     systemDark: () => Promise<boolean>
     onSystemChange: (cb: (dark: boolean) => void) => Unsubscribe
+  }
+  setup: {
+    get: () => Promise<SetupSnapshot>
+    start: (quick: boolean) => Promise<void>
+    retry: (step: SetupStepId) => Promise<void>
+    pathChoice: (add: boolean) => Promise<void>
+    uac: (grant: boolean) => Promise<void>
+    login: () => Promise<void>
+    loginCancel: () => Promise<void>
+    loginReopen: () => Promise<void>
+    testGen: () => Promise<void>
+    workspace: (mode: 'new' | 'open') => Promise<void>
+    log: () => Promise<string[]>
+    onChange: (cb: (snapshot: SetupSnapshot) => void) => Unsubscribe
+    onLog: (cb: (line: string) => void) => Unsubscribe
+  }
+  env: {
+    get: () => Promise<EnvStatus>
+    recheck: () => Promise<void>
+    reinstallCodex: () => Promise<void>
+    upgradeCodex: () => Promise<void>
+    checkUpdate: () => Promise<void>
+    onChange: (cb: (status: EnvStatus) => void) => Unsubscribe
+  }
+  account: {
+    get: () => Promise<AccountInfo | null>
+    rateLimits: () => Promise<RateLimits | null>
+    models: () => Promise<ModelInfo[]>
+    logout: () => Promise<void>
+    switchAccount: () => Promise<void>
+    onChange: (cb: (account: AccountInfo | null) => void) => Unsubscribe
+    onRateLimits: (cb: (limits: RateLimits) => void) => Unsubscribe
+  }
+  fix: {
+    available: () => Promise<boolean>
+    get: () => Promise<FixSnapshot>
+    start: (context: FixContext) => Promise<void>
+    apply: () => Promise<void>
+    cancel: () => Promise<void>
+    onChange: (cb: (snapshot: FixSnapshot) => void) => Unsubscribe
   }
 }

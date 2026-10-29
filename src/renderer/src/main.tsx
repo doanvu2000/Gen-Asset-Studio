@@ -4,9 +4,12 @@ import './assets/fonts/fonts.css'
 import './styles/tokens.css'
 import './styles/base.css'
 import './styles/components.css'
+import './styles/setup.css'
 import { initI18n } from './i18n'
 import { selectResolvedTheme, useApp } from './store/app'
 import { App } from './App'
+import { Splash } from './components/Splash'
+import './styles/splash.css'
 
 async function bootstrap(): Promise<void> {
   const [settings, systemDark, maximized] = await Promise.all([
@@ -23,6 +26,7 @@ async function bootstrap(): Promise<void> {
   createRoot(container).render(
     <StrictMode>
       <App />
+      <Splash />
     </StrictMode>
   )
 }

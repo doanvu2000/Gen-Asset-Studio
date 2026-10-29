@@ -6,7 +6,7 @@ import { Logo } from './Logo'
 
 export function Sidebar(): ReactElement {
   const { t } = useTranslation()
-  const navigate = useApp((s) => s.navigate)
+  const workspace = useApp((s) => s.settings.workspace)
   const openSettings = useApp((s) => s.openSettings)
   const sidebarOpen = useApp((s) => s.sidebarOpen)
 
@@ -17,7 +17,7 @@ export function Sidebar(): ReactElement {
           <Logo />
           <div>
             <b>{t('sidebar.workspace')}</b>
-            <small>{t('sidebar.noWorkspace')}</small>
+            <small title={workspace ?? undefined}>{workspace ? workspace.split(/[\\/]/).filter(Boolean).pop() : t('sidebar.noWorkspace')}</small>
           </div>
         </button>
         <div className="side-label">{t('sidebar.library')}</div>
@@ -31,12 +31,12 @@ export function Sidebar(): ReactElement {
           </button>
         </nav>
         <div className="side-foot">
-          <button type="button" className="btn ghost sm" onClick={() => navigate('setup')}>
+          <button type="button" className="btn ghost sm" onClick={() => openSettings('env')}>
             <Icon name="box" size={14} />
             {t('sidebar.environment')}
           </button>
           <div className="grow" />
-          <button type="button" className="icon-btn" aria-label={t('sidebar.settings')} title={t('sidebar.settings')} onClick={openSettings}>
+          <button type="button" className="icon-btn" aria-label={t('sidebar.settings')} title={t('sidebar.settings')} onClick={() => openSettings()}>
             <Icon name="gear" />
           </button>
         </div>

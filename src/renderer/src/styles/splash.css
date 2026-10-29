@@ -1,0 +1,115 @@
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-app-region: drag;
+  cursor: default;
+  user-select: none;
+}
+
+.splash-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.splash-logo {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  display: grid;
+  place-items: center;
+}
+
+.splash-logo-body {
+  position: relative;
+  z-index: 1;
+}
+
+.splash-logo-svg {
+  width: 128px;
+  height: 128px;
+  display: block;
+  filter: drop-shadow(0 16px 36px rgba(0, 113, 227, .38));
+}
+
+.splash-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 34px;
+  border: 2px solid var(--accent);
+  pointer-events: none;
+}
+
+.splash-spark {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+  background: #5AC8FA;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+}
+
+.splash-title {
+  margin: 6px 0 0;
+  font-family: var(--display);
+  font-size: 64px;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  display: flex;
+  gap: 0.28em;
+}
+
+.splash-word {
+  display: inline-flex;
+}
+
+.splash-word.accent {
+  color: var(--accent);
+}
+
+.splash-ch {
+  display: inline-block;
+  will-change: transform, opacity, filter;
+}
+
+.splash-tag {
+  margin: 0;
+  font-size: 15px;
+  color: var(--text2);
+}
+
+.splash-bar {
+  width: 180px;
+  height: 3px;
+  margin-top: 10px;
+  border-radius: 3px;
+  background: var(--sep2);
+  overflow: hidden;
+}
+
+.splash-bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  border-radius: inherit;
+  transform-origin: left center;
+}
+
+.splash-copy {
+  position: absolute;
+  right: 22px;
+  bottom: 16px;
+  margin: 0;
+  font-size: 12px;
+  color: var(--text3);
+}

@@ -3,6 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type Lang, type ResolvedTheme, type
 import { changeLang } from '@renderer/i18n'
 
 export type Route = 'setup' | 'workspace'
+export type SettingsTab = 'general' | 'account' | 'env'
 
 interface AppState {
   route: Route
@@ -12,6 +13,7 @@ interface AppState {
   maximized: boolean
   sidebarOpen: boolean
   settingsOpen: boolean
+  settingsTab: SettingsTab
   navigate: (route: Route) => void
   hydrate: (settings: AppSettings, systemDark: boolean, maximized: boolean) => void
   applySettings: (settings: AppSettings) => void
@@ -20,7 +22,8 @@ interface AppState {
   setTheme: (theme: ThemePref) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
   toggleSidebar: () => void
-  openSettings: () => void
+  openSettings: (tab?: SettingsTab) => void
+  setSettingsTab: (tab: SettingsTab) => void
   closeSettings: () => void
 }
 
@@ -34,6 +37,7 @@ export const useApp = create<AppState>()((set, get) => ({
   maximized: false,
   sidebarOpen: true,
   settingsOpen: false,
+  settingsTab: 'general',
   navigate: (route) => {
     const from = ORDER.indexOf(get().route)
     const to = ORDER.indexOf(route)
@@ -57,7 +61,8 @@ export const useApp = create<AppState>()((set, get) => ({
     get().applySettings(await window.gas.settings.set({ lang }))
   },
   toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
-  openSettings: () => set({ settingsOpen: true }),
+  openSettings: (tab) => set({ settingsOpen: true, settingsTab: tab ?? get().settingsTab }),
+  setSettingsTab: (settingsTab) => set({ settingsTab }),
   closeSettings: () => set({ settingsOpen: false })
 }))
 
