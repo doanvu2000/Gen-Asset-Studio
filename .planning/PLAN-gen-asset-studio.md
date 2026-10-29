@@ -32,7 +32,7 @@ Toggle Light/Dark + Việt/Anh, motion thật, cửa sổ macOS-style. Áp front
 - **M0** Spike Codex app-server trên Windows: gen ảnh có ảnh đính kèm, map đúng file, đọc quota, login/logout, đo quota/ảnh trên Plus.
 - **M1** Khung Electron + design system + i18n + theme + cửa sổ macOS-style + Setup gate + màn trạng thái môi trường + luồng "Gửi lỗi cho Codex sửa".
 - **M2** Workspace (folder tree, card project, project.json) + Input (open/add/drop, cây, preview, đoán loại, relink).
-- **M3** Nhóm style + gợi ý style + preview + khoá style + chuẩn hoá prompt (EN) + chọn model/effort (mặc định luna · medium).
+- **M3** Nhóm style + gợi ý style + preview + khoá style + 4 template style sẵn (Candy Pop, Jelly Cartoon, Wood & Gold Adventure, Neon Arcade; gen preview sheet 1 lần) + chuẩn hoá prompt (EN) + chọn model/effort (mặc định luna · medium).
 - **M4** Queue chung + CodexService + ImagePipeline + QA + auto-resume quota.
 - **M5** Duyệt/Regen + lịch sử phiên bản + phím tắt.
 - **M6** Xuất + onboarding coach mark + project mẫu + đóng gói NSIS + electron-updater.

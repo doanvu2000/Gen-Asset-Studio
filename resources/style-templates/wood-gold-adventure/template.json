@@ -1,0 +1,8 @@
+{
+  "id": "wood-gold-adventure",
+  "name": { "vi": "Gỗ & Vàng Phiêu Lưu", "en": "Wood & Gold Adventure" },
+  "description": { "vi": "Gỗ hoạt hình viền vàng, đinh tán; hợp game phiêu lưu, nông trại.", "en": "Cartoon wood with gold rims and rivets for adventure and farm games." },
+  "promptEn": "Casual adventure and farm game UI in a cartoon wood and gold style. Panels and frames are warm, hand-painted planks with clear stylized wood grain, framed by shiny polished gold rims with bevels and small round gold rivets at corners. Buttons are glossy colored gems or enamel plates set inside gold bezels, with a bright top highlight and a darker bottom edge. Thick dark brown outline, warm top-left lighting, rich painterly shading with crisp highlights. Palette: honey brown, deep walnut, bright gold, emerald green, royal blue, ruby red; saturated and warm, never dull or desaturated. Keep semantic role colors (green = confirm/on, grey = disabled, red = close), keep existing symbols and text, keep silhouette and proportions, add no extra ornaments, leaves or background props.",
+  "palette": ["#B8742E", "#6B3B16", "#FFC629", "#22B04B", "#2A6BFF", "#E3263A"],
+  "chroma": "#FF00FF"
+}

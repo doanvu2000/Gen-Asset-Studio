@@ -1,0 +1,8 @@
+{
+  "id": "candy-pop",
+  "name": { "vi": "Kẹo Ngọt", "en": "Candy Pop" },
+  "description": { "vi": "Kẹo bóng loáng, hồng tím bạc hà rực rỡ, viền đậm.", "en": "Glossy hard candy in vivid pink, purple and mint with bold outlines." },
+  "promptEn": "Casual mobile game UI in a glossy hard-candy style. Every element looks like polished candy: smooth rounded shapes, thick dark plum outline (about 4-6% of element height), a bright curved white gloss streak across the top third, soft inner glow, and a slightly darker lower lip for depth. Palette is vivid and fully saturated: hot pink, grape purple, mint, lemon yellow, sky blue; never pale, washed-out or pastel. Clean cel-style shading with smooth gradients, crisp edges, no texture noise. Keep semantic role colors (green = confirm/on, red = close/cancel, grey = disabled, blue = secondary), keep every existing symbol, icon and text exactly, keep the original silhouette and proportions, and add no extra decorations, sparkles or background elements.",
+  "palette": ["#FF3EA5", "#9B3DFF", "#2EE6B8", "#FFD93D", "#36B7FF", "#4A1550"],
+  "chroma": "#00FF00"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "neon-arcade",
+  "name": { "vi": "Neon Arcade", "en": "Neon Arcade" },
+  "description": { "vi": "Thân tối, viền neon phát sáng xanh cyan, hồng, vàng.", "en": "Dark bodies with glowing neon outlines in cyan, pink and yellow." },
+  "promptEn": "Retro-futuristic arcade game UI in a glowing neon style. Element bodies are deep navy to near-black with a subtle vertical gradient and faint inner sheen, outlined by thick bright neon tubes that emit a strong colored outer glow and a hot white core line. Accent fills and icons glow in electric cyan, hot pink, laser yellow and acid green, all fully saturated and luminous, never muted or pastel. Crisp vector edges, glossy dark surfaces, soft bloom around the neon only. Keep semantic role colors as neon accents (green = confirm/on, grey or dim outline = disabled, pink/red = close, cyan/blue = secondary), keep existing symbols and text, keep silhouette and proportions, add no extra grids, scanlines, stars or background elements.",
+  "palette": ["#0B0F2A", "#00F0FF", "#FF2BD6", "#FFE600", "#39FF14", "#7A2BFF"],
+  "chroma": "#0000FF"
+}

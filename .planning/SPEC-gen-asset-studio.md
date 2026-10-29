@@ -22,6 +22,7 @@ Ngoài phạm vi: gen ảnh bằng AI khác Codex; recolor/hue-shift thay cho ge
 | Song song | User chỉnh 1–6, mặc định 3 |
 | Style | Nhiều nhóm style / project; ảnh không thuộc nhóm nào thì không xuất |
 | Gợi ý style | Mặc định 3 hướng, chỉnh 1–6 |
+| Template style sẵn | 4 template cho game vui vẻ: Candy Pop · Jelly Cartoon · Wood & Gold Adventure · Neon Arcade (chủ nhân chốt 2026-10-29) |
 | Duyệt | Bắt buộc từng ảnh, có duyệt hàng loạt |
 | 9-slice | Tự đoán (tên + hình dạng) + user bật/tắt từng ảnh |
 | Hết quota | Tự dừng, đếm ngược, tự chạy tiếp khi reset |
@@ -87,6 +88,11 @@ Thiết kế giữ lại để làm sau:
 
 ### ② Style
 - Nhóm style: tên, prompt (tuỳ chọn), ảnh tham chiếu (tuỳ chọn, nhiều ảnh), danh sách ảnh áp dụng (chọn từ lưới, hoặc "tất cả ảnh chưa có nhóm"). 1 ảnh thuộc tối đa 1 nhóm.
+- Template style sẵn (chọn nhanh thay vì/kèm gợi ý): mỗi template có tên, prompt EN chuẩn, bảng màu, ảnh preview sheet đóng sẵn trong app (gen 1 lần bằng Codex, sheet chung: nút xanh/xanh dương/xám, close, tab, toggle, sao, popup, progress, ribbon). Màu luôn rực, bão hoà. Chọn template → điền prompt nhóm, vẫn sửa được; user lưu được template riêng.
+  - **Candy Pop**: kẹo ngọt bóng bẩy, hồng/tím/xanh bạc hà rực, viền đậm, vệt gloss.
+  - **Jelly Cartoon**: thạch trong mọng nước, màu bão hoà, bo tròn mập, highlight trắng lớn, bóng đáy.
+  - **Wood & Gold Adventure**: gỗ hoạt hình + viền vàng kim, đinh tán; game phiêu lưu/nông trại casual.
+  - **Neon Arcade**: thân tối, viền neon phát sáng xanh/hồng/vàng; arcade/đối kháng nhẹ.
 - Gợi ý style: Codex phân tích bộ ảnh + prompt + ref → đề xuất N hướng (mặc định 3), mỗi hướng: tên, mô tả ngắn, bảng màu, 1 sheet preview vẽ 4–6 asset đại diện (app tự chọn đa dạng: nút, icon, popup, thanh, nhân vật nếu có).
 - Chọn 1 hướng, hoặc ghi nhận xét → regen preview (hướng đó hoặc cả bộ). Chốt → sheet thành **ảnh khoá style** + mô tả style, đính vào mọi lượt gen của nhóm.
 - Bỏ qua gợi ý: dùng thẳng prompt + ref (vẫn gen 1 preview để chốt).

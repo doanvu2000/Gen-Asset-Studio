@@ -1,0 +1,8 @@
+{
+  "id": "jelly-cartoon",
+  "name": { "vi": "Thạch Hoạt Hình", "en": "Jelly Cartoon" },
+  "description": { "vi": "Thạch trong mọng nước, màu bão hoà, khối tròn mập.", "en": "Juicy translucent jelly, saturated colors, chunky rounded shapes." },
+  "promptEn": "Casual mobile game UI in a juicy cartoon jelly style. Elements are chunky, puffy and soft-cornered like wobbly gummy jelly: semi-translucent saturated body with richer color in the core, a large bold white highlight blob on the upper left, small secondary sparkle highlight, subtle subsurface glow at the edges, and a solid darker bottom shadow band giving a thick 3D base. Medium dark outline in a deeper shade of each element's own color. Palette: strong cherry red, orange, lime green, bright blue, magenta; colors stay rich and saturated, never pale, glassy or pastel. Keep semantic role colors (green = confirm/on, grey = disabled, red = close), keep existing symbols and text, keep silhouette and proportions, add no extra decorations.",
+  "palette": ["#FF2E4D", "#FF8A1F", "#7BE52B", "#1E9BFF", "#E62EC8", "#FFFFFF"],
+  "chroma": "#0000FF"
+}
