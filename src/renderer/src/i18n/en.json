@@ -34,7 +34,13 @@
     "library": "Library",
     "allProjects": "All projects",
     "environment": "Environment",
-    "settings": "Settings"
+    "settings": "Settings",
+    "folders": "Folders & projects",
+    "newFolder": "New folder",
+    "newProject": "Project",
+    "changeWorkspace": "Change workspace…",
+    "revealWorkspace": "Open workspace in Explorer",
+    "wsMissing": "Folder not found"
   },
   "setup": {
     "title": "Set up your environment",
@@ -168,7 +174,33 @@
     "emptyTitle": "No projects yet",
     "emptyDesc": "Create a project to import a PNG set, lock a style, then regenerate it with Codex.",
     "newProject": "New project",
-    "openFolder": "Open folder"
+    "openFolder": "Open folder",
+    "count": "{{count}} projects · mirrors real folders in",
+    "search": "Search projects",
+    "sort": {
+      "recent": "Recently edited",
+      "name": "Name",
+      "images": "Image count"
+    },
+    "folderEmptyTitle": "This folder has no projects yet",
+    "folderEmptyDesc": "Create a project to start reskinning an asset set.",
+    "noMatchTitle": "No matching projects",
+    "noMatchDesc": "Try another keyword.",
+    "noWsTitle": "No workspace selected",
+    "noWsDesc": "Choose a folder to use as the workspace for your projects.",
+    "chooseWs": "Choose workspace",
+    "wsMissingTitle": "Workspace folder not found",
+    "wsMissingDesc": "The folder {{path}} was deleted or renamed. Choose the workspace again.",
+    "root": "Workspace root",
+    "card": {
+      "images": "{{count}} images",
+      "groups": "{{count}} style groups",
+      "approved": "{{a}}/{{n}} approved",
+      "status": {
+        "new": "New",
+        "draft": "Not generated"
+      }
+    }
   },
   "settings": {
     "title": "Settings",
@@ -315,5 +347,153 @@
     "retry": "Try again",
     "failed": "Codex could not handle this",
     "unavailable": "Codex CLI is not installed or not signed in — only Retry and Export log are available."
+  },
+  "tree": {
+    "more": "More actions",
+    "rename": "Rename",
+    "menu": {
+      "open": "Open",
+      "newFolder": "New folder inside",
+      "newProject": "New project inside",
+      "rename": "Rename",
+      "reveal": "Show in Explorer",
+      "trash": "Move to Recycle Bin"
+    }
+  },
+  "dialogs": {
+    "cancel": "Cancel",
+    "newProject": {
+      "title": "New project",
+      "name": "Project name",
+      "namePh": "e.g. Idol Clicker UI",
+      "parent": "Save in folder",
+      "create": "Create project",
+      "hint": "A project is a folder with a project.json inside the workspace. Source images are not copied — the project only stores their paths."
+    },
+    "newFolder": {
+      "title": "New folder",
+      "name": "Folder name",
+      "namePh": "e.g. Game A",
+      "parent": "Inside",
+      "create": "Create folder"
+    },
+    "trash": {
+      "title": "Move “{{name}}” to the Recycle Bin?",
+      "folderBody": "The folder and everything in it ({{count}} projects) will be moved to the Recycle Bin. You can restore it from there.",
+      "projectBody": "The project folder (styles, versions, output) will be moved to the Recycle Bin. Source images outside it are not touched.",
+      "confirm": "Move to Recycle Bin"
+    }
+  },
+  "errors": {
+    "invalidName": "Invalid name — avoid < > : \" / \\ | ? * and a trailing dot.",
+    "exists": "An item with that name already exists there.",
+    "notFound": "Item not found — it may have been renamed or deleted.",
+    "intoSelf": "Cannot move an item into itself or into a project.",
+    "noWorkspace": "No workspace selected.",
+    "busy": "The file is in use by another program. Close it and try again.",
+    "io": "The operation failed."
+  },
+  "toast": {
+    "moved": "Moved “{{name}}”",
+    "trashed": "Moved “{{name}}” to the Recycle Bin",
+    "renamed": "Renamed to “{{name}}”",
+    "created": "Created “{{name}}”",
+    "added": "Added {{count}} images",
+    "none": "No new PNG images",
+    "skipped": "Skipped {{count}} non-PNG files: {{names}}",
+    "dup": "{{count}} images are already in the project",
+    "unreadable": "{{count}} files could not be read: {{names}}",
+    "removed": "Removed {{count}} images from the project",
+    "relinked": "Folder relinked",
+    "relinkStill": "{{count}} images are still missing",
+    "typeSet": "Set {{count}} images to “{{type}}”",
+    "failed": "Operation failed"
+  },
+  "project": {
+    "steps": {
+      "input": "Source",
+      "style": "Style",
+      "gen": "Generate",
+      "review": "Review",
+      "export": "Export"
+    },
+    "sub": {
+      "images": "{{count}} images",
+      "groups": "{{locked}}/{{total}} groups locked",
+      "generated": "{{done}}/{{total}} generated",
+      "approved": "{{count}} approved",
+      "notExported": "Not exported"
+    },
+    "lock": {
+      "style": "Add at least one PNG first",
+      "gen": "Lock a style for at least one group first",
+      "review": "Generate images before reviewing",
+      "export": "Approve at least one image before exporting"
+    },
+    "soon": {
+      "title": "Coming soon",
+      "desc": "The “{{step}}” step is being built and will arrive in an upcoming update.",
+      "back": "Back to Source"
+    },
+    "loading": "Opening project…",
+    "notFound": "Could not open the project",
+    "notFoundDesc": "The project may have been renamed, moved or deleted.",
+    "backToAll": "Back to all projects"
+  },
+  "input": {
+    "emptyTitle": "Add your source images",
+    "emptyDesc": "Drag PNG files or whole folders here. The folder structure is kept on export.",
+    "openFolder": "Open folder",
+    "addFiles": "Add images",
+    "dropTitle": "Drop PNGs or folders here",
+    "dropDesc": "Folder structure is kept",
+    "selected": "{{sel}}/{{total}} selected",
+    "selectAll": "Select all",
+    "deselect": "Deselect all",
+    "remove": "Remove from project",
+    "commonRoot": "Common root",
+    "all": "All",
+    "reading": "Reading images…",
+    "footer": "{{count}} images · up to 100 per run · Ctrl/Shift or drag to multi-select",
+    "next": "Next: Style",
+    "overLimit": "This project has {{count}} images — each generation run takes up to 100, so the Generate step will split it into several runs.",
+    "missing": "{{count}} source images are missing from {{path}}.",
+    "relink": "Relink folder",
+    "changed": "{{count}} source images changed since they were added — consider regenerating them.",
+    "skippedNote": "{{count}} files skipped because they are not PNG:",
+    "dismiss": "Hide",
+    "type": {
+      "normal": "Normal",
+      "nine": "9-slice",
+      "sprite": "Sprite sheet",
+      "spriteDev": "In development",
+      "hint": "Click to change type (auto-detected from name + shape)",
+      "auto": "auto",
+      "spriteHint": "Sprite sheets are in development and not supported yet"
+    },
+    "kind": {
+      "button": "Button",
+      "panel": "Panel",
+      "icon": "Icon",
+      "bar": "Bar",
+      "character": "Character"
+    },
+    "status": {
+      "missing": "Missing file",
+      "changed": "Source changed"
+    },
+    "preview": {
+      "empty": "Select an image to see details",
+      "multi": "{{count}} images selected",
+      "size": "Size",
+      "alpha": "Alpha channel",
+      "yes": "Yes",
+      "no": "No",
+      "file": "File size",
+      "kind": "Kind (guessed)",
+      "type": "Processing",
+      "path": "Path",
+      "setType": "Processing for {{count}} images"
+    }
   }
 }

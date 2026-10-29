@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IPC } from '@shared/ipc'
 import type {
   AccountInfo,
@@ -12,6 +12,7 @@ import type {
   SetupStepId,
   Unsubscribe
 } from '@shared/types'
+import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
 
 function subscribe<T>(channel: string, cb: (value: T) => void): Unsubscribe {
   const listener = (_event: IpcRendererEvent, value: T): void => cb(value)
@@ -53,6 +54,7 @@ const api: GasApi = {
     loginCancel: () => ipcRenderer.invoke(IPC.setupLoginCancel),
     loginReopen: () => ipcRenderer.invoke(IPC.setupLoginReopen),
     testGen: () => ipcRenderer.invoke(IPC.setupTestGen),
+    detect: () => ipcRenderer.invoke(IPC.setupDetect),
     workspace: (mode: 'new' | 'open') => ipcRenderer.invoke(IPC.setupWorkspace, mode),
     log: () => ipcRenderer.invoke(IPC.setupLog),
     onChange: (cb) => subscribe<SetupSnapshot>(IPC.setupChanged, cb),
@@ -82,6 +84,28 @@ const api: GasApi = {
     apply: () => ipcRenderer.invoke(IPC.fixApply),
     cancel: () => ipcRenderer.invoke(IPC.fixCancel),
     onChange: (cb) => subscribe<FixSnapshot>(IPC.fixChanged, cb)
+  },
+  workspace: {
+    get: () => ipcRenderer.invoke(IPC.wsGet),
+    choose: () => ipcRenderer.invoke(IPC.wsChoose),
+    createFolder: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateFolder, parentRel, name),
+    createProject: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateProject, parentRel, name),
+    rename: (rel: string, name: string) => ipcRenderer.invoke(IPC.wsRename, rel, name),
+    move: (rel: string, destRel: string) => ipcRenderer.invoke(IPC.wsMove, rel, destRel),
+    trash: (rel: string) => ipcRenderer.invoke(IPC.wsTrash, rel),
+    reveal: (rel: string) => ipcRenderer.invoke(IPC.wsReveal, rel),
+    onChange: (cb) => subscribe<WorkspaceSnapshot>(IPC.wsChanged, cb)
+  },
+  project: {
+    open: (rel: string) => ipcRenderer.invoke(IPC.projOpen, rel),
+    addDialog: (rel: string, mode: 'folder' | 'files') => ipcRenderer.invoke(IPC.projAddDialog, rel, mode),
+    addPaths: (rel: string, paths: string[]) => ipcRenderer.invoke(IPC.projAddPaths, rel, paths),
+    remove: (rel: string, ids: string[]) => ipcRenderer.invoke(IPC.projRemove, rel, ids),
+    setType: (rel: string, ids: string[], type: InputType) => ipcRenderer.invoke(IPC.projSetType, rel, ids, type),
+    relink: (rel: string, rootIndex: number) => ipcRenderer.invoke(IPC.projRelink, rel, rootIndex)
+  },
+  files: {
+    pathFor: (file: File) => webUtils.getPathForFile(file)
   }
 }
 

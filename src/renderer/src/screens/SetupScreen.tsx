@@ -207,10 +207,10 @@ export function SetupScreen(): ReactElement {
 
   useEffect(() => {
     if (!snap || quickRequested) return
-    if (!snap.started && snap.completedBefore) {
-      quickRequested = true
-      void window.gas.setup.start(true)
-    }
+    if (snap.started) return
+    quickRequested = true
+    if (snap.completedBefore) void window.gas.setup.start(true)
+    else void window.gas.setup.detect()
   }, [snap])
 
   useEffect(() => {
@@ -234,7 +234,7 @@ export function SetupScreen(): ReactElement {
   const done = steps.filter((s) => s.state === 'done' || s.state === 'skipped').length
   const total = steps.length || 7
   const all = !!snap?.canEnter
-  const current = snap?.started ? steps.find((s) => s.state !== 'done' && s.state !== 'skipped')?.id : undefined
+  const current = snap && !snap.detecting ? steps.find((s) => s.state !== 'done' && s.state !== 'skipped')?.id : undefined
 
   return (
     <main className="setup">
@@ -243,7 +243,7 @@ export function SetupScreen(): ReactElement {
           <Logo />
           <div>
             <h1>{t('setup.title')}</h1>
-            <p>{snap?.quick && snap.running ? t('setup.quickChecking') : t('setup.intro')}</p>
+            <p>{(snap?.quick && snap.running) || snap?.detecting ? t('setup.quickChecking') : t('setup.intro')}</p>
           </div>
         </div>
         <div className="setup-prog">
@@ -297,8 +297,8 @@ export function SetupScreen(): ReactElement {
             {t('setup.exportLog')}
           </button>
           <div className="grow" />
-          {!snap?.started ? (
-            <button type="button" className="btn primary lg" disabled={!snap} onClick={() => void window.gas.setup.start(false)}>
+          {!snap?.started && !all ? (
+            <button type="button" className="btn primary lg" disabled={!snap || snap.detecting} onClick={() => void window.gas.setup.start(false)}>
               {t('setup.start')}
             </button>
           ) : (

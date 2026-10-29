@@ -57,6 +57,7 @@ export class SetupService extends EventEmitter {
   private pathPresent: boolean | null = null
   private longPathsOn: boolean | null = null
   private emitTimer: NodeJS.Timeout | null = null
+  private detecting: Promise<void> | null = null
 
   constructor(
     private readonly settings: SettingsStore,
@@ -82,6 +83,7 @@ export class SetupService extends EventEmitter {
       steps,
       started: this.started,
       running: this.running,
+      detecting: !!this.detecting,
       quick: this.quick,
       isAdmin: this.admin,
       canEnter: steps.every((s) => s.state === 'done' || s.state === 'skipped'),
@@ -210,11 +212,92 @@ export class SetupService extends EventEmitter {
   }
 
   async start(quick: boolean): Promise<void> {
+    if (this.detecting) await this.detecting
     if (this.running) return
     if (!this.started) this.log(`Gen Asset Studio ${app.getVersion()} · ${process.platform} ${process.arch} · ${quick ? 'quick check' : 'setup'}`)
     this.started = true
     this.quick = quick
     await this.loop()
+  }
+
+  detect(): Promise<void> {
+    if (this.started || this.running) return Promise.resolve()
+    if (!this.detecting) {
+      this.detecting = this.runDetect().finally(() => {
+        this.detecting = null
+        this.changed(true)
+      })
+      this.changed(true)
+    }
+    return this.detecting
+  }
+
+  private async probe(id: SetupStepId, sub: string, fn: () => Promise<boolean>): Promise<boolean> {
+    if (this.step(id).state !== 'idle') return this.step(id).state === 'done' || this.step(id).state === 'skipped'
+    this.set(id, 'running', sub)
+    let pass = false
+    try {
+      pass = await fn()
+    } catch (e) {
+      this.log(`detect [${id}] ${errorText(e)}`)
+      pass = false
+    }
+    if (!pass && this.step(id).state === 'running' && !this.step(id).need) this.set(id, 'idle')
+    return pass
+  }
+
+  private async runDetect(): Promise<void> {
+    this.log('detecting environment…')
+    const s = this.settings.get().setup
+    await this.probe('perm', 'checking', async () => {
+      this.admin = await isAdmin()
+      this.set('perm', 'done', this.admin ? 'admin' : 'user')
+      return true
+    })
+    const hasCodex = await this.probe('codex', 'checking', async () => {
+      const v = await this.installer.installedVersion()
+      if (!v) return false
+      this.installedVersion = v
+      this.set('codex', 'done', 'ready', { version: v })
+      return true
+    })
+    await this.probe('path', 'checking', async () => {
+      this.pathPresent = await userPathHas(userPathEntry, userPathExpanded)
+      if (this.pathPresent) this.set('path', 'done', 'added', { entry: userPathEntry })
+      else if (s.pathChoice === 'skipped') this.set('path', 'skipped', 'skipped')
+      else return false
+      return true
+    })
+    await this.probe('longPath', 'checking', async () => {
+      this.longPathsOn = await readLongPathsEnabled()
+      if (this.longPathsOn) this.set('longPath', 'done', 'enabled')
+      else if (s.longPathSkipped) this.set('longPath', 'skipped', 'skipped')
+      else return false
+      return true
+    })
+    const signedIn = hasCodex && (await this.probe('login', 'checking', async () => {
+      await this.codex.ensureStarted()
+      const acc = await this.codex.readAccount()
+      if (!acc.loggedIn) {
+        this.wait('login', 'login', 'signedOut')
+        return false
+      }
+      this.set('login', 'done', 'signedIn', { email: acc.email ?? '', plan: acc.planType ?? '' })
+      return true
+    }))
+    if (signedIn) await this.probe('quota', 'reading', async () => (await this.stepQuota()) === 'ok')
+    await this.probe('workspace', 'checking', async () => {
+      const ws = this.settings.get().workspace
+      if (!ws || !existsSync(ws)) {
+        this.wait('workspace', 'workspace', 'choose')
+        return false
+      }
+      this.set('workspace', 'done', 'chosen', { path: ws })
+      return true
+    })
+    const snap = this.snapshot()
+    this.log(`detect: ${snap.steps.filter((x) => x.state === 'done' || x.state === 'skipped').length}/${snap.steps.length} ready`)
+    if (snap.canEnter && !this.settings.get().setup.completed) await this.settings.update({ setup: { completed: true } })
   }
 
   async recheck(): Promise<void> {

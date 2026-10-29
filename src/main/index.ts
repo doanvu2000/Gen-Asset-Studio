@@ -10,6 +10,8 @@ import { CodexInstaller } from './codex/installer'
 import { CodexService } from './codex/service'
 import { SetupService } from './setup/service'
 import { FixService } from './setup/fix'
+import { WorkspaceService } from './workspace/service'
+import { handleFileScheme, registerFileScheme } from './workspace/protocol'
 
 const BG: Record<ResolvedTheme, string> = { light: '#F5F5F7', dark: '#1C1C1E' }
 
@@ -19,6 +21,7 @@ let installer: CodexInstaller
 let codex: CodexService
 let setup: SetupService
 let fixer: FixService
+let workspace: WorkspaceService
 let quitting = false
 
 function resolveTheme(s: AppSettings): ResolvedTheme {
@@ -122,6 +125,8 @@ function initServices(): void {
   codex.on('account', (acc) => broadcast(IPC.accountChanged, acc))
   codex.on('rateLimits', (rl) => broadcast(IPC.rateLimitsChanged, rl))
   fixer.on('changed', (snap) => broadcast(IPC.fixChanged, snap))
+  workspace = new WorkspaceService(logger.scoped('workspace'))
+  workspace.on('changed', (snap) => broadcast(IPC.wsChanged, snap))
 }
 
 function registerServiceIpc(): void {
@@ -139,9 +144,11 @@ function registerServiceIpc(): void {
   ipcMain.handle(IPC.setupLoginCancel, () => setup.cancelLogin())
   ipcMain.handle(IPC.setupLoginReopen, () => setup.reopenLogin())
   ipcMain.handle(IPC.setupTestGen, () => fire(setup.runTestGen()))
-  ipcMain.handle(IPC.setupWorkspace, (event, mode: unknown) =>
-    setup.pickWorkspace(mode === 'new' ? 'new' : 'open', BrowserWindow.fromWebContents(event.sender))
-  )
+  ipcMain.handle(IPC.setupWorkspace, async (event, mode: unknown) => {
+    await setup.pickWorkspace(mode === 'new' ? 'new' : 'open', BrowserWindow.fromWebContents(event.sender))
+    await syncWorkspace()
+  })
+  ipcMain.handle(IPC.setupDetect, () => fire(setup.detect()))
   ipcMain.handle(IPC.setupLog, () => setup.logLines())
 
   ipcMain.handle(IPC.envGet, () => setup.envStatus())
@@ -182,6 +189,41 @@ function registerServiceIpc(): void {
   })
   ipcMain.handle(IPC.fixApply, () => fire(fixer.apply()))
   ipcMain.handle(IPC.fixCancel, () => fixer.cancel())
+}
+
+async function syncWorkspace(): Promise<void> {
+  const ws = settings.get().workspace
+  if (ws !== workspace.current) {
+    await workspace.setRoot(ws)
+    broadcast(IPC.settingsChanged, settings.get())
+  }
+}
+
+const str = (v: unknown): string => (typeof v === 'string' ? v : '')
+const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [])
+
+function registerWorkspaceIpc(): void {
+  const win = (e: Electron.IpcMainInvokeEvent): BrowserWindow | null => BrowserWindow.fromWebContents(e.sender)
+  ipcMain.handle(IPC.wsGet, () => workspace.snapshot())
+  ipcMain.handle(IPC.wsChoose, async (e) => {
+    await setup.pickWorkspace('open', win(e))
+    await syncWorkspace()
+    return workspace.snapshot()
+  })
+  ipcMain.handle(IPC.wsCreateFolder, (_e, parent: unknown, name: unknown) => workspace.createFolder(str(parent), str(name)))
+  ipcMain.handle(IPC.wsCreateProject, (_e, parent: unknown, name: unknown) => workspace.createProject(str(parent), str(name)))
+  ipcMain.handle(IPC.wsRename, (_e, rel: unknown, name: unknown) => workspace.rename(str(rel), str(name)))
+  ipcMain.handle(IPC.wsMove, (_e, rel: unknown, dest: unknown) => workspace.move(str(rel), str(dest)))
+  ipcMain.handle(IPC.wsTrash, (_e, rel: unknown) => workspace.trash(str(rel)))
+  ipcMain.handle(IPC.wsReveal, (_e, rel: unknown) => workspace.reveal(str(rel)))
+  ipcMain.handle(IPC.projOpen, (_e, rel: unknown) => workspace.open(str(rel)))
+  ipcMain.handle(IPC.projAddDialog, (e, rel: unknown, mode: unknown) => workspace.addFromDialog(str(rel), mode === 'folder' ? 'folder' : 'files', win(e)))
+  ipcMain.handle(IPC.projAddPaths, (_e, rel: unknown, paths: unknown) => workspace.addPaths(str(rel), strs(paths)))
+  ipcMain.handle(IPC.projRemove, (_e, rel: unknown, ids: unknown) => workspace.remove(str(rel), strs(ids)))
+  ipcMain.handle(IPC.projSetType, (_e, rel: unknown, ids: unknown, type: unknown) =>
+    workspace.setType(str(rel), strs(ids), type === 'nine' ? 'nine' : type === 'sprite' ? 'sprite' : 'normal')
+  )
+  ipcMain.handle(IPC.projRelink, (e, rel: unknown, index: unknown) => workspace.relink(str(rel), typeof index === 'number' ? index : -1, win(e)))
 }
 
 function registerIpc(): void {
@@ -241,6 +283,8 @@ function registerIpc(): void {
   })
 }
 
+registerFileScheme()
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
@@ -257,6 +301,9 @@ if (!app.requestSingleInstanceLock()) {
     initServices()
     registerIpc()
     registerServiceIpc()
+    registerWorkspaceIpc()
+    handleFileScheme((p) => workspace.isAllowed(p))
+    void workspace.setRoot(settings.get().workspace)
     mainWindow = createWindow()
 
     app.on('activate', () => {
@@ -269,6 +316,7 @@ if (!app.requestSingleInstanceLock()) {
     quitting = true
     event.preventDefault()
     logger.write('app', 'quit')
+    void workspace?.dispose()
     void Promise.race([codex.stop(), new Promise((r) => setTimeout(r, 2500))])
       .catch(() => undefined)
       .finally(() => {

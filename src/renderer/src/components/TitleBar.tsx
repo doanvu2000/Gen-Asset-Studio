@@ -1,6 +1,7 @@
 import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { selectResolvedTheme, useApp } from '@renderer/store/app'
+import { useWs } from '@renderer/store/workspace'
 import { Icon } from './Icon'
 
 function TrafficLights(): ReactElement {
@@ -48,6 +49,11 @@ export function TitleBar(): ReactElement {
   const setTheme = useApp((s) => s.setTheme)
   const openSettings = useApp((s) => s.openSettings)
   const inApp = route !== 'setup'
+  const wsName = useWs((s) => s.snap?.name ?? null)
+  const curFolder = useWs((s) => s.curFolder)
+  const curProject = useWs((s) => s.curProject)
+  const openFolder = useWs((s) => s.openFolder)
+  const trail = route === 'project' && curProject ? curProject.split('/') : route === 'workspace' && curFolder ? curFolder.split('/') : []
 
   return (
     <header className="titlebar" onDoubleClick={(e) => {
@@ -68,9 +74,28 @@ export function TitleBar(): ReactElement {
       <div className="crumbs">
         {inApp ? (
           <>
-            <span className="c-dim">{t('sidebar.workspace')}</span>
-            <Icon name="chev" size={12} />
-            <span>{t('titlebar.allProjects')}</span>
+            <button type="button" className="crumb c-dim" onClick={() => openFolder('')}>
+              {wsName ?? t('sidebar.workspace')}
+            </button>
+            {trail.length === 0 ? (
+              <>
+                <Icon name="chev" size={12} />
+                <span>{t('titlebar.allProjects')}</span>
+              </>
+            ) : (
+              trail.map((part, i) => (
+                <span className="crumb-seg" key={trail.slice(0, i + 1).join('/')}>
+                  <Icon name="chev" size={12} />
+                  {i < trail.length - 1 ? (
+                    <button type="button" className="crumb c-dim" onClick={() => openFolder(trail.slice(0, i + 1).join('/'))}>
+                      {part}
+                    </button>
+                  ) : (
+                    <span>{part}</span>
+                  )}
+                </span>
+              ))
+            )}
           </>
         ) : (
           <>

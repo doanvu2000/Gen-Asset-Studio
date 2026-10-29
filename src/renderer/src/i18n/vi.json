@@ -34,7 +34,13 @@
     "library": "Thư viện",
     "allProjects": "Tất cả project",
     "environment": "Môi trường",
-    "settings": "Cài đặt"
+    "settings": "Cài đặt",
+    "folders": "Thư mục & project",
+    "newFolder": "Folder mới",
+    "newProject": "Project",
+    "changeWorkspace": "Đổi workspace…",
+    "revealWorkspace": "Mở workspace trong Explorer",
+    "wsMissing": "Không tìm thấy folder"
   },
   "setup": {
     "title": "Chuẩn bị môi trường",
@@ -168,7 +174,33 @@
     "emptyTitle": "Chưa có project",
     "emptyDesc": "Tạo project mới để nhập bộ PNG, chốt style rồi gen lại bằng Codex.",
     "newProject": "Project mới",
-    "openFolder": "Mở folder"
+    "openFolder": "Mở folder",
+    "count": "{{count}} project · khớp thư mục thật trong",
+    "search": "Tìm project",
+    "sort": {
+      "recent": "Mới sửa",
+      "name": "Tên",
+      "images": "Số ảnh"
+    },
+    "folderEmptyTitle": "Folder này chưa có project",
+    "folderEmptyDesc": "Tạo project để bắt đầu reskin một bộ asset.",
+    "noMatchTitle": "Không có project khớp",
+    "noMatchDesc": "Thử từ khoá khác.",
+    "noWsTitle": "Chưa chọn workspace",
+    "noWsDesc": "Chọn một folder làm workspace để lưu các project.",
+    "chooseWs": "Chọn workspace",
+    "wsMissingTitle": "Không tìm thấy folder workspace",
+    "wsMissingDesc": "Folder {{path}} đã bị xoá hoặc đổi tên. Chọn lại workspace.",
+    "root": "Gốc workspace",
+    "card": {
+      "images": "{{count}} ảnh",
+      "groups": "{{count}} nhóm style",
+      "approved": "{{a}}/{{n}} đã duyệt",
+      "status": {
+        "new": "Mới",
+        "draft": "Chưa gen"
+      }
+    }
   },
   "settings": {
     "title": "Cài đặt",
@@ -315,5 +347,153 @@
     "retry": "Thử lại",
     "failed": "Codex không xử lý được",
     "unavailable": "Codex CLI chưa cài hoặc chưa đăng nhập — chỉ có Thử lại và Xuất log."
+  },
+  "tree": {
+    "more": "Thêm thao tác",
+    "rename": "Đổi tên",
+    "menu": {
+      "open": "Mở",
+      "newFolder": "Folder mới bên trong",
+      "newProject": "Project mới bên trong",
+      "rename": "Đổi tên",
+      "reveal": "Hiện trong Explorer",
+      "trash": "Chuyển vào Thùng rác"
+    }
+  },
+  "dialogs": {
+    "cancel": "Huỷ",
+    "newProject": {
+      "title": "Project mới",
+      "name": "Tên project",
+      "namePh": "VD: Idol Clicker UI",
+      "parent": "Lưu trong folder",
+      "create": "Tạo project",
+      "hint": "Project là một folder chứa project.json trong workspace. Ảnh gốc không bị sao chép — project chỉ lưu đường dẫn."
+    },
+    "newFolder": {
+      "title": "Folder mới",
+      "name": "Tên folder",
+      "namePh": "VD: Game A",
+      "parent": "Bên trong",
+      "create": "Tạo folder"
+    },
+    "trash": {
+      "title": "Chuyển “{{name}}” vào Thùng rác?",
+      "folderBody": "Folder và mọi thứ bên trong ({{count}} project) sẽ được chuyển vào Thùng rác. Có thể khôi phục từ Thùng rác.",
+      "projectBody": "Folder project (style, phiên bản, output) sẽ được chuyển vào Thùng rác. Ảnh gốc bên ngoài không bị đụng tới.",
+      "confirm": "Chuyển vào Thùng rác"
+    }
+  },
+  "errors": {
+    "invalidName": "Tên không hợp lệ — không dùng < > : \" / \\ | ? * và không kết thúc bằng dấu chấm.",
+    "exists": "Đã có mục cùng tên ở đó.",
+    "notFound": "Không tìm thấy mục này — có thể đã bị đổi tên hoặc xoá.",
+    "intoSelf": "Không thể chuyển vào chính nó hoặc vào trong một project.",
+    "noWorkspace": "Chưa chọn workspace.",
+    "busy": "File đang bị chương trình khác dùng. Đóng chương trình đó rồi thử lại.",
+    "io": "Thao tác thất bại."
+  },
+  "toast": {
+    "moved": "Đã chuyển “{{name}}”",
+    "trashed": "Đã chuyển “{{name}}” vào Thùng rác",
+    "renamed": "Đã đổi tên thành “{{name}}”",
+    "created": "Đã tạo “{{name}}”",
+    "added": "Đã thêm {{count}} ảnh",
+    "none": "Không có ảnh PNG mới",
+    "skipped": "Bỏ qua {{count}} file không phải PNG: {{names}}",
+    "dup": "{{count}} ảnh đã có trong project",
+    "unreadable": "{{count}} file không đọc được: {{names}}",
+    "removed": "Đã bỏ {{count}} ảnh khỏi project",
+    "relinked": "Đã trỏ lại folder",
+    "relinkStill": "Vẫn còn {{count}} ảnh thiếu file",
+    "typeSet": "Đã đặt kiểu “{{type}}” cho {{count}} ảnh",
+    "failed": "Thao tác thất bại"
+  },
+  "project": {
+    "steps": {
+      "input": "Ảnh gốc",
+      "style": "Style",
+      "gen": "Gen ảnh",
+      "review": "Duyệt",
+      "export": "Xuất"
+    },
+    "sub": {
+      "images": "{{count}} ảnh",
+      "groups": "{{locked}}/{{total}} nhóm đã chốt",
+      "generated": "{{done}}/{{total}} đã gen",
+      "approved": "{{count}} đã duyệt",
+      "notExported": "Chưa xuất"
+    },
+    "lock": {
+      "style": "Thêm ít nhất 1 ảnh PNG trước",
+      "gen": "Chốt style cho ít nhất 1 nhóm trước",
+      "review": "Gen ảnh trước khi duyệt",
+      "export": "Duyệt ít nhất 1 ảnh trước khi xuất"
+    },
+    "soon": {
+      "title": "Sắp có",
+      "desc": "Bước “{{step}}” đang được xây dựng và sẽ có trong bản cập nhật tới.",
+      "back": "Về bước Ảnh gốc"
+    },
+    "loading": "Đang mở project…",
+    "notFound": "Không mở được project",
+    "notFoundDesc": "Project có thể đã bị đổi tên, di chuyển hoặc xoá.",
+    "backToAll": "Về danh sách project"
+  },
+  "input": {
+    "emptyTitle": "Thêm bộ ảnh gốc",
+    "emptyDesc": "Kéo thả file PNG hoặc cả folder vào đây. Cấu trúc thư mục được giữ nguyên khi xuất.",
+    "openFolder": "Mở folder",
+    "addFiles": "Thêm ảnh",
+    "dropTitle": "Thả PNG hoặc folder vào đây",
+    "dropDesc": "Giữ nguyên cấu trúc thư mục",
+    "selected": "{{sel}}/{{total}} đang chọn",
+    "selectAll": "Chọn tất cả",
+    "deselect": "Bỏ chọn",
+    "remove": "Bỏ khỏi project",
+    "commonRoot": "Root chung",
+    "all": "Tất cả",
+    "reading": "Đang đọc ảnh…",
+    "footer": "{{count}} ảnh · tối đa 100 ảnh mỗi lần chạy · Ctrl/Shift hoặc kéo vùng để chọn nhiều",
+    "next": "Tiếp: Chọn style",
+    "overLimit": "Project có {{count}} ảnh — mỗi lần chạy gen tối đa 100 ảnh, bước Gen sẽ chia thành nhiều lượt.",
+    "missing": "{{count}} ảnh gốc không tìm thấy trong {{path}}.",
+    "relink": "Trỏ lại folder",
+    "changed": "{{count}} ảnh gốc đã đổi nội dung từ lúc thêm — nên gen lại các ảnh này.",
+    "skippedNote": "{{count}} file bị bỏ qua vì không phải PNG:",
+    "dismiss": "Ẩn",
+    "type": {
+      "normal": "Thường",
+      "nine": "9-slice",
+      "sprite": "Sprite sheet",
+      "spriteDev": "Đang phát triển",
+      "hint": "Bấm để đổi loại (tự đoán theo tên + hình dạng)",
+      "auto": "tự đoán",
+      "spriteHint": "Sprite sheet đang phát triển, chưa hỗ trợ ở phase này"
+    },
+    "kind": {
+      "button": "Nút",
+      "panel": "Panel",
+      "icon": "Icon",
+      "bar": "Thanh",
+      "character": "Nhân vật"
+    },
+    "status": {
+      "missing": "Thiếu file",
+      "changed": "Gốc đã đổi"
+    },
+    "preview": {
+      "empty": "Chọn một ảnh để xem chi tiết",
+      "multi": "Đã chọn {{count}} ảnh",
+      "size": "Kích thước",
+      "alpha": "Kênh alpha",
+      "yes": "Có",
+      "no": "Không",
+      "file": "Dung lượng",
+      "kind": "Loại (đoán)",
+      "type": "Kiểu xử lý",
+      "path": "Đường dẫn",
+      "setType": "Kiểu xử lý cho {{count}} ảnh"
+    }
   }
 }

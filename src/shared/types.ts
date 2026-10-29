@@ -1,3 +1,5 @@
+import type { AddResult, InputType, OpResult, ProjectView, WorkspaceSnapshot } from './workspace'
+
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 export type Lang = 'vi' | 'en'
@@ -77,6 +79,7 @@ export interface SetupSnapshot {
   steps: StepInfo[]
   started: boolean
   running: boolean
+  detecting: boolean
   quick: boolean
   isAdmin: boolean | null
   canEnter: boolean
@@ -201,6 +204,7 @@ export interface GasApi {
     loginCancel: () => Promise<void>
     loginReopen: () => Promise<void>
     testGen: () => Promise<void>
+    detect: () => Promise<void>
     workspace: (mode: 'new' | 'open') => Promise<void>
     log: () => Promise<string[]>
     onChange: (cb: (snapshot: SetupSnapshot) => void) => Unsubscribe
@@ -230,5 +234,27 @@ export interface GasApi {
     apply: () => Promise<void>
     cancel: () => Promise<void>
     onChange: (cb: (snapshot: FixSnapshot) => void) => Unsubscribe
+  }
+  workspace: {
+    get: () => Promise<WorkspaceSnapshot>
+    choose: () => Promise<WorkspaceSnapshot>
+    createFolder: (parentRel: string, name: string) => Promise<OpResult>
+    createProject: (parentRel: string, name: string) => Promise<OpResult>
+    rename: (rel: string, name: string) => Promise<OpResult>
+    move: (rel: string, destRel: string) => Promise<OpResult>
+    trash: (rel: string) => Promise<OpResult>
+    reveal: (rel: string) => Promise<void>
+    onChange: (cb: (snapshot: WorkspaceSnapshot) => void) => Unsubscribe
+  }
+  project: {
+    open: (rel: string) => Promise<ProjectView | null>
+    addDialog: (rel: string, mode: 'folder' | 'files') => Promise<AddResult>
+    addPaths: (rel: string, paths: string[]) => Promise<AddResult>
+    remove: (rel: string, ids: string[]) => Promise<ProjectView | null>
+    setType: (rel: string, ids: string[], type: InputType) => Promise<ProjectView | null>
+    relink: (rel: string, rootIndex: number) => Promise<ProjectView | null>
+  }
+  files: {
+    pathFor: (file: File) => string
   }
 }

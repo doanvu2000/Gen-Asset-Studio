@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { DEFAULT_SETTINGS, type AppSettings, type Lang, type ResolvedTheme, type ThemePref } from '@shared/types'
 import { changeLang } from '@renderer/i18n'
 
-export type Route = 'setup' | 'workspace'
+export type Route = 'setup' | 'workspace' | 'project'
 export type SettingsTab = 'general' | 'account' | 'env'
 
 interface AppState {
@@ -27,7 +27,7 @@ interface AppState {
   closeSettings: () => void
 }
 
-const ORDER: Route[] = ['setup', 'workspace']
+const ORDER: Route[] = ['setup', 'workspace', 'project']
 
 export const useApp = create<AppState>()((set, get) => ({
   route: 'setup',

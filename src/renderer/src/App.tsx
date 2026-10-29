@@ -11,10 +11,15 @@ import { FixDialog } from '@renderer/components/FixDialog'
 import { useEnv } from '@renderer/store/env'
 import { SetupScreen } from '@renderer/screens/SetupScreen'
 import { WorkspaceScreen } from '@renderer/screens/WorkspaceScreen'
+import { ProjectScreen } from '@renderer/screens/ProjectScreen'
+import { Toasts } from '@renderer/components/Toasts'
+import { WorkspaceDialogs } from '@renderer/components/WorkspaceDialogs'
+import { useWs } from '@renderer/store/workspace'
 
 const SCREENS: Record<Route, () => ReactElement> = {
   setup: SetupScreen,
-  workspace: WorkspaceScreen
+  workspace: WorkspaceScreen,
+  project: ProjectScreen
 }
 
 function useThemeSync(): void {
@@ -40,7 +45,22 @@ function useBridgeEvents(): void {
 
 function useEnvBridge(): void {
   const init = useEnv((s) => s.init)
+  const initWs = useWs((s) => s.init)
   useEffect(() => init(), [init])
+  useEffect(() => initWs(), [initWs])
+  useEffect(() => {
+    const block = (e: DragEvent): void => {
+      if (!e.dataTransfer || e.defaultPrevented || ![...e.dataTransfer.types].includes('Files')) return
+      e.preventDefault()
+      e.dataTransfer.dropEffect = 'none'
+    }
+    window.addEventListener('dragover', block)
+    window.addEventListener('drop', block)
+    return () => {
+      window.removeEventListener('dragover', block)
+      window.removeEventListener('drop', block)
+    }
+  }, [])
 }
 
 function useWindowFocus(): boolean {
@@ -100,6 +120,8 @@ export function App(): ReactElement {
         <SettingsDialog />
         <UacDialog />
         <FixDialog />
+        <WorkspaceDialogs />
+        <Toasts />
       </div>
     </MotionConfig>
   )

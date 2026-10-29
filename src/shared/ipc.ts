@@ -43,5 +43,21 @@ export const IPC = {
   fixStart: 'fix:start',
   fixApply: 'fix:apply',
   fixCancel: 'fix:cancel',
-  fixChanged: 'fix:changed'
+  fixChanged: 'fix:changed',
+  setupDetect: 'setup:detect',
+  wsGet: 'ws:get',
+  wsChanged: 'ws:changed',
+  wsChoose: 'ws:choose',
+  wsCreateFolder: 'ws:create-folder',
+  wsCreateProject: 'ws:create-project',
+  wsRename: 'ws:rename',
+  wsMove: 'ws:move',
+  wsTrash: 'ws:trash',
+  wsReveal: 'ws:reveal',
+  projOpen: 'proj:open',
+  projAddDialog: 'proj:add-dialog',
+  projAddPaths: 'proj:add-paths',
+  projRemove: 'proj:remove',
+  projSetType: 'proj:set-type',
+  projRelink: 'proj:relink'
 } as const

@@ -1,0 +1,439 @@
+import { BrowserWindow, dialog, shell } from 'electron'
+import { watch, type FSWatcher } from 'chokidar'
+import { EventEmitter } from 'node:events'
+import { existsSync, promises as fs } from 'node:fs'
+import { basename, dirname, join, resolve, sep } from 'node:path'
+import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
+import {
+  addCollected,
+  buildView,
+  checkInputs,
+  collect,
+  compactRoots,
+  emptyProject,
+  isInside,
+  isSameOrInside,
+  pathKey,
+  PROJECT_FILE,
+  readProject,
+  thumbPath,
+  writeProject,
+  type ProjectFile
+} from './project'
+import { fileUrl } from './protocol'
+
+const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
+const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
+const MAX_DEPTH = 10
+
+class WsFail extends Error {
+  constructor(readonly code: WsError, detail?: string) {
+    super(detail ?? code)
+  }
+}
+
+function validName(name: string): string {
+  const n = name.trim()
+  if (!n || n === '.' || n === '..' || n.length > 120 || INVALID.test(n) || RESERVED.test(n) || /[. ]$/.test(n)) throw new WsFail('invalidName')
+  return n
+}
+
+function ok(rel: string | null): OpResult {
+  return { ok: true, rel, error: null, detail: null }
+}
+
+function fail(e: unknown): OpResult {
+  if (e instanceof WsFail) return { ok: false, rel: null, error: e.code, detail: e.message === e.code ? null : e.message }
+  const err = e as NodeJS.ErrnoException
+  if (err?.code === 'EEXIST') return { ok: false, rel: null, error: 'exists', detail: null }
+  if (err?.code === 'ENOENT') return { ok: false, rel: null, error: 'notFound', detail: null }
+  if (err?.code === 'EPERM' || err?.code === 'EBUSY' || err?.code === 'EACCES') return { ok: false, rel: null, error: 'busy', detail: err.message }
+  return { ok: false, rel: null, error: 'io', detail: err?.message ?? String(e) }
+}
+
+function relJoin(parent: string, name: string): string {
+  return parent ? `${parent}/${name}` : name
+}
+
+async function retry<T>(fn: () => Promise<T>): Promise<T> {
+  let last: unknown
+  for (let i = 0; i < 6; i++) {
+    try {
+      return await fn()
+    } catch (e) {
+      last = e
+      const code = (e as NodeJS.ErrnoException).code
+      if (code !== 'EPERM' && code !== 'EBUSY' && code !== 'EACCES') throw e
+      await new Promise((r) => setTimeout(r, 120 * (i + 1)))
+    }
+  }
+  throw last
+}
+
+export class WorkspaceService extends EventEmitter {
+  private root: string | null = null
+  private watcher: FSWatcher | null = null
+  private timer: NodeJS.Timeout | null = null
+  private snap: WorkspaceSnapshot = { root: null, name: null, exists: false, tree: null, projects: [] }
+  private chain: Promise<unknown> = Promise.resolve()
+  private allowed = new Set<string>()
+
+  constructor(private readonly log: (message: string) => void) {
+    super()
+  }
+
+  get current(): string | null {
+    return this.root
+  }
+
+  async setRoot(root: string | null): Promise<void> {
+    const next = root ? resolve(root) : null
+    if (next && this.root && pathKey(next) === pathKey(this.root)) return
+    await this.stopWatch()
+    this.root = next
+    this.allowed.clear()
+    await this.rescan()
+    this.startWatch()
+  }
+
+  async dispose(): Promise<void> {
+    await this.stopWatch()
+  }
+
+  snapshot(): WorkspaceSnapshot {
+    return this.snap
+  }
+
+  isAllowed(abs: string): boolean {
+    const p = resolve(abs)
+    if (this.root && isInside(p, this.root)) return true
+    return this.allowed.has(pathKey(p))
+  }
+
+  private startWatch(): void {
+    if (!this.root || !existsSync(this.root) || this.watcher) return
+    const root = this.root
+    this.watcher = watch(root, {
+      ignoreInitial: true,
+      depth: MAX_DEPTH,
+      ignored: (p, stats) => {
+        if (pathKey(p) === pathKey(root)) return false
+        const base = basename(p)
+        if (base.startsWith('.')) return true
+        if (stats?.isFile() && base !== PROJECT_FILE) return true
+        return false
+      }
+    })
+    this.watcher.on('all', () => this.schedule())
+    this.watcher.on('error', (e) => this.log(`watch error: ${(e as Error).message}`))
+  }
+
+  private async stopWatch(): Promise<void> {
+    const w = this.watcher
+    this.watcher = null
+    if (w) await w.close().catch(() => undefined)
+  }
+
+  private schedule(): void {
+    if (this.timer) clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.timer = null
+      void this.rescan()
+    }, 250)
+  }
+
+  async rescan(): Promise<WorkspaceSnapshot> {
+    const root = this.root
+    if (!root) {
+      this.snap = { root: null, name: null, exists: false, tree: null, projects: [] }
+    } else if (!existsSync(root)) {
+      this.snap = { root, name: basename(root), exists: false, tree: null, projects: [] }
+    } else {
+      const projects: ProjectSummary[] = []
+      const tree = await this.scanDir(root, '', 0, projects, true)
+      tree.name = basename(root) || root
+      this.snap = { root, name: tree.name, exists: true, tree, projects }
+    }
+    this.emit('changed', this.snap)
+    return this.snap
+  }
+
+  private async scanDir(abs: string, rel: string, depth: number, projects: ProjectSummary[], isRoot = false): Promise<FolderNode> {
+    let entries: import('node:fs').Dirent[] = []
+    try {
+      entries = await fs.readdir(abs, { withFileTypes: true })
+    } catch {
+      entries = []
+    }
+    const name = basename(abs)
+    if (!isRoot && entries.some((e) => e.isFile() && e.name === PROJECT_FILE)) {
+      const summary = await this.summary(abs, rel)
+      projects.push(summary)
+      return { rel, name, kind: 'project', children: [], projectCount: 1, imageCount: summary.imageCount }
+    }
+    const dirs = entries
+      .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('$'))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+    const children: FolderNode[] = []
+    if (depth < MAX_DEPTH) {
+      for (const d of dirs) children.push(await this.scanDir(join(abs, d.name), relJoin(rel, d.name), depth + 1, projects))
+    }
+    return {
+      rel,
+      name,
+      kind: 'folder',
+      children,
+      projectCount: children.reduce((n, c) => n + c.projectCount, 0),
+      imageCount: children.reduce((n, c) => n + c.imageCount, 0)
+    }
+  }
+
+  private async summary(dir: string, rel: string): Promise<ProjectSummary> {
+    let data: ProjectFile | null = null
+    try {
+      data = await readProject(dir)
+    } catch {
+      data = null
+    }
+    let mtime = 0
+    try {
+      mtime = (await fs.stat(join(dir, PROJECT_FILE))).mtimeMs
+    } catch {
+      mtime = 0
+    }
+    const thumbs: string[] = []
+    for (const input of data?.inputs ?? []) {
+      if (thumbs.length >= 4) break
+      if (!input.hash) continue
+      const t = thumbPath(dir, input.hash)
+      if (existsSync(t)) thumbs.push(fileUrl(t, input.hash))
+    }
+    const count = data?.inputs.length ?? 0
+    return {
+      rel,
+      name: basename(dir),
+      parentRel: rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '',
+      imageCount: count,
+      groupCount: data?.groups.length ?? 0,
+      approved: 0,
+      status: count ? 'draft' : 'new',
+      updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
+      thumbs
+    }
+  }
+
+  private abs(rel: string): string {
+    if (!this.root) throw new WsFail('noWorkspace')
+    const clean = rel.replace(/\\/g, '/').split('/').filter(Boolean)
+    if (clean.some((p) => p === '..' || p === '.')) throw new WsFail('notFound')
+    const p = resolve(this.root, ...clean)
+    if (!isSameOrInside(p, this.root)) throw new WsFail('notFound')
+    return p
+  }
+
+  private relOf(abs: string): string {
+    if (!this.root) return ''
+    return resolve(abs).slice(resolve(this.root).length).split(sep).filter(Boolean).join('/')
+  }
+
+  private run<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.chain.then(fn, fn)
+    this.chain = next.catch(() => undefined)
+    return next
+  }
+
+  private mutate(fn: () => Promise<string | null>): Promise<OpResult> {
+    return this.run(async () => {
+      await this.stopWatch()
+      try {
+        return ok(await fn())
+      } catch (e) {
+        this.log(`workspace op failed: ${(e as Error).message}`)
+        return fail(e)
+      } finally {
+        await this.rescan()
+        this.startWatch()
+      }
+    })
+  }
+
+  createFolder(parentRel: string, name: string): Promise<OpResult> {
+    return this.mutate(async () => {
+      const parent = this.abs(parentRel)
+      const n = validName(name)
+      const target = join(parent, n)
+      if (existsSync(target)) throw new WsFail('exists')
+      await fs.mkdir(target)
+      return relJoin(parentRel, n)
+    })
+  }
+
+  createProject(parentRel: string, name: string): Promise<OpResult> {
+    return this.mutate(async () => {
+      const parent = this.abs(parentRel)
+      const n = validName(name)
+      const target = join(parent, n)
+      if (existsSync(target)) throw new WsFail('exists')
+      await fs.mkdir(target, { recursive: true })
+      await writeProject(target, emptyProject(n))
+      this.log(`project created: ${target}`)
+      return relJoin(parentRel, n)
+    })
+  }
+
+  rename(rel: string, name: string): Promise<OpResult> {
+    return this.mutate(async () => {
+      if (!rel) throw new WsFail('notFound')
+      const src = this.abs(rel)
+      if (!existsSync(src)) throw new WsFail('notFound')
+      const n = validName(name)
+      const dest = join(dirname(src), n)
+      if (pathKey(dest) !== pathKey(src) && existsSync(dest)) throw new WsFail('exists')
+      if (dest !== src) await retry(() => fs.rename(src, dest))
+      if (existsSync(join(dest, PROJECT_FILE))) {
+        const data = await readProject(dest).catch(() => null)
+        if (data) {
+          data.name = n
+          await writeProject(dest, data)
+        }
+      }
+      return this.relOf(dest)
+    })
+  }
+
+  move(rel: string, destRel: string): Promise<OpResult> {
+    return this.mutate(async () => {
+      if (!rel) throw new WsFail('notFound')
+      const src = this.abs(rel)
+      const destDir = this.abs(destRel)
+      if (!existsSync(src)) throw new WsFail('notFound')
+      if (isSameOrInside(destDir, src)) throw new WsFail('intoSelf')
+      if (pathKey(dirname(src)) === pathKey(destDir)) return rel
+      if (existsSync(join(destDir, PROJECT_FILE))) throw new WsFail('intoSelf')
+      const dest = join(destDir, basename(src))
+      if (existsSync(dest)) throw new WsFail('exists')
+      await retry(() => fs.rename(src, dest))
+      return this.relOf(dest)
+    })
+  }
+
+  trash(rel: string): Promise<OpResult> {
+    return this.mutate(async () => {
+      if (!rel) throw new WsFail('notFound')
+      const p = this.abs(rel)
+      if (!existsSync(p)) throw new WsFail('notFound')
+      await retry(() => shell.trashItem(p))
+      this.log(`moved to recycle bin: ${p}`)
+      return null
+    })
+  }
+
+  reveal(rel: string): void {
+    try {
+      const p = this.abs(rel)
+      if (rel) shell.showItemInFolder(p)
+      else void shell.openPath(p)
+    } catch {
+      return
+    }
+  }
+
+  private projectDir(rel: string): string {
+    const dir = this.abs(rel)
+    if (!rel || !existsSync(join(dir, PROJECT_FILE))) throw new WsFail('notFound')
+    return dir
+  }
+
+  private allow(view: ProjectView): ProjectView {
+    for (const i of view.inputs) this.allowed.add(pathKey(i.abs))
+    return view
+  }
+
+  private async load(rel: string): Promise<{ dir: string; data: ProjectFile }> {
+    const dir = this.projectDir(rel)
+    return { dir, data: await readProject(dir) }
+  }
+
+  private async view(rel: string, dir: string, data: ProjectFile, forceWrite = false): Promise<ProjectView> {
+    const { checked, dirty } = await checkInputs(data)
+    if (dirty || forceWrite) await writeProject(dir, data)
+    return this.allow(await buildView(dir, rel, data, checked))
+  }
+
+  open(rel: string): Promise<ProjectView | null> {
+    return this.run(async () => {
+      try {
+        const { dir, data } = await this.load(rel)
+        return await this.view(rel, dir, data)
+      } catch (e) {
+        this.log(`open project failed: ${(e as Error).message}`)
+        return null
+      }
+    })
+  }
+
+  private async pick(win: BrowserWindow | null, opts: Electron.OpenDialogOptions): Promise<string[]> {
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    return r.canceled ? [] : r.filePaths
+  }
+
+  async addFromDialog(rel: string, mode: 'folder' | 'files', win: BrowserWindow | null): Promise<AddResult> {
+    const paths = await this.pick(
+      win,
+      mode === 'folder'
+        ? { properties: ['openDirectory', 'dontAddToRecent'] }
+        : { properties: ['openFile', 'multiSelections', 'dontAddToRecent'], filters: [{ name: 'PNG', extensions: ['png'] }] }
+    )
+    if (!paths.length) return { view: null, added: 0, skipped: [], canceled: true }
+    return this.addPaths(rel, paths)
+  }
+
+  addPaths(rel: string, paths: string[]): Promise<AddResult> {
+    return this.run(async () => {
+      const { dir, data } = await this.load(rel)
+      const clean = paths.filter((p) => typeof p === 'string' && p && !isSameOrInside(p, dir))
+      const c = await collect(clean)
+      const { added, skipped } = await addCollected(data, c)
+      this.log(`project ${rel}: +${added} image(s), ${skipped.length} skipped`)
+      const view = await this.view(rel, dir, data, added > 0)
+      return { view, added, skipped, canceled: false }
+    })
+  }
+
+  remove(rel: string, ids: string[]): Promise<ProjectView | null> {
+    return this.run(async () => {
+      const { dir, data } = await this.load(rel)
+      const drop = new Set(ids)
+      data.inputs = data.inputs.filter((i) => !drop.has(i.id))
+      compactRoots(data)
+      return this.view(rel, dir, data, true)
+    })
+  }
+
+  setType(rel: string, ids: string[], type: InputType): Promise<ProjectView | null> {
+    return this.run(async () => {
+      if (type === 'sprite') throw new WsFail('io', 'sprite sheets are not supported yet')
+      const { dir, data } = await this.load(rel)
+      const set = new Set(ids)
+      for (const i of data.inputs) {
+        if (set.has(i.id)) {
+          i.type = type
+          i.typeAuto = false
+        }
+      }
+      return this.view(rel, dir, data, true)
+    })
+  }
+
+  async relink(rel: string, rootIndex: number, win: BrowserWindow | null): Promise<ProjectView | null> {
+    const picked = await this.pick(win, { properties: ['openDirectory', 'dontAddToRecent'] })
+    if (!picked.length) return null
+    return this.run(async () => {
+      const { dir, data } = await this.load(rel)
+      if (rootIndex < 0 || rootIndex >= data.roots.length) throw new WsFail('notFound')
+      this.log(`project ${rel}: relink root ${data.roots[rootIndex]} → ${picked[0]}`)
+      data.roots[rootIndex] = resolve(picked[0])
+      return this.view(rel, dir, data, true)
+    })
+  }
+}
