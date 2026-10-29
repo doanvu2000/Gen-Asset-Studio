@@ -8,8 +8,10 @@ files:
   - out/**/*
   - package.json
   - "!**/*.map"
+extraResources:
+  - from: resources/style-templates
+    to: style-templates
 asarUnpack:
-  - resources/**
   - "**/node_modules/sharp/**/*"
   - "**/node_modules/@img/**/*"
 win:
