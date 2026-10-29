@@ -1,41 +1,25 @@
 # Release notes — Gen Asset Studio
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
-Mục `Chưa phát hành` gom thay đổi đang làm; khi ra bản thì đổi thành số phiên bản + ngày, dùng nguyên văn làm release note trên GitHub Releases.
 
-## Chưa phát hành
+## 1.0.0 — 2026-10-29
+
+Bản phát hành đầu tiên.
 
 ### Add
-- Workspace: cây thư mục thật, thẻ project (tìm, sắp xếp), tạo/đổi tên/chuyển/xoá vào Thùng rác, tự cập nhật khi folder đổi ngoài app
+- Đổi style cả bộ asset 2D PNG bằng Codex: giữ đúng tên file, cây thư mục, kích thước W×H
+- Tự cài môi trường: Codex CLI, đăng nhập ChatGPT, xem quota, trạng thái từng thành phần
+- Workspace nhiều project, cây thư mục thật trên đĩa
 - Project 5 bước: Ảnh gốc → Style → Gen → Duyệt → Xuất
-- Bước Ảnh gốc: mở folder (đệ quy, chỉ PNG), thêm ảnh, kéo thả, cây thư mục, chọn nhiều, xem trước W×H/alpha/dung lượng, đoán loại + 9-slice, báo thiếu file + trỏ lại folder
-- Backend hàng đợi gen chung (song song 1–6, giữ khi khởi động lại, tự dừng khi hết quota và tự chạy tiếp)
-- Backend style: chuẩn hoá prompt EN, gợi ý N hướng + preview, khoá style, lưu template riêng
-- Bước Duyệt: lưới gốc|mới, so sánh slider/cạnh nhau, duyệt hàng loạt, chọn phiên bản, Xử lý lại (không tốn quota), gen lại kèm ghi chú
-- Bước Xuất: đúng tên + cây thư mục + W×H, tuỳ chọn ×2/×4, backup bản cũ, nhớ folder xuất theo project
-- Cập nhật trong app: hỏi trước khi tải, hiện ghi chú + ngày phát hành, cài khi khởi động lại
-- Project mẫu 14 ảnh UI (nút Tạo project mẫu ở workspace trống, đầu trang và menu chuột phải)
-- Hướng dẫn nhanh lần đầu cho workspace, project, bước Style; Xem lại hướng dẫn ở Cài đặt › Chung
-- Icon app
-
-### Update
-- Màn chuẩn bị môi trường tự dò nhanh khi mở, bước đã đạt hiện xong ngay
-
-### Fixbug
-- Bản đóng gói thiếu template style sẵn (đóng gói qua extraResources)
-- Bản đóng gói thiếu project mẫu (extraResources) và icon
-- Cập nhật báo lỗi đỏ khi GitHub chưa có bản phát hành → nay báo đang dùng bản mới nhất
-- Toast "Đã gen xong N ảnh" cộng nhầm job cũ
-- Trỏ lại folder: hộp chọn folder mở ngay cạnh folder cũ bị mất thay vì vị trí ngẫu nhiên
-
-## 0.1.0 — 2026-10-29 (nội bộ, chưa phát hành)
-
-### Add
-- Khung app Electron: cửa sổ kiểu macOS, Sáng/Tối/Theo hệ thống, Việt/Anh, lưu cài đặt
-- Màn khởi động: logo động + chữ "Gen Asset Studio" hiện từng ký tự, © Jin Vũ
-- Setup gate 7 bước: kiểm quyền, tải + kiểm SHA-256 + cài Codex CLI 0.165.0, PATH (tuỳ chọn), bật đường dẫn dài (UAC), đăng nhập ChatGPT, quota + gen thử, chọn workspace
-- Trạng thái môi trường (Đã cài / Đang cài / Chưa cài / Cài lỗi) ở thanh trạng thái và Cài đặt
-- Cài đặt: tab Tài khoản (quota 5 giờ + tuần, đăng xuất/đổi tài khoản), tab Môi trường (cài lại, kiểm tra lại, báo bản Codex mới)
-- "Gửi lỗi cho Codex sửa": Codex phân tích lỗi, đề xuất cách sửa, áp dụng khi người dùng đồng ý
-- Xử lý ảnh sau gen: chọn nền chroma, tách nền, khử ám màu viền, cắt khối, fit đúng W×H gốc + 9-slice, phóng ×2/×4, QA
-- 4 template style sẵn: Candy Pop, Jelly Cartoon, Wood & Gold Adventure, Neon Arcade
+- Nhập ảnh: mở folder, thêm file, kéo thả từ Explorer
+- 4 style sẵn: Candy Pop, Jelly Cartoon, Wood & Gold Adventure, Neon Arcade
+- Codex gợi ý nhiều hướng style kèm ảnh preview, khoá style cho từng nhóm
+- Nút chuẩn hoá prompt sang tiếng Anh, chọn model + effort (mặc định luna · medium)
+- Hàng đợi gen chung, chạy song song 1–6 ảnh, hết quota tự dừng và tự chạy tiếp
+- Tự tách nền, khử viền màu, đặt vừa khung gốc (có 9-slice), kiểm tra chất lượng
+- Duyệt ảnh: so sánh gốc/mới, duyệt hàng loạt, gen lại kèm ghi chú, lịch sử phiên bản
+- Xuất PNG nền trong suốt, tuỳ chọn ×2/×4, tự backup bản cũ
+- "Gửi lỗi cho Codex sửa" khi cài đặt hoặc gen bị lỗi
+- Cập nhật trong app: báo bản mới kèm ghi chú + ngày phát hành, hỏi trước khi tải
+- Project mẫu 14 ảnh và hướng dẫn nhanh lần đầu
+- Giao diện kiểu macOS, Sáng/Tối, Tiếng Việt/English, màn khởi động động
