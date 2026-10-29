@@ -8,7 +8,8 @@ Spec chi tiết + mọi quyết định đã chốt: `.planning/SPEC-gen-asset-s
 - [x] Chủ nhân duyệt spec v0.2
 - [x] Mockup HTML prototype → `mockup/index.html` → chủ nhân duyệt OK (2026-10-29)
 - [x] M0 spike xong (2026-10-29) — kết quả dưới
-- [~] M1
+- [x] M1–M6 code xong (2026-10-29), bản cài thử `release/0.1.0/GenAssetStudio-Setup-0.1.0.exe`
+- [ ] Chủ nhân chạy thử bản cài, góp ý → sửa → phát hành v0.1.0/1.0.0 lên GitHub Releases (khi chủ nhân bảo)
 
 ## Kết quả M0 (chi tiết: `M0-protocol.md`, `M0-imagegen.md`, `M0-codex-binary.md`)
 
