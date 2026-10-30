@@ -76,7 +76,7 @@ export interface QueueJob extends JobSpec {
   notBefore: number | null
 }
 
-export type QueuePauseReason = 'user' | 'quota' | null
+export type QueuePauseReason = 'user' | 'quota' | 'noImage' | null
 
 export interface QuotaPause {
   resumeAt: number | null
@@ -88,6 +88,7 @@ export interface QueueSnapshot {
   jobs: QueueJob[]
   paused: boolean
   pauseReason: QueuePauseReason
+  pauseDetail: string | null
   quota: QuotaPause | null
   concurrency: number
   running: number
@@ -117,6 +118,7 @@ export const QUEUE_IPC = {
   cancel: 'queue:cancel',
   cancelAll: 'queue:cancel-all',
   retry: 'queue:retry',
+  retryFailed: 'queue:retry-failed',
   remove: 'queue:remove',
   move: 'queue:move',
   clearFinished: 'queue:clear-finished',
@@ -138,6 +140,7 @@ export interface QueueApi {
   cancel: (id: string) => Promise<void>
   cancelAll: (projectPath?: string) => Promise<void>
   retry: (id: string) => Promise<void>
+  retryFailed: (projectPath: string) => Promise<number>
   remove: (id: string) => Promise<void>
   move: (id: string, toIndex: number) => Promise<void>
   clearFinished: (projectPath?: string) => Promise<void>

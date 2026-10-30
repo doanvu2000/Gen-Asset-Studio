@@ -182,6 +182,12 @@ export class SetupService extends EventEmitter {
     this.patch(id, { state, sub, params, need: null, error: null, progress: null })
   }
 
+  private setSignedIn(acc: AccountInfo): void {
+    const free = acc.planType?.toLowerCase() === 'free'
+    if (free) this.log('WARNING [login] ChatGPT Free plan: Codex cannot generate images on this account')
+    this.set('login', 'done', free ? 'signedInFree' : 'signedIn', { email: acc.email ?? '', plan: acc.planType ?? '' })
+  }
+
   private wait(id: SetupStepId, need: NonNullable<StepInfo['need']>, sub: string | null = null, params: StepInfo['params'] = {}): void {
     this.patch(id, { state: 'running', need, sub, params, progress: null })
   }
@@ -282,7 +288,7 @@ export class SetupService extends EventEmitter {
         this.wait('login', 'login', 'signedOut')
         return false
       }
-      this.set('login', 'done', 'signedIn', { email: acc.email ?? '', plan: acc.planType ?? '' })
+      this.setSignedIn(acc)
       return true
     }))
     if (signedIn) await this.probe('quota', 'reading', async () => (await this.stepQuota()) === 'ok')
@@ -573,7 +579,7 @@ export class SetupService extends EventEmitter {
     const acc = await this.codex.readAccount()
     if (acc.loggedIn) {
       this.log(`signed in: ${acc.email ?? '?'} (${acc.planType ?? '?'})`)
-      this.set('login', 'done', 'signedIn', { email: acc.email ?? '', plan: acc.planType ?? '' })
+      this.setSignedIn(acc)
       return 'ok'
     }
     this.log('not signed in')
@@ -627,7 +633,7 @@ export class SetupService extends EventEmitter {
       void this.codex
         .readAccount()
         .then((acc) => {
-          this.set('login', 'done', 'signedIn', { email: acc.email ?? '', plan: acc.planType ?? '' })
+          this.setSignedIn(acc)
           return this.kick()
         })
         .catch((err: Error) => this.fail('login', err))
@@ -725,7 +731,7 @@ export class SetupService extends EventEmitter {
     const dir = r.filePaths[0]
     if (r.canceled || !dir) return
     try {
-      await fs.mkdir(dir, { recursive: true })
+      if (!existsSync(dir)) await fs.mkdir(dir, { recursive: true })
       await fs.access(dir)
       await this.settings.update({ workspace: dir })
       this.log(`workspace: ${dir}`)

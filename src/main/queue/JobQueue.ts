@@ -53,6 +53,7 @@ const ACTIVE: readonly JobStatus[] = ['running', 'processing']
 const FINISHED: readonly JobStatus[] = ['done', 'qaWarn', 'error', 'canceled']
 const QUOTA_BUFFER_MS = 5000
 const QUOTA_FALLBACK_MS = 5 * 60 * 1000
+const NO_IMAGE_STREAK_LIMIT = 3
 const QUOTA_RECHECK_MS = 60 * 1000
 
 function clampConcurrency(n: number): number {
@@ -115,6 +116,8 @@ export class JobQueue extends EventEmitter {
   private paused = false
   private pauseReason: QueuePauseReason = null
   private quota: { resumeAt: number | null; reason: string } | null = null
+  private pauseDetail: string | null = null
+  private noImageStreak = 0
   private readonly active = new Map<string, AbortController>()
   private readonly autoRetries = new Map<string, number>()
   private lastStart = 0
@@ -165,6 +168,7 @@ export class JobQueue extends EventEmitter {
       jobs: this.jobs.map((j) => ({ ...j, styleImages: [...j.styleImages] })),
       paused: this.paused,
       pauseReason: this.pauseReason,
+      pauseDetail: this.pauseReason === 'noImage' ? this.pauseDetail : null,
       quota: this.quotaInfo(),
       concurrency: this.concurrency,
       running,
@@ -230,6 +234,8 @@ export class JobQueue extends EventEmitter {
   resume(): void {
     this.paused = false
     this.pauseReason = null
+    this.pauseDetail = null
+    this.noImageStreak = 0
     this.quota = null
     this.clearQuotaTimers()
     this.emit('quota', null)
@@ -300,6 +306,15 @@ export class JobQueue extends EventEmitter {
     this.autoRetries.delete(id)
     this.changed()
     this.pump()
+  }
+
+  retryFailed(projectPath: string): number {
+    const ids = this.jobs.filter((j) => j.projectPath === projectPath && j.status === 'error').map((j) => j.id)
+    for (const id of ids) this.retry(id)
+    if (!ids.length) return 0
+    this.opts.log(`retrying ${ids.length} failed job(s) in ${projectPath}`)
+    if (this.pauseReason === 'noImage') this.resume()
+    return ids.length
   }
 
   remove(id: string): void {
@@ -455,6 +470,7 @@ export class JobQueue extends EventEmitter {
       })
       job.result = result
       this.autoRetries.delete(job.id)
+      this.noImageStreak = 0
       this.finish(job, result.qa.pass ? 'done' : 'qaWarn', null)
       this.opts.log(`job ${job.id} ${job.status} v${result.version} ${Date.now() - (job.startedAt ?? Date.now())} ms`)
     } catch (e) {
@@ -493,6 +509,18 @@ export class JobQueue extends EventEmitter {
       return
     }
     this.finish(job, 'error', { code: f.code, message: f.message })
+    if (f.code === 'noImage') this.trackNoImage(f.message)
+  }
+
+  private trackNoImage(message: string): void {
+    this.noImageStreak++
+    if (this.noImageStreak < NO_IMAGE_STREAK_LIMIT || this.paused) return
+    this.paused = true
+    this.pauseReason = 'noImage'
+    this.pauseDetail = message
+    this.clearQuotaTimers()
+    this.quota = null
+    this.opts.log(`queue paused: ${this.noImageStreak} jobs in a row finished without an image (${message})`)
   }
 
   private requeue(job: QueueJob, progress: string, notBefore: number | null): void {

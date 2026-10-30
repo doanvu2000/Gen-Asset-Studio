@@ -63,6 +63,10 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 
 **Đổi tài khoản ChatGPT?** **Cài đặt › Tài khoản › Đổi tài khoản**.
 
+**Ảnh nào cũng lỗi "turn completed without an image"?** Thường do tài khoản ChatGPT **Free** — gói Free không gen ảnh được. App tự dừng hàng đợi sau 3 ảnh lỗi liên tiếp. Đổi sang tài khoản Plus trở lên rồi bấm **Thử lại N ảnh lỗi** ở bước Gen.
+
+**Cài bản mới báo "Gen Asset Studio cannot be closed"?** App vẫn đang chạy ngầm (đang gen thì đóng app chỉ thu xuống taskbar). Thoát hẳn app hoặc End task `Gen Asset Studio.exe` trong Task Manager rồi bấm **Retry**. Cập nhật bằng nút trong app thì không gặp lỗi này.
+
 **Spine / Sprite sheet?** Đang phát triển (hiện "Sắp có" trong app).
 
 ## Thay đổi qua các phiên bản

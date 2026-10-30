@@ -91,6 +91,7 @@ export function registerQueueIpc(ipcMain: IpcMain, getWindow: () => BrowserWindo
     [QUEUE_IPC.cancel]: (id) => queue.cancel(str(id, 'id')),
     [QUEUE_IPC.cancelAll]: (p) => queue.cancelAll(optStr(p)),
     [QUEUE_IPC.retry]: (id) => queue.retry(str(id, 'id')),
+    [QUEUE_IPC.retryFailed]: (p) => queue.retryFailed(str(p, 'projectPath')),
     [QUEUE_IPC.remove]: (id) => queue.remove(str(id, 'id')),
     [QUEUE_IPC.move]: (id, to) => queue.move(str(id, 'id'), Number(to)),
     [QUEUE_IPC.clearFinished]: (p) => queue.clearFinished(optStr(p)),

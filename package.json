@@ -1,7 +1,7 @@
 {
   "name": "gen-asset-studio",
   "productName": "Gen Asset Studio",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Reskin 2D PNG asset sets with Codex CLI image generation",
   "author": "Jin Vũ",
   "license": "UNLICENSED",

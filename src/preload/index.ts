@@ -140,6 +140,7 @@ const api: GasApi = {
     cancel: (id: string) => ipcRenderer.invoke(QUEUE_IPC.cancel, id),
     cancelAll: (projectPath?: string) => ipcRenderer.invoke(QUEUE_IPC.cancelAll, projectPath),
     retry: (id: string) => ipcRenderer.invoke(QUEUE_IPC.retry, id),
+    retryFailed: (projectPath: string) => ipcRenderer.invoke(QUEUE_IPC.retryFailed, projectPath),
     remove: (id: string) => ipcRenderer.invoke(QUEUE_IPC.remove, id),
     move: (id: string, toIndex: number) => ipcRenderer.invoke(QUEUE_IPC.move, id, toIndex),
     clearFinished: (projectPath?: string) => ipcRenderer.invoke(QUEUE_IPC.clearFinished, projectPath),

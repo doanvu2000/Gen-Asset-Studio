@@ -2,6 +2,20 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
+## 1.1.1 — 2026-10-30
+
+### Update
+- Đăng nhập bằng tài khoản ChatGPT **Free**: bước cài đặt cảnh báo rõ gói Free không gen được ảnh
+- Ảnh lỗi "Codex không trả về ảnh" giờ kèm câu trả lời của Codex (hiện ở dòng lỗi, **Chép lỗi** và log)
+
+### Add
+- Hàng đợi tự dừng khi 3 ảnh liên tiếp không có ảnh trả về, kèm banner hướng dẫn — không đốt quota vào cả lô
+- Nút **Thử lại N ảnh lỗi** ở bước Gen: chạy lại mọi ảnh lỗi của project trong một lần bấm
+
+### Fixbug
+- Chọn thẳng gốc ổ (vd `D:\`) làm thư mục làm việc bị lỗi `EPERM`
+- Cài bản mới khi app đang chạy ngầm báo "cannot be closed": installer giờ tắt hẳn app (cả process con), app chạy quyền Admin thì xin UAC để tắt
+
 ## 1.1.0 — 2026-10-29
 
 ### Update

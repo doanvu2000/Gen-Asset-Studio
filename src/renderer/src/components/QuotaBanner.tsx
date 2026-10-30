@@ -21,6 +21,7 @@ export function QuotaBanner({ compact }: { compact?: boolean }): ReactElement {
   const at = useQueue((s) => s.quotaAt)
   const quotaPaused = snap?.pauseReason === 'quota'
   const userPaused = !!snap?.paused && snap.pauseReason === 'user'
+  const noImagePaused = !!snap?.paused && snap.pauseReason === 'noImage'
   const now = useNow(quotaPaused)
   const left = quotaRemaining(quota, at, now)
 
@@ -50,6 +51,20 @@ export function QuotaBanner({ compact }: { compact?: boolean }): ReactElement {
             {!compact && <span className="muted">{t('queue.pausedDesc')}</span>}
           </div>
           <button type="button" className="btn sm primary" onClick={() => void window.gas.queue.resume()}>
+            <Icon name="play" size={12} />
+            {t('queue.resumeAll')}
+          </button>
+        </motion.div>
+      )}
+      {noImagePaused && (
+        <motion.div key="n" className={compact ? 'pause-banner compact' : 'pause-banner'} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={fadeTransition}>
+          <Icon name="alert" size={compact ? 16 : 18} />
+          <div className="qb-t">
+            <b>{t('queue.noImageTitle')}</b>
+            {!compact && <span className="muted">{t('queue.noImageDesc')}</span>}
+            {!compact && snap?.pauseDetail && <span className="muted mono">{snap.pauseDetail}</span>}
+          </div>
+          <button type="button" className="btn sm" onClick={() => void window.gas.queue.resume()}>
             <Icon name="play" size={12} />
             {t('queue.resumeAll')}
           </button>

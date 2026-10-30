@@ -123,7 +123,8 @@
         "checking": "Reading your account…",
         "signedOut": "Not signed in. Sign in to Codex with a ChatGPT Plus (or higher) account — the Free plan cannot generate images.",
         "waiting": "Waiting for the browser — come back once you have signed in.",
-        "signedIn": "{{email}} · {{plan}}"
+        "signedIn": "{{email}} · {{plan}}",
+        "signedInFree": "{{email}} · Free — the Free plan CANNOT generate images. Switch to a ChatGPT Plus (or higher) account before generating."
       },
       "quota": {
         "reading": "Reading quota…",
@@ -723,6 +724,7 @@
     "toReview": "Go to Review",
     "somePaused": "Some images are paused.",
     "retry": "Retry",
+    "retryFailed": "Retry {{count}} failed",
     "sendFix": "Ask Codex to fix",
     "copyError": "Copy error",
     "copied": "Error copied",
@@ -766,7 +768,9 @@
     "resumeIn": "Resumes in",
     "tryNow": "Try now",
     "pausedTitle": "Queue paused",
-    "pausedDesc": "Nothing is sent to Codex until you resume."
+    "pausedDesc": "Nothing is sent to Codex until you resume.",
+    "noImageTitle": "Queue stopped: Codex returned no image",
+    "noImageDesc": "Several images in a row finished without an image. This usually means the ChatGPT Free plan cannot generate images — switch to a Plus (or higher) account, then resume."
   },
   "review": {
     "filters": {

@@ -368,6 +368,12 @@ function GenRun({ project, jobs }: { project: ProjectView; jobs: QueueJob[] }): 
           </div>
         </div>
         <div className="rh-acts">
+          {errs > 0 && (
+            <button type="button" className="btn" onClick={() => void window.gas.queue.retryFailed(project.dir)}>
+              <Icon name="refresh" size={14} />
+              {t('gen.retryFailed', { count: errs })}
+            </button>
+          )}
           {left > 0 ? (
             <>
               {hasPaused ? (

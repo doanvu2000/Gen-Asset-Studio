@@ -123,7 +123,8 @@
         "checking": "Đang đọc tài khoản…",
         "signedOut": "Chưa đăng nhập. Đăng nhập Codex bằng tài khoản ChatGPT Plus trở lên (gói Free không gen ảnh được).",
         "waiting": "Đang chờ trình duyệt — đăng nhập xong thì quay lại app.",
-        "signedIn": "{{email}} · {{plan}}"
+        "signedIn": "{{email}} · {{plan}}",
+        "signedInFree": "{{email}} · Free — gói Free KHÔNG gen ảnh được. Đổi sang tài khoản ChatGPT Plus trở lên trước khi gen."
       },
       "quota": {
         "reading": "Đang đọc quota…",
@@ -723,6 +724,7 @@
     "toReview": "Sang bước Duyệt",
     "somePaused": "Một số ảnh đang tạm dừng.",
     "retry": "Thử lại",
+    "retryFailed": "Thử lại {{count}} ảnh lỗi",
     "sendFix": "Gửi lỗi cho Codex sửa",
     "copyError": "Chép lỗi",
     "copied": "Đã chép lỗi",
@@ -766,7 +768,9 @@
     "resumeIn": "Tự chạy tiếp sau",
     "tryNow": "Thử chạy ngay",
     "pausedTitle": "Hàng đợi đang tạm dừng",
-    "pausedDesc": "Không ảnh nào được gửi Codex cho tới khi chạy tiếp."
+    "pausedDesc": "Không ảnh nào được gửi Codex cho tới khi chạy tiếp.",
+    "noImageTitle": "Đã dừng hàng đợi: Codex không trả về ảnh",
+    "noImageDesc": "Nhiều ảnh liên tiếp chạy xong mà không có ảnh. Thường do tài khoản ChatGPT Free không gen được ảnh — đổi sang tài khoản Plus trở lên rồi chạy tiếp."
   },
   "review": {
     "filters": {

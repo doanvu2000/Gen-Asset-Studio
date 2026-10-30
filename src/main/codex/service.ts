@@ -500,7 +500,8 @@ export class CodexService extends EventEmitter {
     ]
     const result = await this.runTurn(threadId, input, { timeoutMs: 240000, ...turn })
     if (result.status === 'completed' && result.images.length === 0 && !result.error) {
-      result.error = 'turn completed without an image'
+      const said = result.agentText.replace(/\s+/g, ' ').trim()
+      result.error = said ? `turn completed without an image. Codex said: ${said.slice(0, 500)}` : 'turn completed without an image'
     }
     return result
   }
