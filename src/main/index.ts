@@ -19,6 +19,7 @@ import { closePipeline, getPipeline } from './pipeline'
 import { createUpdater, registerUpdateIpc, type Updater } from './updater'
 import { registerExportIpc } from './export'
 import { createSampleProject } from './sample'
+import { hasGenSpace, registerStorageIpc, removeGeneratedImage, StorageService } from './storage/service'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import type { EdgeSide } from '@shared/queue'
 
@@ -34,6 +35,7 @@ let workspace: WorkspaceService
 let style: StyleService
 let queue: JobQueue | null = null
 let updater: Updater | null = null
+let storage: StorageService | null = null
 let disposeExportIpc: (() => void) | null = null
 let quitting = false
 let forceClose = false
@@ -208,7 +210,9 @@ function initQueue(): void {
     log: logger.scoped('queue'),
     statePath: queueStatePath,
     genSettings: () => style.modelsSync().assetGen,
-    concurrency: settings.get().gen.concurrency
+    concurrency: settings.get().gen.concurrency,
+    afterRawCopy: removeGeneratedImage,
+    hasDiskSpace: (job) => hasGenSpace(job.projectPath)
   })
   queue = q
   registerQueueIpc(ipcMain, () => mainWindow, q)
@@ -361,6 +365,33 @@ function initUpdater(): void {
   u.start()
 }
 
+const within = <T>(p: Promise<T>, ms: number): Promise<unknown> => Promise.race([p, new Promise((r) => setTimeout(r, ms))]).catch(() => undefined)
+
+async function shutdownForRelaunch(): Promise<void> {
+  quitting = true
+  updater?.dispose()
+  storage?.dispose()
+  if (queue) await within(queue.dispose(), 3000)
+  await within(closePipeline(), 1500)
+  await within(codex.stop(), 2500)
+  codex.killNow()
+  await logger.flush()
+}
+
+function initStorage(): void {
+  const s = new StorageService({
+    log: logger.scoped('storage'),
+    workspace: () => settings.get().workspace,
+    busy: () => busyCount() + (installer.installing ? 1 : 0),
+    pathAdded: () => settings.get().setup.pathChoice === 'added',
+    updateDownloaded: () => updater?.snapshot().state.kind === 'downloaded',
+    shutdown: shutdownForRelaunch
+  })
+  storage = s
+  registerStorageIpc(ipcMain, () => mainWindow, s)
+  s.start()
+}
+
 function registerIpc(): void {
   ipcMain.handle(IPC.appInfo, () => ({ version: app.getVersion(), platform: process.platform }))
 
@@ -451,6 +482,7 @@ if (!app.requestSingleInstanceLock()) {
     void workspace.setRoot(settings.get().workspace)
     mainWindow = createWindow()
     initUpdater()
+    initStorage()
 
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) mainWindow = createWindow()
@@ -463,6 +495,7 @@ if (!app.requestSingleInstanceLock()) {
     event.preventDefault()
     logger.write('app', 'quit')
     updater?.dispose()
+    storage?.dispose()
     disposeExportIpc?.()
     disposeExportIpc = null
     void workspace?.dispose()

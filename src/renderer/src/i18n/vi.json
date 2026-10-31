@@ -217,7 +217,8 @@
       "general": "Chung",
       "account": "Tài khoản",
       "env": "Môi trường",
-      "gen": "Gen & QA"
+      "gen": "Gen & QA",
+      "storage": "Lưu trữ"
     },
     "appearance": "Giao diện",
     "language": "Ngôn ngữ",
@@ -770,7 +771,10 @@
     "pausedTitle": "Hàng đợi đang tạm dừng",
     "pausedDesc": "Không ảnh nào được gửi Codex cho tới khi chạy tiếp.",
     "noImageTitle": "Đã dừng hàng đợi: Codex không trả về ảnh",
-    "noImageDesc": "Nhiều ảnh liên tiếp chạy xong mà không có ảnh. Thường do tài khoản ChatGPT Free không gen được ảnh — đổi sang tài khoản Plus trở lên rồi chạy tiếp."
+    "noImageDesc": "Nhiều ảnh liên tiếp chạy xong mà không có ảnh. Thường do tài khoản ChatGPT Free không gen được ảnh — đổi sang tài khoản Plus trở lên rồi chạy tiếp.",
+    "diskFullTitle": "Đã dừng hàng đợi: ổ đĩa sắp đầy",
+    "diskFullDesc": "Ổ chứa project hoặc dữ liệu Codex còn dưới 300 MB. Dọn dẹp hoặc chuyển dữ liệu sang ổ khác rồi chạy tiếp.",
+    "openStorage": "Mở Lưu trữ"
   },
   "review": {
     "filters": {
@@ -1144,5 +1148,88 @@
       "what": "Chọn folder đích và tỉ lệ ×1/×2/×4. App xuất ảnh đã duyệt, giữ nguyên tên file + cây thư mục, tự backup bản cũ.",
       "next": "Xong — chép vào game"
     }
+  },
+  "storage": {
+    "loading": "Đang đọc thông tin lưu trữ…",
+    "scanning": "Đang tính dung lượng…",
+    "loadingDrives": "Đang đọc danh sách ổ…",
+    "dataRoot": "Thư mục dữ liệu app",
+    "open": "Mở",
+    "move": "Chuyển sang ổ khác",
+    "systemHint": "Codex, ảnh gen tạm và log đang nằm ở ổ hệ thống (thường là C). Nên chuyển sang ổ khác để ổ C không đầy.",
+    "codexHomeEnv": "CODEX_HOME đang được đặt bằng biến môi trường GAS_CODEX_HOME — phần này không chuyển theo.",
+    "freeOf": "Còn trống {{free}} / {{total}}",
+    "systemDrive": "Ổ hệ thống",
+    "removable": "Ổ rời",
+    "current": "Đang dùng",
+    "pickFolder": "Chọn thư mục khác…",
+    "backToDefault": "Về chỗ mặc định",
+    "target": "Chuyển tới:",
+    "needFree": "Cần {{need}} · ổ đích còn {{free}}",
+    "removableWarn": "Đây là ổ rời (USB). Rút ổ ra thì app không chạy được tới khi cắm lại.",
+    "moveNote": "App sẽ chép dữ liệu, kiểm tra, rồi tự khởi động lại. Không phải đăng nhập lại. Bản cũ được xoá sau khi mở lại thành công.",
+    "moveNow": "Chuyển & khởi động lại",
+    "moveError": {
+      "same": "Đây đã là thư mục đang dùng.",
+      "nested": "Không chọn thư mục nằm trong (hoặc chứa) thư mục dữ liệu hiện tại.",
+      "network": "Không hỗ trợ ổ mạng.",
+      "notWritable": "Không ghi được vào thư mục này.",
+      "noSpace": "Ổ đích không đủ chỗ (cần thêm 1 GB dự phòng).",
+      "busy": "Đang có ảnh gen hoặc đang cài Codex — chờ xong hoặc tạm dừng hàng đợi rồi thử lại.",
+      "invalid": "Đường dẫn không hợp lệ."
+    },
+    "phase": {
+      "idle": "Sẵn sàng",
+      "stop": "Đang dừng Codex…",
+      "copy": "Đang chép dữ liệu…",
+      "verify": "Đang kiểm tra bản chép…",
+      "path": "Đang cập nhật PATH…",
+      "restart": "Xong — đang khởi động lại…",
+      "error": "Chuyển không thành công"
+    },
+    "autoClean": "Tự dọn dẹp",
+    "autoCleanHint": "Xoá ảnh gốc Codex sau khi đã chép vào project, lịch sử phiên Codex cũ hơn 7 ngày, file tạm.",
+    "on": "Bật",
+    "off": "Tắt",
+    "clean": {
+      "codexImages": "Ảnh gốc Codex",
+      "codexImagesHint": "Bản trùng — ảnh đã được chép vào project.",
+      "codexSessions": "Lịch sử phiên Codex",
+      "codexSessionsHint": "Phiên cũ hơn 7 ngày.",
+      "oldCodex": "Bản Codex cũ & file tải dở",
+      "oldCodexHint": "Giữ lại bản đang dùng.",
+      "cache": "File tạm",
+      "cacheHint": "Ảnh chuyển định dạng gửi Codex, ảnh test lúc cài.",
+      "updater": "Bộ cài cập nhật đã tải",
+      "updaterHint": "Bỏ qua nếu đang có bản cập nhật chờ cài."
+    },
+    "cleanTotal": "Sẽ giải phóng {{size}}",
+    "cleanNow": "Dọn dẹp",
+    "cleaned": "Đã giải phóng {{size}}",
+    "usage": "Dung lượng đang dùng",
+    "rescan": "Quét lại",
+    "item": {
+      "codex": "Codex CLI",
+      "codexImages": "Ảnh gốc Codex",
+      "codexSessions": "Lịch sử phiên Codex",
+      "codexHome": "Cấu hình & đăng nhập Codex",
+      "cache": "File tạm",
+      "logs": "Log",
+      "updater": "Bộ cài cập nhật",
+      "updaterNote": "Windows cố định ở ổ hệ thống — chỉ dọn được.",
+      "workspace": "Workspace (project + ảnh xuất)",
+      "workspaceNote": "Folder bạn chọn — đổi ở màn Workspace.",
+      "install": "Thư mục cài app",
+      "installNote": "Đổi bằng cách cài lại và chọn thư mục khác ở trình cài."
+    },
+    "warnLow": "Ổ chứa dữ liệu app còn {{free}}. Nên dọn dẹp hoặc chuyển sang ổ khác.",
+    "warnCritical": "Ổ chứa dữ liệu app chỉ còn {{free}} — gen ảnh có thể lỗi. Dọn dẹp hoặc chuyển ổ ngay.",
+    "bannerTitle": "App đang dùng {{size}} trên ổ hệ thống",
+    "bannerDesc": "Codex và ảnh gen khá nặng. Chuyển sang ổ khác hoặc dọn dẹp để ổ C không bị đầy.",
+    "bannerCritical": "Ổ chứa dữ liệu app sắp đầy (còn {{free}})",
+    "later": "Để sau",
+    "setupTitle": "Nơi lưu dữ liệu",
+    "setupDesc": "Codex (~160 MB) và ảnh gen sẽ nằm ở đây. Nên chọn ổ khác ổ C nếu máy có.",
+    "setupChange": "Đổi ổ"
   }
 }

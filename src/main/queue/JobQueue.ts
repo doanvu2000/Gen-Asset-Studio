@@ -36,6 +36,8 @@ export interface JobQueueOptions {
   maxAutoRetries?: number
   emitThrottleMs?: number
   maxFinished?: number
+  afterRawCopy?: (savedPath: string) => Promise<void>
+  hasDiskSpace?: (job: QueueJob) => Promise<boolean>
 }
 
 interface PersistedState {
@@ -55,6 +57,12 @@ const QUOTA_BUFFER_MS = 5000
 const QUOTA_FALLBACK_MS = 5 * 60 * 1000
 const NO_IMAGE_STREAK_LIMIT = 3
 const QUOTA_RECHECK_MS = 60 * 1000
+
+function isDiskFull(e: unknown): boolean {
+  if (e instanceof JobFailure) return e.code === 'diskFull' || /ENOSPC|not enough space/i.test(e.message)
+  const err = e as NodeJS.ErrnoException | null
+  return err?.code === 'ENOSPC' || /ENOSPC|not enough space/i.test(err?.message ?? '')
+}
 
 function clampConcurrency(n: number): number {
   if (!Number.isFinite(n)) return QUEUE_DEFAULT_CONCURRENCY
@@ -168,7 +176,7 @@ export class JobQueue extends EventEmitter {
       jobs: this.jobs.map((j) => ({ ...j, styleImages: [...j.styleImages] })),
       paused: this.paused,
       pauseReason: this.pauseReason,
-      pauseDetail: this.pauseReason === 'noImage' ? this.pauseDetail : null,
+      pauseDetail: this.pauseReason === 'noImage' || this.pauseReason === 'diskFull' ? this.pauseDetail : null,
       quota: this.quotaInfo(),
       concurrency: this.concurrency,
       running,
@@ -452,6 +460,7 @@ export class JobQueue extends EventEmitter {
     this.changed()
     const gs = this.opts.genSettings?.() ?? {}
     try {
+      if (this.opts.hasDiskSpace && !(await this.opts.hasDiskSpace(job))) throw new JobFailure('diskFull', 'not enough free disk space')
       const result = await runGenJob(job, {
         codex: this.opts.codex,
         pipeline: this.opts.pipeline,
@@ -460,6 +469,7 @@ export class JobQueue extends EventEmitter {
         effort: gs.effort || DEFAULT_EFFORT,
         timeoutMs: this.opts.timeoutMs ?? 240000,
         signal: ctl.signal,
+        afterRawCopy: this.opts.afterRawCopy,
         onStep: (step: JobStep, progress: string) => {
           job.step = step
           job.progress = progress
@@ -483,7 +493,7 @@ export class JobQueue extends EventEmitter {
   }
 
   private handleFailure(job: QueueJob, e: unknown): void {
-    const f = e instanceof JobFailure ? e : new JobFailure('unknown', (e as Error)?.message ?? String(e))
+    const f = isDiskFull(e) ? new JobFailure('diskFull', (e as Error)?.message ?? 'disk full') : e instanceof JobFailure ? e : new JobFailure('unknown', (e as Error)?.message ?? String(e))
     this.opts.log(`job ${job.id} failed [${f.code}] ${f.message}`)
     if (this.shuttingDown) {
       this.requeue(job, 'interrupted by shutdown', null)
@@ -491,6 +501,11 @@ export class JobQueue extends EventEmitter {
     }
     if (f.code === 'canceled') {
       if (this.find(job.id)) this.finish(job, 'canceled', { code: 'canceled', message: 'canceled by user' })
+      return
+    }
+    if (f.code === 'diskFull') {
+      this.requeue(job, 'waiting for free disk space', null)
+      this.enterDiskPause(f.message)
       return
     }
     if (f.code === 'quota') {
@@ -510,6 +525,16 @@ export class JobQueue extends EventEmitter {
     }
     this.finish(job, 'error', { code: f.code, message: f.message })
     if (f.code === 'noImage') this.trackNoImage(f.message)
+  }
+
+  private enterDiskPause(message: string): void {
+    if (this.paused && this.pauseReason === 'diskFull') return
+    this.paused = true
+    this.pauseReason = 'diskFull'
+    this.pauseDetail = message
+    this.clearQuotaTimers()
+    this.quota = null
+    this.opts.log(`queue paused: disk full (${message})`)
   }
 
   private trackNoImage(message: string): void {

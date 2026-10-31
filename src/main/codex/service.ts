@@ -1,11 +1,10 @@
 import { app } from 'electron'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
-import { tmpdir } from 'node:os'
 import { extname, join } from 'node:path'
 import sharp from 'sharp'
 import type { AccountInfo, CodexServiceState, ModelInfo, RateLimits, RateWindow } from '@shared/types'
-import { codexHome, codexHomeOverridden } from '../paths'
+import { codexHome, codexHomeOverridden, inputCacheDir } from '../paths'
 import type { LogFn } from '../logger'
 import type { CodexInstaller } from './installer'
 import { AppServerConnection, RpcError, type RpcNotification } from './rpc'
@@ -110,7 +109,7 @@ const CODEX_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp'])
 
 async function codexReadable(p: string): Promise<string> {
   if (CODEX_EXTS.has(extname(p).toLowerCase())) return p
-  const dir = join(tmpdir(), 'gas-codex-input')
+  const dir = inputCacheDir
   await fs.mkdir(dir, { recursive: true })
   const out = join(dir, `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}.png`)
   await sharp(p).png().toFile(out)

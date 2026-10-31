@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, shell } from 'electron'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import {
   SETUP_STEPS,
   type AccountInfo,
@@ -21,6 +21,7 @@ import { PINNED_VERSION, compareVersions } from '../codex/installer'
 import type { CodexService } from '../codex/service'
 import { logger } from '../logger'
 import { appDataDir, codexHome, testGenDir, userPathEntry, userPathExpanded } from '../paths'
+import { suggestedWorkspaceDir } from '../storage/service'
 import { addUserPath, enableLongPaths, isAdmin, readLongPathsEnabled, userPathHas } from '../system/windows'
 
 type StepResult = 'ok' | 'wait' | 'error'
@@ -724,7 +725,7 @@ export class SetupService extends EventEmitter {
   async pickWorkspace(mode: 'new' | 'open', win: BrowserWindow | null): Promise<void> {
     const opts: Electron.OpenDialogOptions = {
       title: mode === 'new' ? 'Gen Asset Studio — workspace' : 'Gen Asset Studio — open workspace',
-      defaultPath: mode === 'new' ? join(app.getPath('documents'), 'GenAssetStudio') : app.getPath('documents'),
+      defaultPath: mode === 'new' ? suggestedWorkspaceDir() : dirname(suggestedWorkspaceDir()),
       properties: ['openDirectory', 'createDirectory', 'promptToCreate', 'dontAddToRecent']
     }
     const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)

@@ -4,6 +4,7 @@ import type { QueueApi } from './queue'
 import type { ReviewApi } from './review'
 import type { UpdateApi } from './update'
 import type { ExportApi } from './export'
+import type { StorageApi } from './storage'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
@@ -300,6 +301,7 @@ export interface GasApi {
   review: ReviewApi
   export: ExportApi
   update: UpdateApi
+  storage: StorageApi
   files: {
     pathFor: (file: File) => string
   }

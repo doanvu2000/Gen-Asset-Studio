@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type CloseWhenBusy, type Lang, type
 import { changeLang } from '@renderer/i18n'
 
 export type Route = 'setup' | 'workspace' | 'project'
-export type SettingsTab = 'general' | 'gen' | 'account' | 'env'
+export type SettingsTab = 'general' | 'gen' | 'account' | 'env' | 'storage'
 
 interface AppState {
   route: Route

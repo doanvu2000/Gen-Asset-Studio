@@ -17,6 +17,7 @@ import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplat
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import { EXPORT_IPC, type ExportOptions, type ExportProgress } from '@shared/export'
+import { STORAGE_IPC, type CleanId, type MoveProgress, type StorageSnapshot } from '@shared/storage'
 import { QUEUE_IPC, type JobSpec, type QueueJobEvent, type QueueSnapshot, type QuotaPause } from '@shared/queue'
 
 function subscribe<T>(channel: string, cb: (value: T) => void): Unsubscribe {
@@ -164,6 +165,21 @@ const api: GasApi = {
     onProgress: (cb) => subscribe<ExportProgress>(EXPORT_IPC.progress, cb)
   },
   update: exposeUpdateApi(),
+  storage: {
+    get: () => ipcRenderer.invoke(STORAGE_IPC.get),
+    scan: () => ipcRenderer.invoke(STORAGE_IPC.scan),
+    drives: () => ipcRenderer.invoke(STORAGE_IPC.drives),
+    cleanPlan: () => ipcRenderer.invoke(STORAGE_IPC.cleanPlan),
+    clean: (ids: CleanId[]) => ipcRenderer.invoke(STORAGE_IPC.clean, ids),
+    setAutoClean: (on: boolean) => ipcRenderer.invoke(STORAGE_IPC.setAutoClean, on),
+    pickDir: () => ipcRenderer.invoke(STORAGE_IPC.pickDir),
+    check: (dir: string) => ipcRenderer.invoke(STORAGE_IPC.check, dir),
+    move: (dir: string) => ipcRenderer.invoke(STORAGE_IPC.move, dir),
+    open: (path: string) => ipcRenderer.invoke(STORAGE_IPC.open, path),
+    dismissBanner: () => ipcRenderer.invoke(STORAGE_IPC.dismissBanner),
+    onProgress: (cb) => subscribe<MoveProgress>(STORAGE_IPC.progress, cb),
+    onChange: (cb) => subscribe<StorageSnapshot>(STORAGE_IPC.changed, cb)
+  },
   files: {
     pathFor: (file: File) => webUtils.getPathForFile(file)
   }

@@ -22,6 +22,7 @@ export interface GenContext {
   timeoutMs: number
   signal: AbortSignal
   onStep: (step: JobStep, progress: string) => void
+  afterRawCopy?: (savedPath: string) => Promise<void>
 }
 
 export class JobFailure extends Error {
@@ -253,8 +254,10 @@ export async function runGenJob(job: QueueJob, ctx: GenContext): Promise<JobResu
 
     ctx.onStep('save', 'saving raw image')
     const rawPath = join(dir, `v${version}-raw.png`)
-    if (image.savedPath && existsSync(image.savedPath)) await fs.copyFile(image.savedPath, rawPath)
-    else await fs.writeFile(rawPath, Buffer.from(image.base64 ?? '', 'base64'))
+    if (image.savedPath && existsSync(image.savedPath)) {
+      await fs.copyFile(image.savedPath, rawPath)
+      if (ctx.afterRawCopy) await ctx.afterRawCopy(image.savedPath).catch(() => undefined)
+    } else await fs.writeFile(rawPath, Buffer.from(image.base64 ?? '', 'base64'))
     lap('saveRaw')
     checkAbort()
 

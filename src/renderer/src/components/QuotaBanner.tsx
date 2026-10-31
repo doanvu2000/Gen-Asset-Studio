@@ -6,6 +6,7 @@ import { clock } from '@renderer/lib/files'
 import { fadeTransition } from '@renderer/lib/motion'
 import { useNow } from '@renderer/lib/useNow'
 import { Icon } from './Icon'
+import { useApp } from '@renderer/store/app'
 
 export function quotaRemaining(quota: { resumeAt: number | null; remainingMs: number | null } | null, at: number, now: number): number | null {
   if (!quota) return null
@@ -22,6 +23,8 @@ export function QuotaBanner({ compact }: { compact?: boolean }): ReactElement {
   const quotaPaused = snap?.pauseReason === 'quota'
   const userPaused = !!snap?.paused && snap.pauseReason === 'user'
   const noImagePaused = !!snap?.paused && snap.pauseReason === 'noImage'
+  const diskPaused = !!snap?.paused && snap.pauseReason === 'diskFull'
+  const openSettings = useApp((s) => s.openSettings)
   const now = useNow(quotaPaused)
   const left = quotaRemaining(quota, at, now)
 
@@ -64,6 +67,23 @@ export function QuotaBanner({ compact }: { compact?: boolean }): ReactElement {
             {!compact && <span className="muted">{t('queue.noImageDesc')}</span>}
             {!compact && snap?.pauseDetail && <span className="muted mono">{snap.pauseDetail}</span>}
           </div>
+          <button type="button" className="btn sm" onClick={() => void window.gas.queue.resume()}>
+            <Icon name="play" size={12} />
+            {t('queue.resumeAll')}
+          </button>
+        </motion.div>
+      )}
+      {diskPaused && (
+        <motion.div key="d" className={compact ? 'pause-banner compact' : 'pause-banner'} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={fadeTransition}>
+          <Icon name="alert" size={compact ? 16 : 18} />
+          <div className="qb-t">
+            <b>{t('queue.diskFullTitle')}</b>
+            {!compact && <span className="muted">{t('queue.diskFullDesc')}</span>}
+          </div>
+          <button type="button" className="btn sm" onClick={() => openSettings('storage')}>
+            <Icon name="drive" size={12} />
+            {t('queue.openStorage')}
+          </button>
           <button type="button" className="btn sm" onClick={() => void window.gas.queue.resume()}>
             <Icon name="play" size={12} />
             {t('queue.resumeAll')}

@@ -14,6 +14,7 @@ import { Segmented } from './Segmented'
 import { EnvChip } from './EnvChip'
 import { ErrorActions } from './ErrorActions'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
+import { StorageTab } from './StorageSettings'
 import { useUpdateT } from '@renderer/lib/useUpdateT'
 
 function GeneralTab(): ReactElement {
@@ -442,6 +443,7 @@ const TABS: { id: SettingsTab; icon: IconName }[] = [
   { id: 'general', icon: 'gear' },
   { id: 'gen', icon: 'sparkles' },
   { id: 'account', icon: 'user' },
+  { id: 'storage', icon: 'drive' },
   { id: 'env', icon: 'box' }
 ]
 
@@ -512,6 +514,7 @@ export function SettingsDialog(): ReactElement {
               {tab === 'general' && <GeneralTab />}
               {tab === 'gen' && <GenTab />}
               {tab === 'account' && <AccountTab />}
+              {tab === 'storage' && <StorageTab />}
               {tab === 'env' && <EnvTab />}
             </div>
           </motion.div>

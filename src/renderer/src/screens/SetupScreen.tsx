@@ -5,6 +5,7 @@ import type { SetupSnapshot, StepInfo } from '@shared/types'
 import { Icon } from '@renderer/components/Icon'
 import { Logo } from '@renderer/components/Logo'
 import { ErrorActions } from '@renderer/components/ErrorActions'
+import { MovePicker, useStorageSnapshot } from '@renderer/components/StorageSettings'
 import { useApp } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
 import { EASE } from '@renderer/lib/motion'
@@ -196,6 +197,29 @@ function stepDesc(t: unknown, step: StepInfo): string {
   return tDyn(t, `setup.sub.${step.id}.${step.sub}`, step.params)
 }
 
+function SetupStorageCard(): ReactElement | null {
+  const { t } = useTranslation()
+  const [snap] = useStorageSnapshot()
+  const [open, setOpen] = useState(false)
+  if (!snap) return null
+  return (
+    <div className="stg-setup">
+      <div className="stg-setup-h">
+        <Icon name="drive" size={18} />
+        <div className="rl">
+          <b>{t('storage.setupTitle')}</b>
+          <div className="muted small">{t('storage.setupDesc')}</div>
+          <code className="mono path-chip">{snap.dataRoot}</code>
+        </div>
+        <button type="button" className="btn sm" onClick={() => setOpen((v) => !v)}>
+          {t('storage.setupChange')}
+        </button>
+      </div>
+      {open && <MovePicker snap={snap} />}
+    </div>
+  )
+}
+
 export function SetupScreen(): ReactElement {
   const { t } = useTranslation()
   const navigate = useApp((s) => s.navigate)
@@ -254,6 +278,7 @@ export function SetupScreen(): ReactElement {
             {done}/{total}
           </span>
         </div>
+        {snap && !snap.completedBefore && !snap.started && <SetupStorageCard />}
         <ol className="steps-v">
           {steps.map((step, i) => (
             <motion.li

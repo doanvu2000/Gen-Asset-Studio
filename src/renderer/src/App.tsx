@@ -20,6 +20,7 @@ import { useStyle } from '@renderer/store/style'
 import { useQueue } from '@renderer/store/queue'
 import { QueueDrawer } from '@renderer/components/QueueDrawer'
 import { UpdateBanner } from '@renderer/components/UpdateBanner'
+import { StorageBanner } from '@renderer/components/StorageBanner'
 import { useUpdateT } from '@renderer/lib/useUpdateT'
 import { CoachTour } from '@renderer/components/CoachMarks'
 import { tourSteps } from '@renderer/lib/tours'
@@ -155,6 +156,7 @@ export function App(): ReactElement {
         )}
         <Toasts />
         {route !== 'setup' && <UpdateBanner api={window.gas.update} t={updT} lang={i18n.language} />}
+        {route !== 'setup' && <StorageBanner />}
       </div>
     </MotionConfig>
   )

@@ -196,7 +196,13 @@ const PATHS = {
     </>
   ),
   flag: <path d="M5 21V4M5 4h11l-2 4 2 4H5" />,
-  wand: <path d="m4 20 10-10M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M18 3l1 1M15 10l-1-1" />
+  wand: <path d="m4 20 10-10M14 4v3M12.5 5.5h3M19 9v3M17.5 10.5h3M18 3l1 1M15 10l-1-1" />,
+  drive: (
+    <>
+      <path d="M3 13h18v5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18zM3 13l2.6-7.2A1.5 1.5 0 0 1 7 4.8h10a1.5 1.5 0 0 1 1.4 1l2.6 7.2" />
+      <path d="M7 16.3h.01M10 16.3h.01" />
+    </>
+  )
 } satisfies Record<string, ReactElement>
 
 export type IconName = keyof typeof PATHS

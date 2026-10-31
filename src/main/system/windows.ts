@@ -108,3 +108,50 @@ export async function addUserPath(entry: string, expanded: string): Promise<void
   const r = await powershell(script, 60000)
   if (r.code !== 0 || !r.stdout.includes('ok')) throw new Error(r.stderr.trim() || `powershell exit ${r.code}`)
 }
+
+export async function removeUserPath(entry: string, expanded: string): Promise<void> {
+  if (!isWindows) return
+  const q = (s: string): string => `'${s.replace(/'/g, "''")}'`
+  const script = [
+    "$k=[Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment',$true);",
+    "$cur=[string]$k.GetValue('Path','',[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames);",
+    `$entry=${q(entry)}; $exp=${q(expanded)};`,
+    "$parts=@($cur -split ';' | Where-Object { $_.Trim() -ne '' });",
+    "$keep=@($parts | Where-Object { -not ($_.TrimEnd('\\') -ieq $entry -or [Environment]::ExpandEnvironmentVariables($_).TrimEnd('\\') -ieq $exp) });",
+    "if ($keep.Count -ne $parts.Count) { $k.SetValue('Path', ($keep -join ';'), [Microsoft.Win32.RegistryValueKind]::ExpandString) };",
+    '$k.Close();',
+    "[Console]::Out.Write('ok')"
+  ].join(' ')
+  const r = await powershell(script, 60000)
+  if (r.code !== 0 || !r.stdout.includes('ok')) throw new Error(r.stderr.trim() || `powershell exit ${r.code}`)
+}
+
+export interface LogicalDisk {
+  root: string
+  label: string
+  type: number
+  free: number
+  total: number
+}
+
+export async function listLogicalDisks(): Promise<LogicalDisk[]> {
+  if (!isWindows) return []
+  const script = [
+    '$d=@(Get-CimInstance Win32_LogicalDisk | ForEach-Object { [pscustomobject]@{ id=[string]$_.DeviceID; label=[string]$_.VolumeName; type=[int]$_.DriveType; free=[double]$_.FreeSpace; total=[double]$_.Size } });',
+    '[Console]::Out.Write((ConvertTo-Json -InputObject $d -Compress))'
+  ].join(' ')
+  const r = await powershell(script, 30000)
+  if (r.code !== 0) throw new Error(r.stderr.trim() || `powershell exit ${r.code}`)
+  const raw = JSON.parse(r.stdout || '[]') as unknown
+  const list = Array.isArray(raw) ? raw : [raw]
+  return list
+    .map((x) => x as Record<string, unknown>)
+    .filter((x) => typeof x.id === 'string' && x.id !== '')
+    .map((x) => ({
+      root: `${String(x.id)}\\`,
+      label: typeof x.label === 'string' ? x.label : '',
+      type: typeof x.type === 'number' ? x.type : 0,
+      free: typeof x.free === 'number' ? x.free : 0,
+      total: typeof x.total === 'number' ? x.total : 0
+    }))
+}

@@ -59,7 +59,9 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 
 **Tốn quota nhiều không?** Mỗi ảnh khoảng 0,2% quota 5 giờ của gói Plus. Quota hiện ở **Cài đặt › Tài khoản**.
 
-**Dữ liệu lưu ở đâu?** Ảnh gốc không bị đụng tới. Project lưu trong workspace bạn chọn. Codex ở `%LOCALAPPDATA%\GenAssetStudio`, cài đặt app ở `%APPDATA%\Gen Asset Studio` (bản cài và bản portable dùng chung).
+**Dữ liệu lưu ở đâu?** Ảnh gốc không bị đụng tới. Project lưu trong workspace bạn chọn. Codex ở `%LOCALAPPDATA%\GenAssetStudio`, cài đặt app ở `%APPDATA%\Gen Asset Studio` (bản cài và bản portable dùng chung). Chỗ lưu Codex + ảnh gen đổi được ở **Cài đặt › Lưu trữ**.
+
+**Ổ C sắp đầy?** Vào **Cài đặt › Lưu trữ**: xem dung lượng từng phần, bấm **Dọn dẹp**, hoặc **Chuyển sang ổ khác** để dời Codex và ảnh gen sang ổ D/E… App tự chép rồi khởi động lại, không phải đăng nhập lại. Tự dọn dẹp đã bật sẵn.
 
 **Đổi tài khoản ChatGPT?** **Cài đặt › Tài khoản › Đổi tài khoản**.
 

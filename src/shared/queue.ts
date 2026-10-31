@@ -15,6 +15,7 @@ export type JobErrorCode =
   | 'pipeline'
   | 'codex'
   | 'io'
+  | 'diskFull'
   | 'unknown'
 
 export interface JobError {
@@ -76,7 +77,7 @@ export interface QueueJob extends JobSpec {
   notBefore: number | null
 }
 
-export type QueuePauseReason = 'user' | 'quota' | 'noImage' | null
+export type QueuePauseReason = 'user' | 'quota' | 'noImage' | 'diskFull' | null
 
 export interface QuotaPause {
   resumeAt: number | null

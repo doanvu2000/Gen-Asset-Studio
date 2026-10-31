@@ -217,7 +217,8 @@
       "general": "General",
       "account": "Account",
       "env": "Environment",
-      "gen": "Generation"
+      "gen": "Generation",
+      "storage": "Storage"
     },
     "appearance": "Appearance",
     "language": "Language",
@@ -770,7 +771,10 @@
     "pausedTitle": "Queue paused",
     "pausedDesc": "Nothing is sent to Codex until you resume.",
     "noImageTitle": "Queue stopped: Codex returned no image",
-    "noImageDesc": "Several images in a row finished without an image. This usually means the ChatGPT Free plan cannot generate images — switch to a Plus (or higher) account, then resume."
+    "noImageDesc": "Several images in a row finished without an image. This usually means the ChatGPT Free plan cannot generate images — switch to a Plus (or higher) account, then resume.",
+    "diskFullTitle": "Queue paused: disk almost full",
+    "diskFullDesc": "The drive holding the project or Codex data has less than 300 MB free. Clean up or move data to another drive, then resume.",
+    "openStorage": "Open Storage"
   },
   "review": {
     "filters": {
@@ -1144,5 +1148,88 @@
       "what": "Pick an output folder and scale ×1/×2/×4. Approved assets are exported with the same file names + folder tree; old files are backed up.",
       "next": "Done — copy into your game"
     }
+  },
+  "storage": {
+    "loading": "Reading storage info…",
+    "scanning": "Measuring…",
+    "loadingDrives": "Reading drives…",
+    "dataRoot": "App data folder",
+    "open": "Open",
+    "move": "Move to another drive",
+    "systemHint": "Codex, temporary generated images and logs are on the system drive (usually C). Moving them elsewhere keeps C from filling up.",
+    "codexHomeEnv": "CODEX_HOME is set by the GAS_CODEX_HOME environment variable — it will not be moved.",
+    "freeOf": "{{free}} free of {{total}}",
+    "systemDrive": "System drive",
+    "removable": "Removable",
+    "current": "In use",
+    "pickFolder": "Choose another folder…",
+    "backToDefault": "Back to default",
+    "target": "Move to:",
+    "needFree": "Needs {{need}} · target has {{free}} free",
+    "removableWarn": "This is a removable drive (USB). The app won't run while it is unplugged.",
+    "moveNote": "The app copies the data, verifies it, then restarts. No need to sign in again. The old copy is removed after a successful restart.",
+    "moveNow": "Move & restart",
+    "moveError": {
+      "same": "This is already the folder in use.",
+      "nested": "Pick a folder that is not inside (or containing) the current data folder.",
+      "network": "Network drives are not supported.",
+      "notWritable": "Can't write to this folder.",
+      "noSpace": "Not enough space on the target drive (1 GB headroom needed).",
+      "busy": "Images are generating or Codex is installing — wait or pause the queue, then try again.",
+      "invalid": "Invalid path."
+    },
+    "phase": {
+      "idle": "Ready",
+      "stop": "Stopping Codex…",
+      "copy": "Copying data…",
+      "verify": "Verifying copy…",
+      "path": "Updating PATH…",
+      "restart": "Done — restarting…",
+      "error": "Move failed"
+    },
+    "autoClean": "Auto clean-up",
+    "autoCleanHint": "Removes Codex raw images once copied into the project, Codex sessions older than 7 days, and temp files.",
+    "on": "On",
+    "off": "Off",
+    "clean": {
+      "codexImages": "Codex raw images",
+      "codexImagesHint": "Duplicates — already copied into projects.",
+      "codexSessions": "Codex session history",
+      "codexSessionsHint": "Sessions older than 7 days.",
+      "oldCodex": "Old Codex versions & partial downloads",
+      "oldCodexHint": "The version in use is kept.",
+      "cache": "Temp files",
+      "cacheHint": "Converted images sent to Codex, setup test images.",
+      "updater": "Downloaded update installers",
+      "updaterHint": "Skipped while an update is waiting to install."
+    },
+    "cleanTotal": "Frees {{size}}",
+    "cleanNow": "Clean up",
+    "cleaned": "Freed {{size}}",
+    "usage": "Space used",
+    "rescan": "Rescan",
+    "item": {
+      "codex": "Codex CLI",
+      "codexImages": "Codex raw images",
+      "codexSessions": "Codex session history",
+      "codexHome": "Codex config & sign-in",
+      "cache": "Temp files",
+      "logs": "Logs",
+      "updater": "Update installers",
+      "updaterNote": "Fixed on the system drive by Windows — can only be cleaned.",
+      "workspace": "Workspace (projects + exports)",
+      "workspaceNote": "Your chosen folder — change it on the Workspace screen.",
+      "install": "App install folder",
+      "installNote": "Reinstall and pick another folder in the installer to change it."
+    },
+    "warnLow": "The app data drive has {{free}} free. Consider cleaning up or moving to another drive.",
+    "warnCritical": "The app data drive has only {{free}} free — generation may fail. Clean up or move now.",
+    "bannerTitle": "The app uses {{size}} on the system drive",
+    "bannerDesc": "Codex and generated images are fairly large. Move them to another drive or clean up so C doesn't fill up.",
+    "bannerCritical": "The app data drive is almost full ({{free}} free)",
+    "later": "Later",
+    "setupTitle": "Data location",
+    "setupDesc": "Codex (~160 MB) and generated images live here. Pick a drive other than C if you have one.",
+    "setupChange": "Change drive"
   }
 }
