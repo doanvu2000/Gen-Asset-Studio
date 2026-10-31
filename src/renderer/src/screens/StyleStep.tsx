@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { Fragment, useEffect, useMemo, useState, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { SUGGEST_MAX, SUGGEST_MIN, templatesByCategory, type PromptPolishResult, type StyleGroup, type StyleSuggestion, type StyleTemplate, type SuggestRun } from '@shared/style'
+import { SUGGEST_MAX, SUGGEST_MIN, type PromptPolishResult, type StyleGroup, type StyleSuggestion, type StyleTemplate, type SuggestRun } from '@shared/style'
 import type { InputView, ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
 import { Modal } from '@renderer/components/Modal'
@@ -609,6 +609,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
 
   const pickedSugg = pick?.kind === 'suggestion' ? run?.suggestions.find((s) => s.id === pick.id) : undefined
   const pickedTpl = pick?.kind === 'template' ? templates.find((x) => x.id === pick.id) : undefined
+  const tplSections = (['ui', 'character'] as const).map((cat) => ({ cat, list: templates.filter((x) => x.category === cat) })).filter((x) => x.list.length > 0)
   const pickedName = pickedSugg?.name ?? pickedTpl?.name[lang] ?? ''
   const pickedImg = pickedSugg?.previewPath ? fileUrl(pickedSugg.previewPath, pickedSugg.durationMs ?? 0) : pickedTpl?.previewSmPath ? fileUrl(pickedTpl.previewSmPath) : null
   const stage = locked ? 4 : !assets.length ? 1 : pick ? 3 : 2
@@ -817,24 +818,31 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
                   {t('style.tpl.saveAs')}
                 </button>
               </div>
-              <div className="tpl-grid">
-                {templatesByCategory(templates, 'ui').map((tpl, i) => (
-                  <TemplateCard
-                    key={tpl.id}
-                    tpl={tpl}
-                    index={i}
-                    on={pick?.kind === 'template' && pick.id === tpl.id}
-                    locked={locked && group.templateId === tpl.id}
-                    disabled={locked}
-                    onPick={() => pickTemplate(tpl)}
-                    onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
-                    onDelete={() =>
-                      void window.gas.style.deleteTemplate(tpl.id).then(() => {
-                        void loadTemplates()
-                        toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
-                      })
-                    }
-                  />
+              <div className="sps-tpl-secs">
+                {tplSections.map((sec) => (
+                  <Fragment key={sec.cat}>
+                    {tplSections.length > 1 && <div className="sub-l">{t(`spriteProject.style.cat.${sec.cat}`)}</div>}
+                    <div className="tpl-grid">
+                      {sec.list.map((tpl, i) => (
+                        <TemplateCard
+                          key={tpl.id}
+                          tpl={tpl}
+                          index={i}
+                          on={pick?.kind === 'template' && pick.id === tpl.id}
+                          locked={locked && group.templateId === tpl.id}
+                          disabled={locked}
+                          onPick={() => pickTemplate(tpl)}
+                          onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
+                          onDelete={() =>
+                            void window.gas.style.deleteTemplate(tpl.id).then(() => {
+                              void loadTemplates()
+                              toast(t('style.tpl.deleted', { name: tpl.name[lang] }))
+                            })
+                          }
+                        />
+                      ))}
+                    </div>
+                  </Fragment>
                 ))}
               </div>
             </div>
