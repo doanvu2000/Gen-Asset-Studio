@@ -108,6 +108,7 @@ export interface SpineProjectView {
   skeletonPath: string | null
   atlasPath: string | null
   skeletonName: string | null
+  skeletonFormat: SpineSkeletonFormat | null
   status: 'ok' | 'missing' | 'changed' | 'none'
   error: string | null
   skeleton: SpineSkeletonInfo | null
@@ -119,10 +120,18 @@ export interface SpineProjectView {
   updatedAt: number
 }
 
+export type SpineSkeletonFormat = 'json' | 'binary'
+
+export function skeletonFormatOf(path: string): SpineSkeletonFormat {
+  return /\.skel$/i.test(path) ? 'binary' : 'json'
+}
+
 export interface SpineAssets {
   skeletonName: string
   atlasName: string
+  format: SpineSkeletonFormat
   json: string
+  skelBase64: string | null
   atlas: string
   pages: Record<string, string>
 }

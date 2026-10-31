@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
+import { writeSkel } from './spine-skel-writer.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const out = join(root, 'resources', 'spine-samples', 'hero')
@@ -99,4 +100,5 @@ const skeleton = {
   }
 }
 writeFileSync(join(out, 'hero.json'), JSON.stringify(skeleton, null, 2) + '\n')
+writeFileSync(join(out, 'hero.skel'), writeSkel(skeleton))
 console.log('spine sample written to', out)

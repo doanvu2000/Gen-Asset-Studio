@@ -18,7 +18,9 @@ import {
   type SpineRegionPatch,
   type SpineRegionView,
   type SpineRig,
-  type SpineSkeletonInfo
+  type SpineSkeletonFormat,
+  type SpineSkeletonInfo,
+  skeletonFormatOf
 } from '@shared/spine'
 import type { ProjectFile } from '../workspace/project'
 import { pathKey } from '../workspace/project'
@@ -32,6 +34,7 @@ import { savePng } from '../sprite/strip'
 import { decisionAt } from '../sprite/strips'
 import { parseSpineAtlas } from './atlas'
 import { applyRig, parseSkeleton, rigIsEmpty, sanitizeRig, SkeletonError } from './skeleton'
+import { applyRigBinary, parseSkeletonBinary } from './binary'
 import { extractRegion, partsBoard, writeRegion } from './regions'
 
 export interface SpineDeps {
@@ -68,10 +71,20 @@ interface Loaded {
 }
 
 interface Parsed {
-  text: string
+  format: SpineSkeletonFormat
+  data: Buffer
   atlasText: string
   atlas: SpineAtlasData
   info: SpineSkeletonInfo
+}
+
+function readSkeleton(data: Buffer, format: SpineSkeletonFormat): SpineSkeletonInfo {
+  return format === 'binary' ? parseSkeletonBinary(data).info : parseSkeleton(data.toString('utf8')).info
+}
+
+function riggedSkeleton(p: Parsed, rig: SpineRig): Buffer {
+  if (p.format === 'binary') return Buffer.from(applyRigBinary(p.data, rig))
+  return Buffer.from(applyRig(p.data.toString('utf8'), rig), 'utf8')
 }
 
 function o(v: unknown): Record<string, unknown> {
@@ -153,9 +166,10 @@ export class SpineService {
 
   private async parse(spine: SpineData): Promise<Parsed | null> {
     if (!spine.skeleton || !spine.atlas || !existsSync(spine.skeleton.path) || !existsSync(spine.atlas.path)) return null
-    const text = await fs.readFile(spine.skeleton.path, 'utf8')
+    const format = skeletonFormatOf(spine.skeleton.path)
+    const data = await fs.readFile(spine.skeleton.path)
     const atlasText = await fs.readFile(spine.atlas.path, 'utf8')
-    return { text, atlasText, atlas: parseSpineAtlas(atlasText), info: parseSkeleton(text).info }
+    return { format, data, atlasText, atlas: parseSpineAtlas(atlasText), info: readSkeleton(data, format) }
   }
 
   private cacheDir(dir: string, spine: SpineData): string {
@@ -227,6 +241,7 @@ export class SpineService {
       skeletonPath: spine.skeleton?.path ?? null,
       atlasPath: spine.atlas?.path ?? null,
       skeletonName: spine.skeleton ? basename(spine.skeleton.path) : null,
+      skeletonFormat: spine.skeleton ? skeletonFormatOf(spine.skeleton.path) : null,
       status: spine.skeleton ? 'ok' : 'none',
       error,
       skeleton: null,
@@ -309,7 +324,7 @@ export class SpineService {
     const opts: Electron.OpenDialogOptions = {
       properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
       filters: [
-        { name: 'Spine 4.2 (.json, .atlas, .png)', extensions: ['json', 'atlas', 'txt', 'png', 'skel'] },
+        { name: 'Spine 4.2 (.json, .skel, .atlas, .png)', extensions: ['json', 'atlas', 'txt', 'png', 'skel'] },
         { name: 'All files', extensions: ['*'] }
       ]
     }
@@ -330,16 +345,16 @@ export class SpineService {
           if (st.isDirectory()) for (const n of await fs.readdir(p)) files.push(join(p, n))
           else files.push(p)
         }
-        if (files.some((f) => extname(f).toLowerCase() === '.skel') && !files.some((f) => extname(f).toLowerCase() === '.json')) return fail('skel')
-        let skeleton = files.find((f) => extname(f).toLowerCase() === '.json' && !f.toLowerCase().endsWith('.atlas.json'))
+        let skeleton =
+          files.find((f) => extname(f).toLowerCase() === '.json' && !f.toLowerCase().endsWith('.atlas.json')) ?? files.find((f) => extname(f).toLowerCase() === '.skel')
         let atlas = files.find((f) => /\.atlas(\.txt)?$/i.test(f))
         if (!skeleton && atlas) {
-          const guess = join(dirname(atlas), `${basename(atlas).replace(/\.atlas(\.txt)?$/i, '')}.json`)
-          if (existsSync(guess)) skeleton = guess
+          const stem = join(dirname(atlas), basename(atlas).replace(/\.atlas(\.txt)?$/i, ''))
+          skeleton = [`${stem}.json`, `${stem}.skel`].find((p) => existsSync(p))
         }
         if (!skeleton) return fail('noSkeleton')
         if (!atlas) {
-          const stem = join(dirname(skeleton), basename(skeleton, '.json'))
+          const stem = join(dirname(skeleton), basename(skeleton, extname(skeleton)))
           atlas = [`${stem}.atlas`, `${stem}.atlas.txt`].find((p) => existsSync(p))
           if (!atlas) {
             const any = (await fs.readdir(dirname(skeleton))).find((n) => /\.atlas(\.txt)?$/i.test(n))
@@ -347,9 +362,8 @@ export class SpineService {
           }
         }
         if (!atlas) return fail('noAtlas')
-        const text = await fs.readFile(skeleton, 'utf8')
         try {
-          parseSkeleton(text)
+          readSkeleton(await fs.readFile(skeleton), skeletonFormatOf(skeleton))
         } catch (e) {
           return fail(e instanceof SkeletonError ? `${e.code}:${e.message}` : 'parse')
         }
@@ -435,10 +449,13 @@ export class SpineService {
         } else {
           for (const [name, p] of await this.composedPages(l, parsed, false)) pages[name] = `data:image/png;base64,${Buffer.from(await encodePng(p.image)).toString('base64')}`
         }
+        const skel = which === 'new' ? riggedSkeleton(parsed, l.spine.rig) : parsed.data
         return {
           skeletonName: basename(l.spine.skeleton.path),
           atlasName: basename(l.spine.atlas.path),
-          json: which === 'new' ? applyRig(parsed.text, l.spine.rig) : parsed.text,
+          format: parsed.format,
+          json: parsed.format === 'json' ? skel.toString('utf8') : '',
+          skelBase64: parsed.format === 'binary' ? skel.toString('base64') : null,
           atlas: parsed.atlasText,
           pages
         }
@@ -622,8 +639,9 @@ export class SpineService {
         await backup(skelOut)
         const rigChanged = !rigIsEmpty(l.spine.rig)
         if (rigChanged) {
-          await fs.writeFile(skelOut, applyRig(parsed.text, l.spine.rig), 'utf8')
-          const origOut = join(outDir, skelName.replace(/\.json$/i, '.original.json'))
+          await fs.writeFile(skelOut, riggedSkeleton(parsed, l.spine.rig))
+          const ext = extname(skelName)
+          const origOut = join(outDir, `${skelName.slice(0, skelName.length - ext.length)}.original${ext}`)
           await backup(origOut)
           await fs.copyFile(l.spine.skeleton.path, origOut)
         } else await fs.copyFile(l.spine.skeleton.path, skelOut)
