@@ -26,7 +26,8 @@ function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: 
   const { t } = useTranslation()
   const lang = useApp((s) => s.settings.lang)
   const openProject = useWs((s) => s.openProject)
-  const pct = p.imageCount ? Math.round((p.approved / p.imageCount) * 100) : 0
+  const total = p.strips?.total ?? p.imageCount
+  const pct = total ? Math.min(100, Math.round((p.approved / total) * 100)) : 0
   return (
     <motion.button
       type="button"
@@ -61,7 +62,7 @@ function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: 
           <span>{p.kind === 'sprite' ? t('workspace.card.sheets', { count: p.imageCount }) : p.kind === 'spine' ? t('workspace.card.regions', { count: p.imageCount }) : t('workspace.card.images', { count: p.imageCount })}</span>
           {p.kind === 'reskin' && <span>{t('workspace.card.groups', { count: p.groupCount })}</span>}
         </div>
-        <div className="bar green" title={t('workspace.card.approved', { a: p.approved, n: p.imageCount })}>
+        <div className="bar green" title={t('workspace.card.approved', { a: p.approved, n: total })}>
           <i style={{ width: `${pct}%` }} />
         </div>
         <div className="card-foot">

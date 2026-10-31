@@ -36,6 +36,7 @@ export interface ProjectSummary {
   status: ProjectStatus
   updatedAt: number
   thumbs: string[]
+  strips?: { total: number; generated: number; approved: number }
   sample?: boolean
 }
 

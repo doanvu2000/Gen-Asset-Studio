@@ -1,6 +1,7 @@
 import { BrowserWindow, dialog, shell } from 'electron'
 import { IMAGE_EXT_NAMES } from '@shared/imageFormats'
 import { watch, type FSWatcher } from 'chokidar'
+import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'
@@ -8,6 +9,8 @@ import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, Projec
 import type { StyleGroup } from '@shared/style'
 import { READY_KINDS, type ProjectKind } from '@shared/sprite'
 import { parseSpineAtlas } from '../spine/atlas'
+import { readSpriteData } from '../sprite/service'
+import { buildStripDefs, decisionAt, listStripVersions } from '../sprite/strips'
 import {
   addCollected,
   buildView,
@@ -47,22 +50,71 @@ async function spineRegionCount(data: ProjectFile | null): Promise<number> {
   }
 }
 
+function rec(v: unknown): Record<string, unknown> {
+  return v && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {}
+}
+
+function spineSig(spine: Record<string, unknown>): string | null {
+  const atlas = rec(spine.atlas)
+  if (typeof atlas.path !== 'string' || !atlas.path) return null
+  const pages = Object.values(rec(spine.pages))
+    .map(rec)
+    .filter((p) => typeof p.path === 'string' && p.path)
+    .map((p) => (typeof p.hash === 'string' ? p.hash : ''))
+  return createHash('sha1')
+    .update([typeof atlas.hash === 'string' ? atlas.hash : '', ...pages].join('|'))
+    .digest('hex')
+    .slice(0, 10)
+}
+
+async function spineBoard(dir: string, spine: Record<string, unknown>): Promise<string | null> {
+  const cache = join(dir, '.cache', 'spine')
+  const sig = spineSig(spine)
+  const boardOf = async (s: string): Promise<{ sig: string; path: string; mtime: number } | null> => {
+    const b = join(cache, s, 'board.png')
+    try {
+      return { sig: s, path: b, mtime: (await fs.stat(b)).mtimeMs }
+    } catch {
+      return null
+    }
+  }
+  let best = sig ? await boardOf(sig) : null
+  if (!best) {
+    let sigs: string[] = []
+    try {
+      sigs = await fs.readdir(cache)
+    } catch {
+      sigs = []
+    }
+    for (const s of sigs) {
+      const b = await boardOf(s)
+      if (b && (!best || b.mtime > best.mtime)) best = b
+    }
+  }
+  return best ? fileUrl(best.path, `${best.sig}-${best.mtime}`) : null
+}
+
+async function spriteProgress(dir: string, data: ProjectFile): Promise<{ total: number; generated: number; approved: number; exported: number; exportedAt: number }> {
+  const sprite = readSpriteData(data)
+  const own = buildStripDefs(sprite.sheets, sprite.settings).filter((d) => !d.mirrorOf)
+  let generated = 0
+  let approved = 0
+  for (const d of own) {
+    const versions = await listStripVersions(dir, d.assetRel)
+    if (!versions.length) continue
+    generated++
+    const entry = sprite.review[d.key]
+    const selected = entry?.selected && versions.includes(entry.selected) ? entry.selected : versions[versions.length - 1]
+    if (decisionAt(entry, selected) === 'approved') approved++
+  }
+  return { total: own.length, generated, approved, exported: sprite.lastExport?.sheets ?? 0, exportedAt: sprite.lastExport?.at ?? 0 }
+}
+
 async function spineProgress(dir: string, data: ProjectFile | null): Promise<{ thumb: string | null; generated: boolean; approved: number; exportedAt: number }> {
   const spine = data?.spine && typeof data.spine === 'object' ? (data.spine as Record<string, unknown>) : {}
   const review = spine.review && typeof spine.review === 'object' ? Object.values(spine.review as Record<string, { decision?: unknown }>) : []
   const last = spine.lastExport && typeof spine.lastExport === 'object' ? (spine.lastExport as Record<string, unknown>) : null
-  let thumb: string | null = null
-  try {
-    for (const sig of await fs.readdir(join(dir, '.cache', 'spine'))) {
-      const b = join(dir, '.cache', 'spine', sig, 'board.png')
-      if (existsSync(b)) {
-        thumb = fileUrl(b, `${sig}-${(await fs.stat(b)).mtimeMs}`)
-        break
-      }
-    }
-  } catch {
-    thumb = null
-  }
+  const thumb = await spineBoard(dir, spine)
   let generated = false
   try {
     generated = (await fs.readdir(join(dir, 'versions', 'spine'))).length > 0
@@ -283,6 +335,15 @@ export class WorkspaceService extends EventEmitter {
       reviewing = sp.generated
       exp.lastAt = sp.exportedAt || exp.lastAt
     }
+    let strips: ProjectSummary['strips']
+    if (kind === 'sprite' && data) {
+      const sp = await spriteProgress(dir, data)
+      strips = { total: sp.total, generated: sp.generated, approved: sp.approved }
+      approved = sp.approved
+      reviewing = sp.generated > 0
+      exp.lastAt = sp.exportedAt
+      exp.lastAssets = sp.exported
+    }
     return {
       rel,
       name: basename(dir),
@@ -296,6 +357,7 @@ export class WorkspaceService extends EventEmitter {
       status: !count ? 'new' : exp.lastAt ? 'exported' : reviewing ? 'review' : 'draft',
       updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
       thumbs,
+      ...(strips ? { strips } : {}),
       sample: !!(data && (data as Record<string, unknown>).sample)
     }
   }
