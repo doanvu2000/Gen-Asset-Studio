@@ -1827,7 +1827,7 @@
       "base": "Giá trị gốc",
       "meshNote": "Mesh — chỉnh đỉnh/trọng số ở bản sau.",
       "noAtt": "Bone này không có attachment.",
-      "tip": "Sửa setup pose áp ngay lên bản Mới. Chỉ khi có chỉnh sửa, lúc xuất mới ghi skeleton .json mới (kèm bản gốc để sao lưu).",
+      "tip": "Sửa setup pose áp ngay lên bản Mới. Chỉ khi có chỉnh sửa, lúc xuất mới ghi skeleton (.json/.skel) mới (kèm bản gốc để sao lưu).",
       "next": "Tiếp: Duyệt",
       "f": {
         "x": "X",

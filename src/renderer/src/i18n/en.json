@@ -1827,7 +1827,7 @@
       "base": "Original value",
       "meshNote": "Mesh — vertex/weight editing comes later.",
       "noAtt": "This bone has no attachments.",
-      "tip": "Setup pose edits apply to New right away. A new skeleton .json (plus the original as a backup) is written on export only when something changed.",
+      "tip": "Setup pose edits apply to New right away. A new skeleton (.json/.skel) (plus the original as a backup) is written on export only when something changed.",
       "next": "Next: Review",
       "f": {
         "x": "X",

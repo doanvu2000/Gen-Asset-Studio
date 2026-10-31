@@ -1440,6 +1440,10 @@
   text-align: center;
 }
 
+.nsd-anims > * {
+  flex-shrink: 0;
+}
+
 .nsd-add {
   display: flex;
   gap: 6px;
