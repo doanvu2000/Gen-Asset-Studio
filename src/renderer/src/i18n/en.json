@@ -1782,11 +1782,11 @@
       "clearDesc": "The skeleton, atlas, review decisions and position edits (rig) will be removed from the project. Source files and generated images on disk are not deleted.",
       "src": {
         "changedTitle": "Source files changed.",
-        "changedHint": "The original skeleton/atlas was modified or can no longer be read — click Re-import and pick the files again.",
+        "changedHint": "A source file (skeleton, atlas or page image) was modified outside the app — choose the files (or drop them) to import again.",
         "missingTitle": "Source files not found.",
         "missingHint": "The skeleton/atlas/page files were deleted or moved — choose the files (or drop them) to import again.",
         "unreadableTitle": "Could not read the source files.",
-        "unreadableHint": "The original skeleton/atlas is invalid or uses an unsupported format — fix it in Spine, then click Re-import."
+        "unreadableHint": "The original skeleton/atlas is invalid or uses an unsupported format — fix it in Spine, then choose the files to import again."
       }
     },
     "preview": {

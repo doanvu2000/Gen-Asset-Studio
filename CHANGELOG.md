@@ -16,7 +16,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Xuất sheet cùng tên, cùng W×H, đè đúng rect (kể cả frame xoay/trim của TexturePacker), frame chưa duyệt giữ gốc, file atlas chép theo không đổi, file trùng sao lưu vào `_backup`
 - **Tạo sprite sheet mới từ 1 ảnh nhân vật**: chọn bộ hướng 4/6/8 (hoặc không hướng), góc nhìn, cỡ ô 64/128/256, animation idle + walk mặc định, tick thêm run/attack/hurt/die hoặc tự đặt (2–8 frame); AI vẽ từng dải hướng × animation theo lưới, tự đặt chân cùng đường đất; dùng chung ảnh khoá nhân vật + lật gương
 - Xuất sheet tạo mới kèm **TexturePacker JSON** (có `animations` theo `<anim>_<hướng>`) và file `-snippets.md` có code mẫu **Flutter Flame · Android Kotlin · iOS SpriteKit**; màn Xuất có tab code + nút Chép
-- **Project Spine** (Spine 4.2): nhập skeleton `.json` — app tự tìm `.atlas` + ảnh page cạnh nó; đọc region xoay (rotate) và trim (offsets), cả định dạng atlas cũ; báo rõ khi khác 4.2 hoặc là `.skel` nhị phân
+- **Project Spine** (Spine 4.2): nhập skeleton `.json` — app tự tìm `.atlas` + ảnh page cạnh nó; đọc region xoay (rotate) và trim (offsets), cả định dạng atlas cũ; báo rõ khi khác 4.2
 - Xem nhân vật chạy animation bằng **spine-player** ngay trong app (chọn anim, skin, tốc độ, tua, hiện xương, nền caro/tối/sáng); bấm một region để tô sáng phần đó trên nhân vật
 - **Gen từng region** theo style chung, kèm bảng ghép mọi phần của nhân vật để các phần cùng một nhân vật; giữ đúng kích thước region
 - Bước **Rigging**: chỉnh setup pose (bone + attachment: vị trí, xoay, scale) và xem Gốc | Mới chạy cạnh nhau
@@ -47,6 +47,13 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Thẻ Workspace Spine lấy đúng ảnh của bộ file đang dùng sau khi nhập lại
 - Spine: ảnh thẻ Workspace đổi theo region mới; nút "Mở thư mục" bước Xuất không còn full width
 - Sprite/Spine: thanh công cụ ở màn 1366 không còn đẩy nút Tiếp ra ngoài; nút ở màn Nhập có khoảng cách
+- Spine: atlas premultiplied alpha (mặc định của Spine Texture Packer) — phần gen mới không còn viền tối/sáng loá
+- Spine: sửa skeleton/atlas/ảnh page ngoài app thì app báo "File nguồn đã đổi" và chặn xuất tới khi nhập lại; file mất/không đọc được có ghi chú rõ thay vì màn trống
+- Spine: preview giữ timeline màu/độ mờ của animation khi tô sáng region
+- Spine: gen lại có bản mới thì ảnh chính và trạng thái duyệt chuyển sang bản mới; preview Mới bỏ bản bị Từ chối; gen lại lỗi hiện chip lỗi + Thử lại
+- Spine: xuất giữ đúng thư mục con và đuôi file page (.jpg/.webp); nhận attachment dạng sequence; atlas xoay 180/270 báo lỗi rõ; nhập lại atlas pack lại thì duyệt lại region đổi kích thước; region trùng tên không dùng chung bản gen
+- Spine: nút Gỡ skeleton hỏi xác nhận; lỗi xuất hiện bằng tiếng Việt
+- Sprite/Spine: tiêu đề bước và chữ tiến độ xuống dòng thay vì bị cắt; thanh Duyệt Sprite nằm sát nội dung ở màn rộng
 - Sprite: câu giới thiệu bước Xuất đúng cho sheet tạo mới; ô mô tả dialog Tạo sheet mới cao hơn, dòng thêm animation không bị cắt
 
 ### Update

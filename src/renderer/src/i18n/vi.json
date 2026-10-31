@@ -1782,11 +1782,11 @@
       "clearDesc": "Skeleton, atlas, kết quả duyệt và chỉnh vị trí (rig) sẽ bị gỡ khỏi project. File gốc và ảnh đã gen trên đĩa không bị xoá.",
       "src": {
         "changedTitle": "File nguồn đã đổi.",
-        "changedHint": "Skeleton/atlas gốc đã bị sửa hoặc không đọc được nữa — bấm Nhập lại và chọn lại file.",
+        "changedHint": "Có file nguồn (skeleton, atlas hoặc ảnh page) đã bị sửa ngoài app — bấm Chọn file (hoặc kéo thả) để nhập lại.",
         "missingTitle": "Không tìm thấy file nguồn.",
         "missingHint": "File skeleton/atlas/page đã bị xoá hoặc di chuyển — bấm Chọn file (hoặc kéo thả) để nhập lại.",
         "unreadableTitle": "Không đọc được file nguồn.",
-        "unreadableHint": "Skeleton/atlas gốc bị lỗi hoặc dùng định dạng chưa hỗ trợ — sửa file trong Spine rồi bấm Nhập lại."
+        "unreadableHint": "Skeleton/atlas gốc bị lỗi hoặc dùng định dạng chưa hỗ trợ — sửa file trong Spine rồi bấm Chọn file để nhập lại."
       }
     },
     "preview": {
