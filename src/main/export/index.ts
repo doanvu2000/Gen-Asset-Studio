@@ -185,7 +185,6 @@ export async function planExport(src: ExportSource, options?: Partial<ExportOpti
     const rel = rels[idx]
     const name = basename(rel)
     const skip = (reason: ExportSkipReason, detail?: string): Checked => ({ kind: 'skip', skip: detail ? { id: input.id, rel, name, reason, detail } : { id: input.id, rel, name, reason } })
-    if (input.type === 'sprite') return skip('sprite')
     if (!owned.has(input.id)) return skip('notGrouped')
     const review = reviewOf(data, input)
     if (opts.onlyApproved && !review.approved) return skip('notApproved')

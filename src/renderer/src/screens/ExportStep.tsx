@@ -30,7 +30,7 @@ type T = (key: string, vars?: Vars) => string
 
 const BUNDLES: Record<string, object> = { vi: exportVi, en: exportEn }
 const TREE_LIMIT = 400
-const OTHER_REASONS: ExportSkipReason[] = ['noVersion', 'missingFile', 'sizeMismatch', 'sprite']
+const OTHER_REASONS: ExportSkipReason[] = ['noVersion', 'missingFile', 'sizeMismatch']
 
 function ensureBundles(i18n: I18n): void {
   for (const [lng, bundle] of Object.entries(BUNDLES)) {

@@ -3,7 +3,6 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { MAX_PER_RUN, type InputType, type InputView, type ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
-import { AssetKinds } from '@renderer/components/AssetKinds'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
 import { fileSize } from '@renderer/lib/format'
 import { useWs } from '@renderer/store/workspace'
@@ -65,14 +64,6 @@ function DirTree({ nodes, depth, filter, onPick }: { nodes: DirNode[]; depth: nu
 
 function TypeChip({ input, onCycle }: { input: InputView; onCycle: () => void }): ReactElement {
   const { t } = useTranslation()
-  if (input.type === 'sprite') {
-    return (
-      <span className="tchip dev" title={t('input.type.spriteHint')}>
-        <Icon name="lock" size={10} />
-        {t('input.type.sprite')}
-      </span>
-    )
-  }
   return (
     <button
       type="button"
@@ -165,7 +156,7 @@ function Preview({
   const { t } = useTranslation()
   const item = selected.length === 1 ? selected[0] : selected.length === 0 ? focus : null
   const ids = item ? [item.id] : selected.map((s) => s.id)
-  const types: InputType[] = ['normal', 'nine', 'sprite']
+  const types: InputType[] = ['normal', 'nine']
   const curType = item ? item.type : selected.every((s) => s.type === selected[0]?.type) ? selected[0]?.type : null
 
   if (!item && !selected.length) {
@@ -247,11 +238,8 @@ function Preview({
                   role="radio"
                   aria-checked={curType === ty}
                   className={curType === ty ? 'on' : undefined}
-                  disabled={ty === 'sprite'}
-                  title={ty === 'sprite' ? t('input.type.spriteHint') : undefined}
                   onClick={() => onType(ids, ty)}
                 >
-                  {ty === 'sprite' && <Icon name="lock" size={11} />}
                   {t(`input.type.${ty}`)}
                 </button>
               ))}
@@ -373,7 +361,7 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
 
   const setType = useCallback(
     async (ids: string[], type: InputType) => {
-      if (type === 'sprite' || !ids.length) return
+      if (!ids.length) return
       const view = await window.gas.project.setType(rel, ids, type)
       if (view) {
         setProject(view)
@@ -537,7 +525,6 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
           {busy ? <span className="spin lg" /> : <Icon name="upload" size={40} />}
           <h2>{busy ? t('input.reading') : t('input.emptyTitle')}</h2>
           <p>{t('input.emptyDesc')}</p>
-          <AssetKinds variant="compact" />
           <small className="muted fmt-note">{t('input.formats')}</small>
           <div className="actions">
             <button type="button" className="btn primary" disabled={busy} onClick={() => void runAdd(() => window.gas.project.addDialog(rel, 'folder'))}>
@@ -570,7 +557,6 @@ export function InputStep({ project }: { project: ProjectView }): ReactElement {
           {t('input.remove')}
         </button>
         <div className="grow" />
-        <AssetKinds variant="compact" />
         {busy && (
           <span className="busy-chip">
             <span className="spin" />

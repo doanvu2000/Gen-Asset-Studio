@@ -11,6 +11,8 @@ import { CodexService } from './codex/service'
 import { SetupService } from './setup/service'
 import { FixService } from './setup/fix'
 import { WorkspaceService } from './workspace/service'
+import { projectKindOf, readProject, writeProject } from './workspace/project'
+import { registerSpriteIpc, SpriteService } from './sprite/service'
 import { handleFileScheme, registerFileScheme } from './workspace/protocol'
 import { registerStyleIpc, StyleService } from './style'
 import { userTemplatesDir } from './style/templates'
@@ -304,7 +306,7 @@ function registerWorkspaceIpc(): void {
     return workspace.snapshot()
   })
   ipcMain.handle(IPC.wsCreateFolder, (_e, parent: unknown, name: unknown) => workspace.createFolder(str(parent), str(name)))
-  ipcMain.handle(IPC.wsCreateProject, (_e, parent: unknown, name: unknown) => workspace.createProject(str(parent), str(name)))
+  ipcMain.handle(IPC.wsCreateProject, (_e, parent: unknown, name: unknown, kind: unknown) => workspace.createProject(str(parent), str(name), projectKindOf(kind)))
   ipcMain.handle(IPC.wsCreateSample, async () => {
     const root = workspace.current
     if (!root) return { ok: false, rel: null, name: null, added: 0, error: 'noWorkspace' }
@@ -330,7 +332,7 @@ function registerWorkspaceIpc(): void {
   ipcMain.handle(IPC.projAddPaths, (_e, rel: unknown, paths: unknown) => workspace.addPaths(str(rel), strs(paths)))
   ipcMain.handle(IPC.projRemove, (_e, rel: unknown, ids: unknown) => workspace.remove(str(rel), strs(ids)))
   ipcMain.handle(IPC.projSetType, (_e, rel: unknown, ids: unknown, type: unknown) =>
-    workspace.setType(str(rel), strs(ids), type === 'nine' ? 'nine' : type === 'sprite' ? 'sprite' : 'normal')
+    workspace.setType(str(rel), strs(ids), type === 'nine' ? 'nine' : 'normal')
   )
   ipcMain.handle(IPC.projRelink, (e, rel: unknown, index: unknown) => workspace.relink(str(rel), typeof index === 'number' ? index : -1, win(e)))
   ipcMain.handle(IPC.projSetGroups, (_e, rel: unknown, groups: unknown) => workspace.setGroups(str(rel), groups))
@@ -470,6 +472,11 @@ if (!app.requestSingleInstanceLock()) {
     registerServiceIpc()
     registerWorkspaceIpc()
     registerStyleIpc(ipcMain, () => mainWindow, { service: style })
+    registerSpriteIpc(
+      ipcMain,
+      () => mainWindow,
+      new SpriteService({ ...workspace.spriteDeps(), log: logger.scoped('sprite'), readProject, writeProject })
+    )
     disposeExportIpc = registerExportIpc(ipcMain, () => mainWindow, {
       loadProject: (rel) => workspace.loadForExport(rel),
       scale: (png, factor) => getPipeline({ size: 2 }).scale({ png, factor }),

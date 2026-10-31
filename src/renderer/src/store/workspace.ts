@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { AddResult, FolderNode, OpResult, ProjectView, SkippedFile, WorkspaceSnapshot } from '@shared/workspace'
 import type { StyleGroup } from '@shared/style'
+import type { ProjectKind } from '@shared/sprite'
 import i18n from '@renderer/i18n'
 import { useApp } from './app'
 import { toast } from './toast'
@@ -12,6 +13,7 @@ export type WsDialog =
   | null
 
 export type SortKey = 'recent' | 'name' | 'images'
+export type KindFilter = ProjectKind | 'all'
 
 interface WsStore {
   snap: WorkspaceSnapshot | null
@@ -26,6 +28,8 @@ interface WsStore {
   dialog: WsDialog
   search: string
   sort: SortKey
+  kindFilter: KindFilter
+  setKindFilter: (k: KindFilter) => void
   busy: boolean
   sampleBusy: boolean
   createSample: () => Promise<void>
@@ -50,7 +54,7 @@ interface WsStore {
   setSearch: (q: string) => void
   setSort: (s: SortKey) => void
   createFolder: (parent: string, name: string) => Promise<OpResult>
-  createProject: (parent: string, name: string) => Promise<OpResult>
+  createProject: (parent: string, name: string, kind: ProjectKind) => Promise<OpResult>
   rename: (rel: string, name: string) => Promise<void>
   move: (rel: string, dest: string) => Promise<void>
   trash: (rel: string, name: string) => Promise<void>
@@ -117,6 +121,8 @@ export const useWs = create<WsStore>()((set, get) => ({
   dialog: null,
   search: '',
   sort: 'recent',
+  kindFilter: 'all',
+  setKindFilter: (kindFilter) => set({ kindFilter }),
   busy: false,
   sampleBusy: false,
   skipped: [],
@@ -209,8 +215,8 @@ export const useWs = create<WsStore>()((set, get) => ({
       set({ sampleBusy: false })
     }
   },
-  createProject: async (parent, name) => {
-    const r = await window.gas.workspace.createProject(parent, name)
+  createProject: async (parent, name, kind) => {
+    const r = await window.gas.workspace.createProject(parent, name, kind)
     if (r.ok && r.rel) {
       toast(i18n.t('toast.created', { name: baseName(r.rel) }))
       await get().openProject(r.rel)

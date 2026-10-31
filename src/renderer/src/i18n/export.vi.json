@@ -16,8 +16,7 @@
       "notGrouped": "Không thuộc nhóm style",
       "noVersion": "Chưa có bản gen",
       "missingFile": "Thiếu file version",
-      "sizeMismatch": "Sai W×H — cần fit lại",
-      "sprite": "Sprite sheet · đang phát triển"
+      "sizeMismatch": "Sai W×H — cần fit lại"
     },
     "skippedShow": "Xem {{count}} ảnh bị bỏ qua",
     "skippedHide": "Ẩn danh sách bỏ qua",

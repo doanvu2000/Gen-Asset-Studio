@@ -4,7 +4,8 @@ import type { FolderNode } from '@shared/workspace'
 import { errorText, useWs, type WsDialog } from '@renderer/store/workspace'
 import { Modal } from './Modal'
 import { Icon } from './Icon'
-import { AssetKinds } from './AssetKinds'
+import { ProjectKindPicker } from './ProjectKinds'
+import type { ProjectKind } from '@shared/sprite'
 
 function flatFolders(node: FolderNode | null, depth = 0, out: Array<{ rel: string; name: string; depth: number }> = []) {
   if (!node || node.kind !== 'folder') return out
@@ -21,6 +22,7 @@ function NameForm({ mode, parent }: { mode: 'newProject' | 'newFolder'; parent: 
   const createProject = useWs((s) => s.createProject)
   const [name, setName] = useState('')
   const [dest, setDest] = useState(parent)
+  const [kind, setKind] = useState<ProjectKind>('reskin')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const folders = flatFolders(tree)
@@ -30,7 +32,7 @@ function NameForm({ mode, parent }: { mode: 'newProject' | 'newFolder'; parent: 
     e.preventDefault()
     if (!name.trim() || busy) return
     setBusy(true)
-    const r = mode === 'newProject' ? await createProject(dest, name) : await createFolder(dest, name)
+    const r = mode === 'newProject' ? await createProject(dest, name, kind) : await createFolder(dest, name)
     setBusy(false)
     if (r.ok) setDialog(null)
     else setError(errorText(r))
@@ -69,12 +71,12 @@ function NameForm({ mode, parent }: { mode: 'newProject' | 'newFolder'; parent: 
           ))}
         </select>
       </label>
-      {mode === 'newProject' && <AssetKinds />}
+      {mode === 'newProject' && <ProjectKindPicker value={kind} onChange={setKind} />}
       {error && <div className="fld-err">{error}</div>}
       {mode === 'newProject' && (
         <div className="tip">
           <Icon name="help" size={14} />
-          <span>{t('dialogs.newProject.hint')}</span>
+          <span>{t(`dialogs.newProject.hint_${kind}`)}</span>
         </div>
       )}
       <div className="acts">
@@ -142,7 +144,7 @@ export function WorkspaceDialogs(): ReactElement {
   const dialog = live ?? last
   const label = dialog?.kind === 'trash' ? t('dialogs.trash.confirm') : dialog?.kind === 'newFolder' ? t('dialogs.newFolder.title') : t('dialogs.newProject.title')
   return (
-    <Modal open={!!live} onClose={() => setDialog(null)} label={label} role={dialog?.kind === 'trash' ? 'alertdialog' : 'dialog'}>
+    <Modal open={!!live} onClose={() => setDialog(null)} className={dialog?.kind === 'newProject' ? 'kinds-dlg' : undefined} label={label} role={dialog?.kind === 'trash' ? 'alertdialog' : 'dialog'}>
       {dialog?.kind === 'trash' ? (
         <TrashBody key={key} rel={dialog.rel} name={dialog.name} project={dialog.project} count={dialog.count} />
       ) : dialog ? (

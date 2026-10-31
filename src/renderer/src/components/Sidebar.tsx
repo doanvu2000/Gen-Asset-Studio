@@ -5,6 +5,7 @@ import { useApp } from '@renderer/store/app'
 import { findNode, useWs } from '@renderer/store/workspace'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Icon } from './Icon'
+import { KIND_ICON } from './ProjectKinds'
 import { Logo } from './Logo'
 
 const DND = 'application/x-gas-node'
@@ -133,8 +134,8 @@ function TreeNode({ node, depth, onMenu, drag }: NodeProps): ReactElement {
         >
           {hasKids && <Icon name="chev" size={12} />}
         </span>
-        <span className={isFolder ? 'ti' : 'ti p'}>
-          <Icon name={isFolder ? 'folder' : 'layers'} size={15} />
+        <span className={isFolder ? 'ti' : `ti p k-${node.projectKind ?? 'reskin'}`}>
+          <Icon name={isFolder ? 'folder' : KIND_ICON[node.projectKind ?? 'reskin']} size={15} />
         </span>
         {renaming ? <RenameInput node={node} /> : <span className="tl">{node.name}</span>}
         <span className="tcount">{isFolder ? node.projectCount : node.imageCount}</span>

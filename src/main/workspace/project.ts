@@ -4,6 +4,7 @@ import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import type { InputKind, InputStatus, InputType, InputView, ProjectExportState, ProjectView, RootView, SkippedFile } from '@shared/workspace'
 import type { NineSliceOverride, StyleGroup } from '@shared/style'
+import { PROJECT_KINDS, type ProjectKind } from '@shared/sprite'
 import { analyzeImage, hashFile, makeThumb, mapLimit } from './analyze'
 import { fileUrl } from './protocol'
 import { readVersionQa, sanitizeReview } from './review'
@@ -28,6 +29,7 @@ export interface InputRecord {
 
 export interface ProjectFile {
   version: number
+  kind: ProjectKind
   name: string
   createdAt: string
   updatedAt: string
@@ -37,7 +39,7 @@ export interface ProjectFile {
   [key: string]: unknown
 }
 
-const TYPES: readonly InputType[] = ['normal', 'nine', 'sprite']
+const TYPES: readonly InputType[] = ['normal', 'nine']
 const KINDS: readonly InputKind[] = ['button', 'panel', 'icon', 'bar', 'character']
 const SILENT = new Set(['thumbs.db', '.ds_store', 'desktop.ini'])
 const MAX_SCAN = 5000
@@ -85,7 +87,7 @@ function sanitizeInput(raw: unknown, rootCount: number): InputRecord | null {
     mtime: num(r.mtime),
     hash: typeof r.hash === 'string' ? r.hash : '',
     type: TYPES.includes(r.type as InputType) ? (r.type as InputType) : 'normal',
-    typeAuto: r.typeAuto !== false,
+    typeAuto: r.type === 'sprite' || r.typeAuto !== false,
     kind: KINDS.includes(r.kind as InputKind) ? (r.kind as InputKind) : 'icon'
   }
 }
@@ -186,9 +188,13 @@ async function listVersions(dir: string, outRel: string): Promise<number[]> {
   return out.sort((a, b) => a - b)
 }
 
-export function emptyProject(name: string): ProjectFile {
+export function projectKindOf(v: unknown): ProjectKind {
+  return PROJECT_KINDS.includes(v as ProjectKind) ? (v as ProjectKind) : 'reskin'
+}
+
+export function emptyProject(name: string, kind: ProjectKind = 'reskin'): ProjectFile {
   const now = new Date().toISOString()
-  return { version: 1, name, createdAt: now, updatedAt: now, roots: [], inputs: [], groups: [] }
+  return { version: 1, kind, name, createdAt: now, updatedAt: now, roots: [], inputs: [], groups: [] }
 }
 
 export async function readProject(dir: string): Promise<ProjectFile> {
@@ -199,6 +205,7 @@ export async function readProject(dir: string): Promise<ProjectFile> {
   return {
     ...raw,
     version: num(raw.version, 1),
+    kind: projectKindOf(raw.kind),
     name: typeof raw.name === 'string' ? raw.name : basename(dir),
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : new Date().toISOString(),
     updatedAt: typeof raw.updatedAt === 'string' ? raw.updatedAt : new Date().toISOString(),
@@ -345,6 +352,7 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
     rel,
     name: basename(dir),
     dir,
+    kind: data.kind,
     roots,
     commonRoot: common,
     inputs,

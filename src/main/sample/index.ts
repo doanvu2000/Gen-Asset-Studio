@@ -46,7 +46,7 @@ export interface SampleResult {
   templateFound: boolean
 }
 
-const TYPES: readonly InputType[] = ['normal', 'nine', 'sprite']
+const TYPES: readonly InputType[] = ['normal', 'nine']
 
 export function sampleDirCandidates(): string[] {
   const out: string[] = []
@@ -178,7 +178,7 @@ export async function createSampleProject(workspaceRoot: string, lang: Lang, dep
         promptEn: tpl?.promptEn ?? '',
         notes: manifest.group.notes[lang],
         refImages: [],
-        assetIds: data.inputs.filter((i) => i.type !== 'sprite').map((i) => i.id),
+        assetIds: data.inputs.map((i) => i.id),
         nineSliceOverrides: {}
       }
       if (tpl) {

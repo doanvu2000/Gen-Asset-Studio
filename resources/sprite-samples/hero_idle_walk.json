@@ -1,0 +1,249 @@
+{
+  "frames": [
+    {
+      "filename": "hero 0.aseprite",
+      "frame": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 160
+    },
+    {
+      "filename": "hero 1.aseprite",
+      "frame": {
+        "x": 128,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 160
+    },
+    {
+      "filename": "hero 2.aseprite",
+      "frame": {
+        "x": 256,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 160
+    },
+    {
+      "filename": "hero 3.aseprite",
+      "frame": {
+        "x": 384,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 160
+    },
+    {
+      "filename": "hero 4.aseprite",
+      "frame": {
+        "x": 512,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "hero 5.aseprite",
+      "frame": {
+        "x": 640,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "hero 6.aseprite",
+      "frame": {
+        "x": 768,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "hero 7.aseprite",
+      "frame": {
+        "x": 896,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "hero 8.aseprite",
+      "frame": {
+        "x": 1024,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    },
+    {
+      "filename": "hero 9.aseprite",
+      "frame": {
+        "x": 1152,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 128,
+        "h": 128
+      },
+      "sourceSize": {
+        "w": 128,
+        "h": 128
+      },
+      "duration": 100
+    }
+  ],
+  "meta": {
+    "app": "https://www.aseprite.org/",
+    "version": "1.3",
+    "image": "hero_idle_walk.png",
+    "format": "RGBA8888",
+    "size": {
+      "w": 1280,
+      "h": 128
+    },
+    "scale": "1",
+    "frameTags": [
+      {
+        "name": "idle",
+        "from": 0,
+        "to": 3,
+        "direction": "forward"
+      },
+      {
+        "name": "walk",
+        "from": 4,
+        "to": 9,
+        "direction": "pingpong"
+      }
+    ]
+  }
+}

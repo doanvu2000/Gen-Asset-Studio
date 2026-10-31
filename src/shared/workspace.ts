@@ -1,6 +1,7 @@
 import type { StyleGroup } from './style'
 import type { QaSummary } from './queue'
 import type { ReviewDecision } from './review'
+import type { ProjectKind } from './sprite'
 
 export type ProjectStatus = 'new' | 'draft' | 'review' | 'exported'
 
@@ -16,6 +17,7 @@ export interface FolderNode {
   rel: string
   name: string
   kind: 'folder' | 'project'
+  projectKind?: ProjectKind
   children: FolderNode[]
   projectCount: number
   imageCount: number
@@ -25,6 +27,7 @@ export interface ProjectSummary {
   rel: string
   name: string
   parentRel: string
+  kind: ProjectKind
   imageCount: number
   groupCount: number
   approved: number
@@ -52,7 +55,7 @@ export interface WorkspaceSnapshot {
   projects: ProjectSummary[]
 }
 
-export type InputType = 'normal' | 'nine' | 'sprite'
+export type InputType = 'normal' | 'nine'
 export type InputKind = 'button' | 'panel' | 'icon' | 'bar' | 'character'
 export type InputStatus = 'ok' | 'missing' | 'changed'
 
@@ -94,6 +97,7 @@ export interface ProjectView {
   rel: string
   name: string
   dir: string
+  kind: ProjectKind
   roots: RootView[]
   commonRoot: string | null
   inputs: InputView[]

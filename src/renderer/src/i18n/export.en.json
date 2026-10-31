@@ -16,8 +16,7 @@
       "notGrouped": "In no style group",
       "noVersion": "Not generated yet",
       "missingFile": "Version file missing",
-      "sizeMismatch": "Wrong W×H — needs re-fit",
-      "sprite": "Sprite sheet · in development"
+      "sizeMismatch": "Wrong W×H — needs re-fit"
     },
     "skippedShow": "Show {{count}} skipped images",
     "skippedHide": "Hide skipped list",

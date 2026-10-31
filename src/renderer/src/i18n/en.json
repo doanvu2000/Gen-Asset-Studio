@@ -207,8 +207,10 @@
         "review": "In review",
         "exported": "Exported"
       },
-      "exportedTip": "Exported {{count}} images · {{time}}"
-    }
+      "exportedTip": "Exported {{count}} images · {{time}}",
+      "sheets": "{{count}} sheets"
+    },
+    "kindAll": "All"
   },
   "settings": {
     "title": "Settings",
@@ -406,7 +408,9 @@
       "namePh": "e.g. Idol Clicker UI",
       "parent": "Save in folder",
       "create": "Create project",
-      "hint": "A project is a folder with a project.json inside the workspace. Source images are not copied — the project only stores their paths."
+      "hint_reskin": "A project is a folder with a project.json inside the workspace. Source images are not copied — the project only stores their paths.",
+      "hint_sprite": "Source sheets and atlas files are never copied or overwritten — the project only stores their paths.",
+      "hint_spine": "Spine is in development."
     },
     "newFolder": {
       "title": "New folder",
@@ -504,11 +508,8 @@
     "type": {
       "normal": "Normal",
       "nine": "9-slice",
-      "sprite": "Sprite sheet",
-      "spriteDev": "In development",
       "hint": "Click to change type (auto-detected from name + shape)",
-      "auto": "auto",
-      "spriteHint": "Sprite sheets are in development and not supported yet"
+      "auto": "auto"
     },
     "kind": {
       "button": "Button",
@@ -554,7 +555,6 @@
       "desc": "These will not be generated or exported.",
       "assign": "Add to the open group"
     },
-    "spriteNote": "Sprite sheets are in development — sheets are skipped for now.",
     "footHint": "Each group has its own style; an image belongs to one group only. Lock at least one group with images to continue.",
     "footReady": "Ready to generate. Images outside locked groups will not be generated.",
     "next": "Next: Generate",
@@ -968,8 +968,7 @@
       "notGrouped": "In no style group",
       "noVersion": "Not generated yet",
       "missingFile": "Version file missing",
-      "sizeMismatch": "Wrong W×H — needs re-fit",
-      "sprite": "Sprite sheet · in development"
+      "sizeMismatch": "Wrong W×H — needs re-fit"
     },
     "skippedShow": "Show {{count}} skipped images",
     "skippedHide": "Hide skipped list",
@@ -1110,21 +1109,36 @@
     }
   },
   "kinds": {
-    "label": "Asset type",
+    "label": "Project type",
     "soon": "Coming soon",
-    "soonHint": "Coming soon — in development",
-    "soonToast": "{{name}} is coming soon — still images are supported for now (PNG preferred).",
-    "png": {
-      "name": "2D images",
-      "desc": "PNG (recommended), JPG, WebP… — UI, icons, buttons, panels"
-    },
-    "spine": {
-      "name": "Spine",
-      "desc": "Spine atlas + skeleton"
+    "in": "In",
+    "out": "Out",
+    "reskin": {
+      "name": "Image reskin",
+      "short": "Reskin",
+      "audience": "For BAs · no drawing",
+      "desc": "Restyle an existing set of UI, icons, buttons and panels with AI. Same names, W×H and 9-slice — drop straight into the game.",
+      "flow": "Source → Style → Generate → Review → Export",
+      "input": "Folder of PNG/JPG/WebP images",
+      "output": "Same names, sizes and folder tree"
     },
     "sprite": {
       "name": "Sprite sheet",
-      "desc": "Animation frames"
+      "short": "Sprite",
+      "audience": "For artists · animation",
+      "desc": "Multi-direction characters (4/6/8) and animation frames. Reads atlases, edit the grid, watch animations play right away.",
+      "flow": "Import sheet → Grid & directions → Style → Generate per direction → Review → Export",
+      "input": "PNG sheet + TexturePacker/Aseprite JSON, .plist, Unity .meta (or grid detection)",
+      "output": "Sheet with the same rects, atlas reused; Flame/Android/iOS"
+    },
+    "spine": {
+      "name": "Spine",
+      "short": "Spine",
+      "audience": "For artists · Spine 4.2",
+      "desc": "Reskin Spine characters region by region, adjust the setup pose to fit and preview with spine-player.",
+      "flow": "Import skeleton → Regions & skins → Style → Generate → Rigging → Review → Export",
+      "input": ".json/.skel 4.2 + .atlas + page PNG",
+      "output": "Page PNG with matching regions, .atlas unchanged"
     }
   },
   "intro": {
@@ -1255,6 +1269,207 @@
       "hyperframes-export": "Make a game trailer from the assets you just exported?",
       "aias-export": "Need new assets from a description (sprites, tilesets, Spine)?",
       "orrery-env": "Want to watch your running Codex / Claude Code sessions?"
+    }
+  },
+  "spriteProject": {
+    "steps": {
+      "sheets": "Import sheets",
+      "grid": "Grid & directions",
+      "style": "Style",
+      "gen": "Generate per direction",
+      "review": "Review",
+      "export": "Export"
+    },
+    "sub": {
+      "sheets": "{{count}} sheets",
+      "grid": "{{frames}} frames · {{anims}} anims",
+      "soon": "Coming soon"
+    },
+    "lock": {
+      "grid": "Add at least 1 sheet first",
+      "soon": "Coming in a future update"
+    },
+    "intro": {
+      "sheets": "Add source sprite sheets — with their atlas file (TexturePacker, Aseprite, .plist, Unity .meta) if you have one; otherwise the grid is detected automatically. Pick the direction set and camera angle on the right.",
+      "grid": "Check the grid/frames, name each animation and set its direction, then play it: the compass switches direction, arrow keys/WASD walk the character on a grid floor.",
+      "style": "Pick a style for the character.",
+      "gen": "Regenerate each direction × animation.",
+      "review": "Review with the player.",
+      "export": "Export the sheet with the same rects."
+    },
+    "soonDesc": "This step is being built (S2) — Import sheets and Grid & directions are ready now.",
+    "settings": {
+      "title": "Character setup",
+      "dirs": "Directions",
+      "dir_4": "4",
+      "dir_6": "6",
+      "dir_8": "8",
+      "dir_0": "None",
+      "rows": "Row order",
+      "mirror": "Mirror right-facing from left-facing",
+      "mirrorHint": "E←W, NE←NW, SE←SW — turn off for asymmetric characters (sword in right hand…)",
+      "view": "Camera angle",
+      "cell": "Cell size for new sheets"
+    },
+    "view": {
+      "topdown": "Top-down 3/4",
+      "iso": "Isometric",
+      "side": "Side-view"
+    },
+    "dir": {
+      "S": "Down (S)",
+      "SW": "Down-left (SW)",
+      "W": "Left (W)",
+      "NW": "Up-left (NW)",
+      "N": "Up (N)",
+      "NE": "Up-right (NE)",
+      "E": "Right (E)",
+      "SE": "Down-right (SE)"
+    },
+    "format": {
+      "grid": "Detected grid",
+      "tp-hash": "TexturePacker",
+      "tp-array": "TexturePacker",
+      "aseprite": "Aseprite",
+      "plist": "Cocos .plist",
+      "unity": "Unity .meta"
+    },
+    "status": {
+      "ok": "OK",
+      "missing": "Missing file",
+      "changed": "Source changed"
+    },
+    "sheets": {
+      "add": "Add sheets",
+      "reading": "Reading sheets…",
+      "emptyTitle": "Add sprite sheets",
+      "emptyDesc": "Drop sheet images (and their atlas files) or a whole folder here. Source sheets are never copied or overwritten.",
+      "fmt_tp": "TexturePacker JSON (hash / array, trimmed, rotated)",
+      "fmt_aseprite": "Aseprite JSON (frame tags → animations)",
+      "fmt_plist": "Cocos2d .plist",
+      "fmt_unity": "Unity .png.meta (Sprite Mode: Multiple)",
+      "fmt_grid": "No atlas → grid detected automatically, editable",
+      "dropHint": "Drop more sheets or atlas files here",
+      "dropTitle": "Drop sheets or atlas files",
+      "next": "Next: Grid & directions",
+      "open": "Open grid",
+      "remove": "Remove from project",
+      "frames": "{{count}} frames",
+      "anims": "{{count}} anims"
+    },
+    "toast": {
+      "added": "Added {{count}} sheets",
+      "dup": "{{count}} sheets are already in the project",
+      "none": "No sheets found",
+      "skipped": "Skipped {{count}} files: {{names}}",
+      "noGrid": "Could not detect a grid — adjust it on the left",
+      "grid": "Grid {{cols}}×{{rows}} · cell {{w}}×{{h}}"
+    }
+  },
+  "sprite": {
+    "player": {
+      "label": "Animation preview",
+      "play": "Play",
+      "pause": "Pause",
+      "playHint": "Play / pause (Space)",
+      "prev": "Previous frame (←)",
+      "next": "Next frame (→)",
+      "fps": "Frames per second",
+      "loop": "Loop mode",
+      "onion": "Onion skin",
+      "onionHint": "Show the previous frame faintly to compare motion",
+      "guides": "Guides",
+      "guidesHint": "Bottom-center anchor (red), ground line (green), shared frame box (blue)",
+      "bg": "Background",
+      "zoom": "Zoom",
+      "fit": "Fit",
+      "noFrames": "No frames — pick an animation or click a cell on the sheet"
+    },
+    "loop": {
+      "loop": "Loop",
+      "pingpong": "Ping-pong",
+      "once": "Once"
+    },
+    "bg": {
+      "ck": "Checker",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "dir": {
+      "S": "Down",
+      "SW": "Down-left",
+      "W": "Left",
+      "NW": "Up-left",
+      "N": "Up",
+      "NE": "Up-right",
+      "E": "Right",
+      "SE": "Down-right"
+    },
+    "compass": {
+      "label": "Pick direction",
+      "title": "Direction compass",
+      "hint": "Click a direction or use arrow keys / WASD (hold two keys for diagonals)",
+      "desc": "{{n}}-direction set — click to view that direction's animation",
+      "none": "Sheet is not split by direction",
+      "missing": "{{dir}} — no animation yet",
+      "coverage": "{{have}}/{{n}} directions covered"
+    },
+    "playground": {
+      "label": "Walk test",
+      "hint": "Click here, then hold arrow keys / WASD to walk",
+      "noWalk": "No animation named \"walk\" yet — rename one in the animation table",
+      "noAnim": "no anim"
+    },
+    "sheet": {
+      "emptyCell": "empty cell",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "fit": "Fit",
+      "frames_one": "{{count}} frame",
+      "frames_other": "{{count}} frames",
+      "empty_one": "{{count}} empty cell",
+      "empty_other": "{{count}} empty cells"
+    },
+    "grid": {
+      "title": "Grid",
+      "cells": "cells",
+      "detect": "Detect grid",
+      "detectHint": "Detect the cell size from transparent gaps between frames",
+      "cols": "Columns",
+      "rows": "Rows",
+      "cellW": "Cell width",
+      "cellH": "Cell height",
+      "offsetX": "Left offset",
+      "offsetY": "Top offset",
+      "gapX": "Gap X",
+      "gapY": "Gap Y",
+      "extent": "Grid {{w}}×{{h}} / image {{iw}}×{{ih}}",
+      "overflow": "Grid goes outside the image"
+    },
+    "anims": {
+      "title": "Animations",
+      "count_one": "{{count}} animation",
+      "count_other": "{{count}} animations",
+      "auto": "Auto-assign",
+      "autoHint": "Rebuild animations from grid rows / frame names (discards manual edits)",
+      "name": "Name",
+      "dir": "Direction",
+      "frames": "Frames",
+      "loop": "Loop",
+      "empty": "No animations — click Auto-assign"
+    },
+    "format": {
+      "tp-hash": "TexturePacker (hash)",
+      "tp-array": "TexturePacker (array)",
+      "aseprite": "Aseprite",
+      "plist": "Cocos plist",
+      "unity": "Unity .meta",
+      "grid": "Uniform grid"
+    },
+    "demo": {
+      "pane": "View mode",
+      "player": "Frames",
+      "walk": "Walk test"
     }
   }
 }

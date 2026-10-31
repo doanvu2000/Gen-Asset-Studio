@@ -5,20 +5,11 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 ## Chưa phát hành
 
 ### Add
-- **Cài đặt › Lưu trữ**: xem app đang dùng bao nhiêu dung lượng ở đâu (Codex, ảnh gốc Codex, lịch sử phiên, file tạm, log, bộ cài cập nhật, workspace, thư mục cài), còn trống bao nhiêu trên từng ổ
-- **Chuyển dữ liệu sang ổ khác** (vd ): chọn ổ hoặc thư mục, app chép + kiểm tra rồi tự khởi động lại, không phải đăng nhập lại, bản cũ tự xoá; chuyển về chỗ mặc định được
-- Chọn nơi lưu dữ liệu ngay ở màn **Chuẩn bị môi trường** lần đầu
-- **Tự dọn dẹp** (bật mặc định): xoá ảnh gốc Codex sau khi đã chép vào project, lịch sử phiên Codex cũ hơn 7 ngày, file tạm; nút **Dọn dẹp** thủ công kèm số MB giải phóng
-- Banner nhắc khi app chiếm trên 1 GB ở ổ hệ thống hoặc ổ sắp đầy
-- Hàng đợi tự dừng khi ổ còn dưới 300 MB, banner **Mở Lưu trữ**
-
-### Update
-- File tạm gửi Codex chuyển từ  vào thư mục dữ liệu app
-- Hộp chọn workspace gợi ý ổ dữ liệu thay vì Documents khi đã chuyển dữ liệu sang ổ khác
-
-## Chưa phát hành
-
-### Add
+- **3 loại project tách riêng**, chọn khi tạo: **Reskin ảnh** (cho BA), **Sprite sheet** và **Spine** (cho artist — Spine sắp có); màn tạo project ghi rõ dành cho ai, các bước, đầu vào/đầu ra
+- Workspace: badge loại trên thẻ project, lọc theo loại, icon theo loại ở cây thư mục
+- **Project Sprite sheet** (bản đầu): nhập sheet kèm TexturePacker JSON (hash/array, trimmed, rotated), Aseprite JSON (frame tag → animation), Cocos .plist, Unity .png.meta; không có atlas thì tự dò lưới
+- Bước **Lưới & hướng**: xem cả sheet + lưới chỉnh tay (kéo hoặc nhập số), bảng animation (tên, hướng, FPS, kiểu lặp, tự đặt lại), player (chạy/dừng, từng frame, onion skin, đường căn, nền caro/tối/sáng, zoom pixel), la bàn 4/6/8 hướng, **Đi thử** bằng phím mũi tên/WASD trên nền lưới top-down/isometric/side
+- Thiết lập nhân vật theo project: bộ hướng 4/6/8, thứ tự hàng (Flame/RPG Maker), lật gương, góc nhìn, cỡ ô
 - **Cài đặt › Lưu trữ**: xem app đang chiếm bao nhiêu dung lượng, nằm ở đâu (Codex, ảnh gốc Codex, lịch sử phiên, file tạm, log, bộ cài cập nhật, workspace, thư mục cài) và mỗi ổ còn trống bao nhiêu
 - **Chuyển dữ liệu sang ổ khác** (vd `D:\GenAssetStudio`): chọn ổ hoặc thư mục, app chép, kiểm tra rồi tự khởi động lại, không phải đăng nhập lại, bản cũ tự xoá; chuyển về chỗ mặc định được
 - Chọn nơi lưu dữ liệu ngay ở màn **Chuẩn bị môi trường** lần đầu
@@ -26,6 +17,9 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Banner nhắc khi app chiếm trên 1 GB ở ổ hệ thống hoặc khi ổ sắp đầy
 - Hàng đợi tự dừng khi ổ còn dưới 300 MB, kèm banner **Mở Lưu trữ**
 - **Cài đặt › Từ cùng tác giả**: giới thiệu AI Asset Studio, HyperFrames Studio, Orrery; gợi ý nhỏ hiện đúng 1 lần (sau khi xuất, ở tab Môi trường), dòng nhỏ cuối màn Workspace và splash — tắt được ở **Cài đặt › Chung**
+
+### Remove
+- Loại ảnh "Sprite sheet" (đang khoá) trong project Reskin — thay bằng loại project Sprite sheet riêng
 
 ### Update
 - File tạm gửi Codex chuyển từ `%TEMP%` vào thư mục dữ liệu app

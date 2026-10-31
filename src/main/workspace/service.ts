@@ -6,6 +6,7 @@ import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, join, resolve, sep } from 'node:path'
 import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
 import type { StyleGroup } from '@shared/style'
+import { READY_KINDS, type ProjectKind } from '@shared/sprite'
 import {
   addCollected,
   buildView,
@@ -33,6 +34,14 @@ import { assetSegments } from './project'
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
 const MAX_DEPTH = 10
+
+function spriteSheetsOf(data: ProjectFile | null): Array<{ hash: string }> {
+  const sprite = data?.sprite
+  if (!sprite || typeof sprite !== 'object') return []
+  const sheets = (sprite as Record<string, unknown>).sheets
+  if (!Array.isArray(sheets)) return []
+  return sheets.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object').map((x) => ({ hash: typeof x.hash === 'string' ? x.hash : '' }))
+}
 
 class WsFail extends Error {
   constructor(readonly code: WsError, detail?: string) {
@@ -179,7 +188,7 @@ export class WorkspaceService extends EventEmitter {
     if (!isRoot && entries.some((e) => e.isFile() && e.name === PROJECT_FILE)) {
       const summary = await this.summary(abs, rel)
       projects.push(summary)
-      return { rel, name, kind: 'project', children: [], projectCount: 1, imageCount: summary.imageCount }
+      return { rel, name, kind: 'project', projectKind: summary.kind, children: [], projectCount: 1, imageCount: summary.imageCount }
     }
     const dirs = entries
       .filter((e) => e.isDirectory() && !e.name.startsWith('.') && !e.name.startsWith('$'))
@@ -211,14 +220,16 @@ export class WorkspaceService extends EventEmitter {
     } catch {
       mtime = 0
     }
+    const kind = data?.kind ?? 'reskin'
+    const sheets = kind === 'sprite' ? spriteSheetsOf(data) : []
     const thumbs: string[] = []
-    for (const input of data?.inputs ?? []) {
+    for (const hash of kind === 'sprite' ? sheets.map((s) => s.hash) : (data?.inputs ?? []).map((i) => i.hash)) {
       if (thumbs.length >= 4) break
-      if (!input.hash) continue
-      const t = thumbPath(dir, input.hash)
-      if (existsSync(t)) thumbs.push(fileUrl(t, input.hash))
+      if (!hash) continue
+      const t = thumbPath(dir, hash)
+      if (existsSync(t)) thumbs.push(fileUrl(t, hash))
     }
-    const count = data?.inputs.length ?? 0
+    const count = kind === 'sprite' ? sheets.length : (data?.inputs.length ?? 0)
     const review = data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))) : []
     const approved = review.filter((r) => r.decision === 'approved').length
     const exp = sanitizeExport(data?.export)
@@ -226,6 +237,7 @@ export class WorkspaceService extends EventEmitter {
       rel,
       name: basename(dir),
       parentRel: rel.includes('/') ? rel.slice(0, rel.lastIndexOf('/')) : '',
+      kind,
       imageCount: count,
       groupCount: data?.groups.length ?? 0,
       approved,
@@ -284,15 +296,16 @@ export class WorkspaceService extends EventEmitter {
     })
   }
 
-  createProject(parentRel: string, name: string): Promise<OpResult> {
+  createProject(parentRel: string, name: string, kind: ProjectKind = 'reskin'): Promise<OpResult> {
     return this.mutate(async () => {
+      if (!READY_KINDS.includes(kind)) throw new WsFail('io', `project kind ${kind} is not available yet`)
       const parent = this.abs(parentRel)
       const n = validName(name)
       const target = join(parent, n)
       if (existsSync(target)) throw new WsFail('exists')
       await fs.mkdir(target, { recursive: true })
-      await writeProject(target, emptyProject(n))
-      this.log(`project created: ${target}`)
+      await writeProject(target, emptyProject(n, kind))
+      this.log(`project created (${kind}): ${target}`)
       return relJoin(parentRel, n)
     })
   }
@@ -351,6 +364,14 @@ export class WorkspaceService extends EventEmitter {
       else void shell.openPath(p)
     } catch {
       return
+    }
+  }
+
+  spriteDeps(): { projectDir: (rel: string) => string; run: <T>(fn: () => Promise<T>) => Promise<T>; allow: (abs: string) => void } {
+    return {
+      projectDir: (rel) => this.projectDir(rel),
+      run: (fn) => this.run(fn),
+      allow: (abs) => this.allowed.add(pathKey(abs))
     }
   }
 
@@ -464,7 +485,6 @@ export class WorkspaceService extends EventEmitter {
 
   setType(rel: string, ids: string[], type: InputType): Promise<ProjectView | null> {
     return this.run(async () => {
-      if (type === 'sprite') throw new WsFail('io', 'sprite sheets are not supported yet')
       const { dir, data } = await this.load(rel)
       const set = new Set(ids)
       for (const i of data.inputs) {

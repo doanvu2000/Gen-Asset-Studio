@@ -40,7 +40,7 @@ function GenConfig({ project }: { project: ProjectView }): ReactElement {
   const owner = useMemo(() => groupOf(project), [project])
   const locked = project.groups.filter((g) => isLocked(g) && g.assetIds.length)
   const notLocked = project.groups.filter((g) => !isLocked(g) && g.assetIds.length)
-  const ungrouped = project.inputs.filter((i) => i.type !== 'sprite' && !owner.has(i.id)).length
+  const ungrouped = project.inputs.filter((i) => !owner.has(i.id)).length
   const count = all.filter((x) => sel.has(x.input.id)).length
   const left5 = rl?.primary ? Math.max(0, Math.round(100 - rl.primary.usedPercent)) : null
 

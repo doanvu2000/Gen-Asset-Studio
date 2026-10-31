@@ -28,9 +28,9 @@ export const BACKUP_DIR = '_backup'
 
 export const REPORT_FILE = 'export-report.json'
 
-export type ExportSkipReason = 'sprite' | 'notGrouped' | 'notApproved' | 'noVersion' | 'missingFile' | 'sizeMismatch'
+export type ExportSkipReason = 'notGrouped' | 'notApproved' | 'noVersion' | 'missingFile' | 'sizeMismatch'
 
-export const EXPORT_SKIP_REASONS: readonly ExportSkipReason[] = ['notApproved', 'notGrouped', 'noVersion', 'missingFile', 'sizeMismatch', 'sprite']
+export const EXPORT_SKIP_REASONS: readonly ExportSkipReason[] = ['notApproved', 'notGrouped', 'noVersion', 'missingFile', 'sizeMismatch']
 
 export type ExportPlanError = 'noProject' | 'outInsideSource' | 'outIsFile' | 'noScale' | 'busy'
 

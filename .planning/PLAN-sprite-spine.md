@@ -74,3 +74,12 @@ Không hỗ trợ Spine 3.8/4.0/4.1 ở bản đầu: đọc header version, kh�
 - Animation tạo mới: mặc định idle + walk; run, attack, hurt + die là checkbox tuỳ chọn.
 - Cỡ ô mặc định 128 px (cho chọn 64 / 256).
 - Thứ tự: làm `PLAN-storage-location.md` trước, Sprite/Spine sau.
+
+## Trạng thái (2026-10-31)
+- **S1 xong** (chưa có Style/Gen/Duyệt/Xuất cho sprite — S2):
+  - Loại project: `src/shared/sprite.ts` (ProjectKind, READY_KINDS = reskin + sprite), project.json `kind`, `sprite: { settings, sheets }`.
+  - Main `src/main/sprite/`: `atlas.ts` (TP hash/array, Aseprite tags, plist 0–3, Unity meta; Spine .atlas → báo lỗi), `grid.ts` (detectGrid, gridFrames r*cols+c, emptyCells, cache alpha), `anims.ts` (từ tag / tên / lưới), `service.ts` (SpriteService + registerSpriteIpc, deps từ `WorkspaceService.spriteDeps()`).
+  - Renderer: `components/ProjectKinds.tsx`, `screens/sprite/SpriteProjectScreen.tsx` (Nhập sheet + Thiết lập nhân vật · Lưới & hướng), `components/sprite/*` (SpritePlayer, DirCompass, SpritePlayground, SheetCanvas, GridEditor, AnimTable, SpriteDemo), `store/sprite.ts` (debounce anims 400 ms).
+  - Quy ước FrameRect: x,y,w,h = rect trên sheet (rotated = xoay 90° CW khi pack, vẽ xoay -90°); srcX/srcY/srcW/srcH = khung gốc chưa trim; pivot 0..1 trên-trái.
+  - Mẫu test: `resources/sprite-samples/` (`node scripts/make-sprite-samples.mjs`), `npm run test:sprite` 68/68.
+- Tiếp S2: gán hướng/preset + mirror, gen theo dải, ảnh khoá, anchor + QA, duyệt theo hướng, xuất đè đúng rect.

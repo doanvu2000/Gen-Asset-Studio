@@ -13,6 +13,7 @@ import type {
   Unsubscribe
 } from '@shared/types'
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
+import { SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteSettings } from '@shared/sprite'
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
@@ -95,7 +96,7 @@ const api: GasApi = {
     get: () => ipcRenderer.invoke(IPC.wsGet),
     choose: () => ipcRenderer.invoke(IPC.wsChoose),
     createFolder: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateFolder, parentRel, name),
-    createProject: (parentRel: string, name: string) => ipcRenderer.invoke(IPC.wsCreateProject, parentRel, name),
+    createProject: (parentRel: string, name: string, kind: ProjectKind) => ipcRenderer.invoke(IPC.wsCreateProject, parentRel, name, kind),
     createSample: () => ipcRenderer.invoke(IPC.wsCreateSample),
     rename: (rel: string, name: string) => ipcRenderer.invoke(IPC.wsRename, rel, name),
     move: (rel: string, destRel: string) => ipcRenderer.invoke(IPC.wsMove, rel, destRel),
@@ -165,6 +166,15 @@ const api: GasApi = {
     onProgress: (cb) => subscribe<ExportProgress>(EXPORT_IPC.progress, cb)
   },
   update: exposeUpdateApi(),
+  sprite: {
+    open: (rel: string) => ipcRenderer.invoke(SPRITE_IPC.open, rel),
+    addDialog: (rel: string) => ipcRenderer.invoke(SPRITE_IPC.addDialog, rel),
+    addPaths: (rel: string, paths: string[]) => ipcRenderer.invoke(SPRITE_IPC.addPaths, rel, paths),
+    remove: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_IPC.remove, rel, sheetId),
+    updateSheet: (rel: string, sheetId: string, patch: SheetPatch) => ipcRenderer.invoke(SPRITE_IPC.updateSheet, rel, sheetId, patch),
+    detectGrid: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_IPC.detectGrid, rel, sheetId),
+    setSettings: (rel: string, patch: Partial<SpriteSettings>) => ipcRenderer.invoke(SPRITE_IPC.setSettings, rel, patch)
+  },
   storage: {
     get: () => ipcRenderer.invoke(STORAGE_IPC.get),
     scan: () => ipcRenderer.invoke(STORAGE_IPC.scan),

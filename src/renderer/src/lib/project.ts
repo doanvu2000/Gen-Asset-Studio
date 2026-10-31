@@ -22,7 +22,7 @@ export function gennable(p: ProjectView): Array<{ input: InputView; group: Style
     if (!isLocked(g)) continue
     for (const id of g.assetIds) {
       const input = byId.get(id)
-      if (input && input.type !== 'sprite' && input.status !== 'missing') out.push({ input, group: g })
+      if (input && input.status !== 'missing') out.push({ input, group: g })
     }
   }
   return out

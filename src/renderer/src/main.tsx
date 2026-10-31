@@ -13,6 +13,7 @@ import { selectResolvedTheme, useApp } from './store/app'
 import { App } from './App'
 import { Splash } from './components/Splash'
 import './styles/splash.css'
+import './styles/sprite-project.css'
 
 async function bootstrap(): Promise<void> {
   const [settings, systemDark, maximized] = await Promise.all([

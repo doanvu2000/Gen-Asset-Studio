@@ -87,7 +87,7 @@ function AssetPicker({
     }
   }, [open, group.assetIds])
 
-  const usable = project.inputs.filter((i) => i.type !== 'sprite')
+  const usable = project.inputs
   const dirs = useMemo(() => [...new Set(usable.map((i) => i.dir))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [usable])
   const visible = usable.filter((i) => (dir === null || i.dir === dir) && (!freeOnly || !owner.has(i.id) || owner.get(i.id)?.id === group.id))
   const allOn = visible.length > 0 && visible.every((i) => sel.has(i.id))
@@ -437,7 +437,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const running = !!run && (run.phase === 'planning' || run.phase === 'rendering')
   const locked = isLocked(group)
   const left5 = rl?.primary ? Math.max(0, Math.round(100 - rl.primary.usedPercent)) : null
-  const selFromInput = inputSel.filter((id) => inputsById.has(id) && inputsById.get(id)?.type !== 'sprite')
+  const selFromInput = inputSel.filter((id) => inputsById.has(id))
 
   useEffect(() => {
     if (group.suggestRunId && !runs[group.suggestRunId]) void loadRun(project.dir, group.suggestRunId)
@@ -467,7 +467,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   }
 
   const samples = (): { path: string; kind: InputView['kind']; name: string }[] => {
-    const src = (assets.length ? assets : project.inputs).filter((i) => i.status !== 'missing' && i.type !== 'sprite')
+    const src = (assets.length ? assets : project.inputs).filter((i) => i.status !== 'missing')
     return src.map((i) => ({ path: i.abs, kind: i.kind, name: i.name }))
   }
 
@@ -1051,8 +1051,7 @@ export function StyleStep({ project }: { project: ProjectView }): ReactElement {
   const groups = project.groups
   const g = groups.find((x) => x.id === activeGroup) ?? groups[0] ?? null
   const owner = useMemo(() => groupOf(project), [project])
-  const unassigned = project.inputs.filter((i) => i.type !== 'sprite' && !owner.has(i.id))
-  const sprites = project.inputs.filter((i) => i.type === 'sprite').length
+  const unassigned = project.inputs.filter((i) => !owner.has(i.id))
   const ready = styleReady(project)
 
   const addGroup = (): void => {
@@ -1110,12 +1109,6 @@ export function StyleStep({ project }: { project: ProjectView }): ReactElement {
           {t('style.newGroup')}
         </button>
         <div className="grow" />
-        {sprites > 0 && (
-          <span className="chip c-gray" title={t('style.spriteNote')}>
-            <Icon name="lock" size={10} />
-            {t('kinds.sprite.name')} · {t('kinds.soon')}
-          </span>
-        )}
         {unassigned.length > 0 && groups.length > 0 && (
           <div className="unas" title={t('style.unassigned.desc')}>
             <Icon name="alert" size={14} />

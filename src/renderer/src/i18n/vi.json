@@ -207,8 +207,10 @@
         "review": "Đang duyệt",
         "exported": "Đã xuất"
       },
-      "exportedTip": "Đã xuất {{count}} ảnh · {{time}}"
-    }
+      "exportedTip": "Đã xuất {{count}} ảnh · {{time}}",
+      "sheets": "{{count}} sheet"
+    },
+    "kindAll": "Tất cả"
   },
   "settings": {
     "title": "Cài đặt",
@@ -406,7 +408,9 @@
       "namePh": "VD: Idol Clicker UI",
       "parent": "Lưu trong folder",
       "create": "Tạo project",
-      "hint": "Project là một folder chứa project.json trong workspace. Ảnh gốc không bị sao chép — project chỉ lưu đường dẫn."
+      "hint_reskin": "Project là một folder chứa project.json trong workspace. Ảnh gốc không bị sao chép — project chỉ lưu đường dẫn.",
+      "hint_sprite": "Sheet gốc và file atlas không bị sao chép hay ghi đè — project chỉ lưu đường dẫn.",
+      "hint_spine": "Spine đang phát triển."
     },
     "newFolder": {
       "title": "Folder mới",
@@ -504,11 +508,8 @@
     "type": {
       "normal": "Thường",
       "nine": "9-slice",
-      "sprite": "Sprite sheet",
-      "spriteDev": "Đang phát triển",
       "hint": "Bấm để đổi loại (tự đoán theo tên + hình dạng)",
-      "auto": "tự đoán",
-      "spriteHint": "Sprite sheet đang phát triển, chưa hỗ trợ ở phase này"
+      "auto": "tự đoán"
     },
     "kind": {
       "button": "Nút",
@@ -554,7 +555,6 @@
       "desc": "Các ảnh này sẽ không được gen và không được xuất.",
       "assign": "Gán vào nhóm đang mở"
     },
-    "spriteNote": "Sprite sheet đang phát triển — các sheet trong project tạm thời bị bỏ qua.",
     "footHint": "Mỗi nhóm có style riêng, một ảnh chỉ thuộc một nhóm. Chốt ít nhất 1 nhóm có ảnh để sang bước Gen.",
     "footReady": "Sẵn sàng gen. Ảnh không thuộc nhóm đã chốt sẽ không được gen.",
     "next": "Tiếp: Gen ảnh",
@@ -968,8 +968,7 @@
       "notGrouped": "Không thuộc nhóm style",
       "noVersion": "Chưa có bản gen",
       "missingFile": "Thiếu file version",
-      "sizeMismatch": "Sai W×H — cần fit lại",
-      "sprite": "Sprite sheet · đang phát triển"
+      "sizeMismatch": "Sai W×H — cần fit lại"
     },
     "skippedShow": "Xem {{count}} ảnh bị bỏ qua",
     "skippedHide": "Ẩn danh sách bỏ qua",
@@ -1110,21 +1109,36 @@
     }
   },
   "kinds": {
-    "label": "Loại asset",
+    "label": "Loại project",
     "soon": "Sắp có",
-    "soonHint": "Sắp có — đang phát triển",
-    "soonToast": "{{name}} sắp có — hiện app hỗ trợ ảnh tĩnh (ưu tiên PNG).",
-    "png": {
-      "name": "Ảnh 2D",
-      "desc": "PNG (khuyên dùng), JPG, WebP… — UI, icon, nút, panel"
-    },
-    "spine": {
-      "name": "Spine",
-      "desc": "Atlas + skeleton Spine"
+    "in": "Vào",
+    "out": "Ra",
+    "reskin": {
+      "name": "Reskin ảnh",
+      "short": "Reskin",
+      "audience": "Cho BA · không cần vẽ",
+      "desc": "Đổi style cả bộ UI/icon/nút/panel có sẵn bằng AI. Giữ đúng tên, W×H, 9-slice — thả vào game là chạy.",
+      "flow": "Ảnh gốc → Style → Gen → Duyệt → Xuất",
+      "input": "Folder ảnh PNG/JPG/WebP",
+      "output": "Ảnh cùng tên, cùng kích thước, cùng cây thư mục"
     },
     "sprite": {
       "name": "Sprite sheet",
-      "desc": "Khung hình animation"
+      "short": "Sprite",
+      "audience": "Cho artist · animation",
+      "desc": "Nhân vật nhiều hướng (4/6/8) và khung hình animation. Đọc atlas, chỉnh lưới, xem anim chạy thử ngay.",
+      "flow": "Nhập sheet → Lưới & hướng → Style → Gen theo hướng → Duyệt → Xuất",
+      "input": "Sheet PNG + TexturePacker/Aseprite JSON, .plist, Unity .meta (hoặc dò lưới)",
+      "output": "Sheet cùng rect, file atlas dùng lại; Flame/Android/iOS"
+    },
+    "spine": {
+      "name": "Spine",
+      "short": "Spine",
+      "audience": "Cho artist · Spine 4.2",
+      "desc": "Reskin nhân vật Spine theo từng region, chỉnh setup pose cho khớp và xem chạy bằng spine-player.",
+      "flow": "Nhập skeleton → Region & skin → Style → Gen → Rigging → Duyệt → Xuất",
+      "input": ".json/.skel 4.2 + .atlas + page PNG",
+      "output": "Page PNG đúng region, .atlas giữ nguyên"
     }
   },
   "intro": {
@@ -1255,6 +1269,207 @@
       "hyperframes-export": "Làm video giới thiệu game từ bộ asset vừa xuất?",
       "aias-export": "Cần thêm asset mới từ mô tả (sprite, tileset, Spine)?",
       "orrery-env": "Muốn theo dõi các phiên Codex / Claude Code đang chạy?"
+    }
+  },
+  "spriteProject": {
+    "steps": {
+      "sheets": "Nhập sheet",
+      "grid": "Lưới & hướng",
+      "style": "Style",
+      "gen": "Gen theo hướng",
+      "review": "Duyệt",
+      "export": "Xuất"
+    },
+    "sub": {
+      "sheets": "{{count}} sheet",
+      "grid": "{{frames}} frame · {{anims}} anim",
+      "soon": "Sắp có"
+    },
+    "lock": {
+      "grid": "Thêm ít nhất 1 sheet trước",
+      "soon": "Sắp có ở bản cập nhật tới"
+    },
+    "intro": {
+      "sheets": "Thêm sprite sheet gốc — kèm file atlas (TexturePacker, Aseprite, .plist, Unity .meta) nếu có; không có thì app tự dò lưới. Chọn bộ hướng và góc nhìn của nhân vật ở cột phải.",
+      "grid": "Kiểm tra lưới/khung hình, gán tên + hướng cho từng animation, rồi bấm chạy thử: la bàn đổi hướng, phím mũi tên/WASD cho nhân vật đi trên nền lưới.",
+      "style": "Chọn style cho nhân vật.",
+      "gen": "Gen lại từng hướng × animation.",
+      "review": "Duyệt bằng player.",
+      "export": "Xuất sheet đúng rect."
+    },
+    "soonDesc": "Bước này đang được xây dựng (S2) — hiện đã dùng được Nhập sheet và Lưới & hướng.",
+    "settings": {
+      "title": "Thiết lập nhân vật",
+      "dirs": "Bộ hướng",
+      "dir_4": "4",
+      "dir_6": "6",
+      "dir_8": "8",
+      "dir_0": "Không hướng",
+      "rows": "Thứ tự hàng",
+      "mirror": "Lật gương hướng phải từ hướng trái",
+      "mirrorHint": "E←W, NE←NW, SE←SW — tắt nếu nhân vật bất đối xứng (cầm kiếm tay phải…)",
+      "view": "Góc nhìn",
+      "cell": "Cỡ ô khi tạo mới"
+    },
+    "view": {
+      "topdown": "Top-down 3/4",
+      "iso": "Isometric",
+      "side": "Side-view"
+    },
+    "dir": {
+      "S": "Xuống (S)",
+      "SW": "Xuống-trái (SW)",
+      "W": "Trái (W)",
+      "NW": "Lên-trái (NW)",
+      "N": "Lên (N)",
+      "NE": "Lên-phải (NE)",
+      "E": "Phải (E)",
+      "SE": "Xuống-phải (SE)"
+    },
+    "format": {
+      "grid": "Lưới tự dò",
+      "tp-hash": "TexturePacker",
+      "tp-array": "TexturePacker",
+      "aseprite": "Aseprite",
+      "plist": "Cocos .plist",
+      "unity": "Unity .meta"
+    },
+    "status": {
+      "ok": "OK",
+      "missing": "Thiếu file",
+      "changed": "Gốc đã đổi"
+    },
+    "sheets": {
+      "add": "Thêm sheet",
+      "reading": "Đang đọc sheet…",
+      "emptyTitle": "Thêm sprite sheet",
+      "emptyDesc": "Kéo thả ảnh sheet (và file atlas đi kèm) hoặc cả folder vào đây. Sheet gốc không bị sao chép hay ghi đè.",
+      "fmt_tp": "TexturePacker JSON (hash / array, trimmed, rotated)",
+      "fmt_aseprite": "Aseprite JSON (frame tags → animation)",
+      "fmt_plist": "Cocos2d .plist",
+      "fmt_unity": "Unity .png.meta (Sprite Mode: Multiple)",
+      "fmt_grid": "Không có atlas → tự dò lưới, chỉnh tay được",
+      "dropHint": "Kéo thả thêm sheet hoặc file atlas vào đây",
+      "dropTitle": "Thả sheet hoặc file atlas",
+      "next": "Tiếp: Lưới & hướng",
+      "open": "Mở lưới",
+      "remove": "Bỏ khỏi project",
+      "frames": "{{count}} frame",
+      "anims": "{{count}} anim"
+    },
+    "toast": {
+      "added": "Đã thêm {{count}} sheet",
+      "dup": "{{count}} sheet đã có trong project",
+      "none": "Không tìm thấy sheet nào",
+      "skipped": "Bỏ qua {{count}} file: {{names}}",
+      "noGrid": "Không dò được lưới — chỉnh tay ở khung bên trái",
+      "grid": "Lưới {{cols}}×{{rows}} · ô {{w}}×{{h}}"
+    }
+  },
+  "sprite": {
+    "player": {
+      "label": "Xem thử animation",
+      "play": "Chạy",
+      "pause": "Dừng",
+      "playHint": "Chạy / dừng (Space)",
+      "prev": "Frame trước (←)",
+      "next": "Frame sau (→)",
+      "fps": "Số frame mỗi giây",
+      "loop": "Kiểu lặp",
+      "onion": "Bóng frame",
+      "onionHint": "Hiện mờ frame trước để so chuyển động",
+      "guides": "Đường căn",
+      "guidesHint": "Đường anchor đáy-giữa (đỏ), đường đất (xanh lá), khung chung (xanh dương)",
+      "bg": "Nền",
+      "zoom": "Phóng to",
+      "fit": "Vừa khung",
+      "noFrames": "Chưa có frame — chọn một animation hoặc bấm một ô trên sheet"
+    },
+    "loop": {
+      "loop": "Lặp",
+      "pingpong": "Đi rồi về",
+      "once": "Một lần"
+    },
+    "bg": {
+      "ck": "Caro",
+      "dark": "Tối",
+      "light": "Sáng"
+    },
+    "dir": {
+      "S": "Xuống",
+      "SW": "Xuống trái",
+      "W": "Trái",
+      "NW": "Lên trái",
+      "N": "Lên",
+      "NE": "Lên phải",
+      "E": "Phải",
+      "SE": "Xuống phải"
+    },
+    "compass": {
+      "label": "Chọn hướng",
+      "title": "La bàn hướng",
+      "hint": "Bấm hướng, hoặc dùng phím mũi tên / WASD (giữ 2 phím để đi chéo)",
+      "desc": "Bộ {{n}} hướng — bấm để xem animation của hướng đó",
+      "none": "Sheet không chia theo hướng",
+      "missing": "{{dir}} — chưa có animation",
+      "coverage": "Mới có {{have}}/{{n}} hướng"
+    },
+    "playground": {
+      "label": "Đi thử nhân vật",
+      "hint": "Bấm vào đây rồi giữ phím mũi tên / WASD để đi thử",
+      "noWalk": "Chưa có animation tên chứa \"walk\" — đặt tên trong bảng animation",
+      "noAnim": "chưa có anim"
+    },
+    "sheet": {
+      "emptyCell": "ô trống",
+      "zoomIn": "Phóng to",
+      "zoomOut": "Thu nhỏ",
+      "fit": "Vừa khung",
+      "frames_one": "{{count}} frame",
+      "frames_other": "{{count}} frame",
+      "empty_one": "{{count}} ô trống",
+      "empty_other": "{{count}} ô trống"
+    },
+    "grid": {
+      "title": "Lưới",
+      "cells": "ô",
+      "detect": "Dò lại lưới",
+      "detectHint": "Tự dò kích thước ô từ khoảng trống trong suốt giữa các frame",
+      "cols": "Số cột",
+      "rows": "Số hàng",
+      "cellW": "Rộng ô",
+      "cellH": "Cao ô",
+      "offsetX": "Lề trái",
+      "offsetY": "Lề trên",
+      "gapX": "Cách ngang",
+      "gapY": "Cách dọc",
+      "extent": "Lưới {{w}}×{{h}} / ảnh {{iw}}×{{ih}}",
+      "overflow": "Lưới vượt ra ngoài ảnh"
+    },
+    "anims": {
+      "title": "Animation",
+      "count_one": "{{count}} animation",
+      "count_other": "{{count}} animation",
+      "auto": "Tự đặt lại",
+      "autoHint": "Chia lại animation theo hàng lưới / tên frame (mất chỉnh tay)",
+      "name": "Tên",
+      "dir": "Hướng",
+      "frames": "Frame",
+      "loop": "Lặp",
+      "empty": "Chưa có animation — bấm Tự đặt lại"
+    },
+    "format": {
+      "tp-hash": "TexturePacker (hash)",
+      "tp-array": "TexturePacker (array)",
+      "aseprite": "Aseprite",
+      "plist": "Cocos plist",
+      "unity": "Unity .meta",
+      "grid": "Lưới đều"
+    },
+    "demo": {
+      "pane": "Chế độ xem",
+      "player": "Xem frame",
+      "walk": "Đi thử"
     }
   }
 }

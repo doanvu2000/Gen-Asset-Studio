@@ -1,4 +1,5 @@
 import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, WorkspaceSnapshot } from './workspace'
+import type { ProjectKind, SpriteApi } from './sprite'
 import type { StyleApi, StyleGroup } from './style'
 import type { QueueApi } from './queue'
 import type { ReviewApi } from './review'
@@ -288,7 +289,7 @@ export interface GasApi {
     get: () => Promise<WorkspaceSnapshot>
     choose: () => Promise<WorkspaceSnapshot>
     createFolder: (parentRel: string, name: string) => Promise<OpResult>
-    createProject: (parentRel: string, name: string) => Promise<OpResult>
+    createProject: (parentRel: string, name: string, kind: ProjectKind) => Promise<OpResult>
     createSample: () => Promise<SampleCreateResult>
     rename: (rel: string, name: string) => Promise<OpResult>
     move: (rel: string, destRel: string) => Promise<OpResult>
@@ -312,6 +313,7 @@ export interface GasApi {
   export: ExportApi
   update: UpdateApi
   storage: StorageApi
+  sprite: SpriteApi
   files: {
     pathFor: (file: File) => string
   }
