@@ -1138,7 +1138,7 @@
       "audience": "For artists · Spine 4.2",
       "desc": "Reskin Spine characters region by region, adjust the setup pose to fit and preview with spine-player.",
       "flow": "Import skeleton → Regions & skins → Style → Generate → Rigging → Review → Export",
-      "input": ".json 4.2 + .atlas + page PNG",
+      "input": ".json / .skel 4.2 + .atlas + page PNG",
       "output": "Page PNG with matching regions, .atlas unchanged"
     }
   },
@@ -1710,13 +1710,13 @@
       "export": "Export"
     },
     "intro": {
-      "import": "Import a Spine 4.2 skeleton (.json) with its .atlas and page images — drop the folder or pick the files. Source files are never copied or overwritten.",
+      "import": "Import a Spine 4.2 skeleton (.json or .skel) with its .atlas and page images — drop the folder or pick the files. Source files are never copied or overwritten.",
       "regions": "Browse every atlas region: size, rotation/trim, and the slots and skins using it. Click a region to highlight it on the character.",
       "style": "Pick one style for the whole character: a built-in template, or describe it + reference images. Lock it to start generating.",
       "gen": "Each region is regenerated like a single image at its exact size; the original pages are attached so all parts stay one character.",
       "rig": "New regions may not fit perfectly: adjust the setup pose (bones, attachment position/rotation/scale) and watch Original | New play right away.",
       "review": "Review region by region: compare Original | New, watch the new character animate, regenerate with a note if needed.",
-      "export": "Export page PNGs with the same names and W×H, regions at the exact coordinates; the .atlas is unchanged; a new skeleton .json only when rigging changed."
+      "export": "Export page PNGs with the same names and W×H, regions at the exact coordinates; the .atlas is unchanged; a new skeleton (.json/.skel) only when rigging changed."
     },
     "sub": {
       "none": "Not imported",
@@ -1744,15 +1744,15 @@
     },
     "import": {
       "title": "Import a Spine skeleton",
-      "desc": "Drop the .json + .atlas + page images (or the folder containing them) here.",
+      "desc": "Drop the .json/.skel + .atlas + page images (or the folder containing them) here.",
       "reading": "Reading skeleton…",
       "fmt_json": "Skeleton JSON (.json) exported from Spine",
       "fmt_atlas": "Texture atlas (.atlas) + page PNGs in the same folder",
       "fmt_png": "Rotated and trimmed (offsets) regions are kept exact",
       "fmt_ver": "Spine 4.2 (other versions are reported clearly)",
-      "fmt_skel": "Binary .skel is not supported yet — export JSON from the Spine Editor",
+      "fmt_bin": "Binary skeleton (.skel) exported from Spine",
       "pick": "Choose files…",
-      "dropHint": "Tip: pick all 3 files at once, or just the .json — the app finds the .atlas next to it.",
+      "dropHint": "Tip: pick all 3 files at once, or just the .json/.skel — the app finds the .atlas next to it.",
       "dropTitle": "Drop skeleton, atlas and pages here",
       "skeleton": "Skeleton",
       "atlas": "Atlas",
@@ -1763,12 +1763,15 @@
       "clear": "Remove skeleton",
       "next": "Next: Regions & skins",
       "err": {
-        "skel": "Binary .skel files are not supported yet — export JSON from the Spine Editor.",
         "version": "This skeleton is Spine {{detail}} — only Spine 4.2 is supported. Open it in Spine 4.2 and export again.",
         "noAtlas": "No .atlas file found — add the matching .atlas or pick it too.",
         "noPage": "Atlas page image not found ({{detail}}) — keep it next to the .atlas file.",
         "parse": "Could not read the skeleton/atlas ({{detail}}).",
-        "noSkeleton": "No skeleton .json selected."
+        "noSkeleton": "No skeleton (.json/.skel) selected."
+      },
+      "format": {
+        "json": "JSON",
+        "binary": "Binary .skel"
       }
     },
     "preview": {
@@ -1845,7 +1848,7 @@
       "page": "Page",
       "replaced": "Regions replaced",
       "kept": "Kept original",
-      "rigNew": "{{count}} rigging edits → writes a new {{name}} (original kept as .original.json).",
+      "rigNew": "{{count}} rigging edits → writes a new {{name}} (original kept as .original).",
       "rigCopy": "No rigging edits → {{name}} copied unchanged.",
       "atlasCopy": "The .atlas file is copied unchanged.",
       "none": "No approved regions yet.",

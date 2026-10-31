@@ -17,6 +17,7 @@ export function SpineRigStep({ v }: { v: SpineProjectView }): ReactElement {
   const setStep = useSpine((s) => s.setStep)
   const viewer = useViewer()
   const [player, setPlayer] = useState<SpinePlayer | null>(null)
+  const [origPlayer, setOrigPlayer] = useState<SpinePlayer | null>(null)
   const [slots, setSlots] = useState<string[]>([])
 
   useEffect(() => () => void flushRig(), [flushRig])
@@ -25,14 +26,14 @@ export function SpineRigStep({ v }: { v: SpineProjectView }): ReactElement {
   return (
     <div className="srig-wrap">
       <div className="srig-pv">
-        <SpineCompare viewer={viewer} orig={orig} next={next} highlightSlots={slots} height={420} onNewPlayer={setPlayer} />
+        <SpineCompare viewer={viewer} orig={orig} next={next} highlightSlots={slots} height={420} onNewPlayer={setPlayer} onOrigPlayer={setOrigPlayer} />
         <div className="tip">
           <Icon name="help" size={14} />
           <span>{t('spineProject.rig.tip')}</span>
         </div>
       </div>
       <aside className="srig-side">
-        <RigEditor skeleton={v.skeleton} origJson={orig?.json ?? null} rig={v.rig} player={player} onChange={setRig} onSelectSlots={setSlots} />
+        <RigEditor skeleton={v.skeleton} origJson={orig?.format === 'binary' ? null : (orig?.json ?? null)} origPlayer={origPlayer} rig={v.rig} player={player} onChange={setRig} onSelectSlots={setSlots} />
         <div className="srig-acts">
           <button type="button" className="btn primary" onClick={() => void flushRig().then(() => setStep(6))}>
             {t('spineProject.rig.next')}

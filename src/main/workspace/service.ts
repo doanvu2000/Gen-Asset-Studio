@@ -56,7 +56,7 @@ async function spineProgress(dir: string, data: ProjectFile | null): Promise<{ t
     for (const sig of await fs.readdir(join(dir, '.cache', 'spine'))) {
       const b = join(dir, '.cache', 'spine', sig, 'board.png')
       if (existsSync(b)) {
-        thumb = fileUrl(b, sig)
+        thumb = fileUrl(b, `${sig}-${(await fs.stat(b)).mtimeMs}`)
         break
       }
     }

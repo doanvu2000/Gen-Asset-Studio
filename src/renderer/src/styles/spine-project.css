@@ -580,3 +580,7 @@
   flex: none;
   overflow: visible;
 }
+
+.spx-open {
+  align-self: flex-start;
+}

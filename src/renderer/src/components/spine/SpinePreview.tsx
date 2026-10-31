@@ -20,9 +20,16 @@ function b64(text: string): string {
   return btoa(bin)
 }
 
+export function skeletonKey(a: SpineAssets): string {
+  const isJson = a.skeletonName.endsWith('.json')
+  if (a.format === 'binary') return isJson ? `${a.skeletonName}.skel` : a.skeletonName
+  return isJson ? a.skeletonName : `${a.skeletonName}.json`
+}
+
 export function rawUris(a: SpineAssets): Record<string, string> {
+  const skeleton = a.format === 'binary' ? `data:application/octet-stream;base64,${a.skelBase64 ?? ''}` : `data:application/json;base64,${b64(a.json)}`
   const out: Record<string, string> = {
-    [a.skeletonName]: `data:application/json;base64,${b64(a.json)}`,
+    [skeletonKey(a)]: skeleton,
     [a.atlasName]: `data:text/plain;base64,${b64(a.atlas)}`
   }
   const dir = a.atlasName.includes('/') ? a.atlasName.slice(0, a.atlasName.lastIndexOf('/') + 1) : ''
@@ -78,8 +85,9 @@ export function SpinePreview({ assets, animation, skin, time, showBones = false,
     let player: SpinePlayer | null = null
     let disposed = false
     try {
+      if (assets.format === 'binary' && !assets.skelBase64) throw new Error('Empty .skel data.')
       const config: SpinePlayerConfig = {
-        skeleton: assets.skeletonName,
+        skeleton: skeletonKey(assets),
         atlas: assets.atlasName,
         rawDataURIs: rawUris(assets),
         showControls: false,

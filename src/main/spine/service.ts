@@ -202,7 +202,7 @@ export class SpineService {
       await savePng(img, file)
       made = true
     }
-    const board = join(cache, 'board.png')
+    const board = join(cache, 'parts-board.png')
     if (made || !existsSync(board)) {
       for (const r of atlas.regions) {
         const f = out.get(r.name)
@@ -211,6 +211,36 @@ export class SpineService {
       if (parts.length) await savePng(await partsBoard(parts), board)
     }
     return out
+  }
+
+  private async coverBoard(dir: string, spine: SpineData, regions: SpineRegionView[], sources: Map<string, string>): Promise<void> {
+    const cache = this.cacheDir(dir, spine)
+    const board = join(cache, 'board.png')
+    const keyFile = join(cache, 'board.key')
+    const key = createHash('sha1')
+      .update(regions.map((r) => `${r.name}:${r.selected}`).join('|'))
+      .digest('hex')
+    try {
+      if (existsSync(board) && (await fs.readFile(keyFile, 'utf8').catch(() => '')) === key) return
+      const parts: RawImage[] = []
+      for (const r of regions) {
+        const src = sources.get(r.name)
+        const files = [r.selected ? join(versionsDir(dir, r.assetRel), `v${r.selected}.png`) : null, src].filter((f): f is string => !!f && existsSync(f))
+        for (const f of files) {
+          const img = await decode(f).catch(() => null)
+          if (img) {
+            parts.push(img)
+            break
+          }
+        }
+      }
+      if (!parts.length) return
+      await fs.mkdir(cache, { recursive: true })
+      await savePng(await partsBoard(parts), board)
+      await fs.writeFile(keyFile, key, 'utf8')
+    } catch (e) {
+      this.deps.log(`spine cover board failed: ${(e as Error).message}`)
+    }
   }
 
   private async versionsOf(dir: string, name: string): Promise<number[]> {
@@ -285,6 +315,7 @@ export class SpineService {
         used: refs.length > 0
       })
     }
+    await this.coverBoard(dir, spine, regions, sources)
     const pages = parsed.atlas.pages.map((p) => {
       const ref = spine.pages[p.name]
       const ok = !!ref && existsSync(ref.path)
@@ -512,7 +543,7 @@ export class SpineService {
       const parsed = await this.parse(l.spine)
       if (!parsed) return 0
       const sources = await this.ensureSources(l.dir, l.spine, parsed.atlas)
-      const board = join(this.cacheDir(l.dir, l.spine), 'board.png')
+      const board = join(this.cacheDir(l.dir, l.spine), 'parts-board.png')
       let styleImages: string[] = []
       let prompt = l.spine.style.promptEn
       if (l.spine.style.templateId && this.deps.template) {

@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import type { JobSpec } from '../src/shared/queue'
 import { parseSpineAtlas } from '../src/main/spine/atlas'
@@ -266,10 +266,12 @@ async function main(): Promise<void> {
   const r = await svc.importPaths('Hero Spine', [join(sample, 'hero.json')])
   check(!r.error && r.view?.loaded && r.view.regions.length === 6 && r.view.regions.every((x) => !!x.sourceUrl && x.used), `import json → atlas + page found (${r.error})`)
   check(r.view?.regions.find((x) => x.name === 'head')?.slots.join() === 'head', 'region ↔ slot mapping')
+  const cache = join(proj, '.cache', 'spine', readdirSync(join(proj, '.cache', 'spine'))[0] ?? '')
+  check(diff(await decode(join(cache, 'board.png')), await decode(join(cache, 'parts-board.png'))) === 0, 'cover board = original parts board before any generation')
   check((await svc.enqueue('Hero Spine', ['head'])) === -1, 'enqueue refused until style locked')
   await svc.setStyle('Hero Spine', { promptEn: 'candy', locked: true })
   check((await svc.enqueue('Hero Spine', atlas.regions.map((x) => x.name))) === 6, '6 regions enqueued')
-  check(queued.every((q) => existsSync(q.sourcePath) && (q.refImages ?? []).some((p) => p.endsWith('board.png')) && /Spine skeletal character/.test(q.note ?? '')), 'jobs carry source, parts board, region note')
+  check(queued.every((q) => existsSync(q.sourcePath) && (q.refImages ?? []).some((p) => p.endsWith('parts-board.png')) && /Spine skeletal character/.test(q.note ?? '')), 'jobs carry source, parts board, region note')
   for (const q of queued) {
     const vdir = versionsDir(proj, q.assetRelPath)
     mkdirSync(vdir, { recursive: true })
@@ -295,6 +297,10 @@ async function main(): Promise<void> {
   await savePng(red, join(versionsDir(proj, regionAsset('arm_l')), 'v2.png'))
   const v = await svc.open('Hero Spine')
   check(v?.regions.find((x) => x.name === 'arm_l')?.selected === 2 && v.regions.find((x) => x.name === 'arm_l')?.decision === null, 'new version becomes selected, needs review again')
+  check(diff(await decode(join(cache, 'board.png')), await decode(join(cache, 'parts-board.png'))) > 0, 'cover board follows selected versions, reference board stays original')
+  const coverAt = statSync(join(cache, 'board.png')).mtimeMs
+  await svc.open('Hero Spine')
+  check(statSync(join(cache, 'board.png')).mtimeMs === coverAt && existsSync(join(cache, 'board.key')), 'cover board not rebuilt when selection unchanged')
   await skelProject(page)
   console.log(`\n${passed} passed, ${failed} failed`)
   rmSync(base, { recursive: true, force: true })

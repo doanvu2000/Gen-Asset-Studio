@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SpinePlayer } from '@esotericsoftware/spine-player'
+import { RegionAttachment, type SkeletonData, type SpinePlayer } from '@esotericsoftware/spine-player'
 import { attachmentKey, type SpineAttachmentEdit, type SpineBoneEdit, type SpineRig, type SpineSkeletonInfo } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
 
@@ -43,6 +43,23 @@ export function parseOrigRig(json: string | null): OrigRig {
     }
   } catch {
     return out
+  }
+  return out
+}
+
+export function origRigFromData(data: SkeletonData | null | undefined): OrigRig {
+  const out: OrigRig = { bones: {}, attachments: {} }
+  if (!data) return out
+  for (const b of data.bones) out.bones[b.name] = values(b as unknown as Record<string, unknown>)
+  for (const skin of data.skins) {
+    for (const e of skin.getAttachments()) {
+      const slot = data.slots[e.slotIndex]
+      if (!slot) continue
+      const region = e.attachment instanceof RegionAttachment
+      out.attachments[attachmentKey(skin.name, slot.name, e.name)] = region
+        ? { ...values(e.attachment as unknown as Record<string, unknown>), type: 'region' }
+        : { ...DEFAULTS, type: 'other' }
+    }
   }
   return out
 }
@@ -135,15 +152,16 @@ function FieldRow({ f, base, value, onSet }: { f: Field; base: number; value: nu
 interface Props {
   skeleton: SpineSkeletonInfo
   origJson: string | null
+  origPlayer?: SpinePlayer | null
   rig: SpineRig
   player: SpinePlayer | null
   onChange: (rig: SpineRig) => void
   onSelectSlots?: (slots: string[]) => void
 }
 
-export function RigEditor({ skeleton, origJson, rig, player, onChange, onSelectSlots }: Props): ReactElement {
+export function RigEditor({ skeleton, origJson, origPlayer, rig, player, onChange, onSelectSlots }: Props): ReactElement {
   const { t } = useTranslation()
-  const orig = useMemo(() => parseOrigRig(origJson), [origJson])
+  const orig = useMemo(() => (origJson ? parseOrigRig(origJson) : origRigFromData(origPlayer?.skeleton?.data)), [origJson, origPlayer])
   const [bone, setBone] = useState<string>(skeleton.bones[0]?.name ?? '')
   const past = useRef<SpineRig[]>([])
   const future = useRef<SpineRig[]>([])
@@ -247,6 +265,15 @@ export function RigEditor({ skeleton, origJson, rig, player, onChange, onSelectS
     ])
 
   const boneVals: Values = { ...baseBone, ...(rig.bones[bone] ?? {}) } as Values
+
+  if (!origJson && !origPlayer?.skeleton)
+    return (
+      <div className="rig">
+        <div className="proj-state muted">
+          <span className="spin" />
+        </div>
+      </div>
+    )
 
   return (
     <div className="rig">

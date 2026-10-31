@@ -1138,7 +1138,7 @@
       "audience": "Cho artist · Spine 4.2",
       "desc": "Reskin nhân vật Spine theo từng region, chỉnh setup pose cho khớp và xem chạy bằng spine-player.",
       "flow": "Nhập skeleton → Region & skin → Style → Gen → Rigging → Duyệt → Xuất",
-      "input": ".json 4.2 + .atlas + page PNG",
+      "input": ".json / .skel 4.2 + .atlas + page PNG",
       "output": "Page PNG đúng region, .atlas giữ nguyên"
     }
   },
@@ -1710,13 +1710,13 @@
       "export": "Xuất"
     },
     "intro": {
-      "import": "Nhập skeleton Spine 4.2 (.json) cùng file .atlas và ảnh page — kéo thả cả folder hoặc chọn file. File gốc không bị sao chép hay ghi đè.",
+      "import": "Nhập skeleton Spine 4.2 (.json hoặc .skel) cùng file .atlas và ảnh page — kéo thả cả folder hoặc chọn file. File gốc không bị sao chép hay ghi đè.",
       "regions": "Xem từng region trong atlas: kích thước, xoay/trim, slot và skin dùng nó. Bấm region để tô sáng phần đó trên nhân vật.",
       "style": "Chọn 1 style cho cả nhân vật: mẫu có sẵn, hoặc tự mô tả + ảnh tham chiếu. Chốt xong mới gen được.",
       "gen": "Gen lại từng region như ảnh lẻ — giữ đúng kích thước region; cả page gốc được gửi kèm để các phần cùng một nhân vật.",
       "rig": "Region mới có thể lệch dáng: chỉnh setup pose (bone, vị trí/xoay/scale của attachment) và xem Gốc | Mới chạy anim ngay.",
       "review": "Duyệt từng region: so Gốc | Mới, xem nhân vật mới chạy anim, gen lại kèm ghi chú nếu cần.",
-      "export": "Xuất page PNG cùng tên, cùng W×H, region đúng toạ độ; .atlas giữ nguyên; skeleton .json mới chỉ khi có chỉnh rigging."
+      "export": "Xuất page PNG cùng tên, cùng W×H, region đúng toạ độ; .atlas giữ nguyên; skeleton (.json/.skel) mới chỉ khi có chỉnh rigging."
     },
     "sub": {
       "none": "Chưa nhập",
@@ -1744,15 +1744,15 @@
     },
     "import": {
       "title": "Nhập skeleton Spine",
-      "desc": "Kéo thả file .json + .atlas + ảnh page (hoặc cả folder chứa chúng) vào đây.",
+      "desc": "Kéo thả file .json/.skel + .atlas + ảnh page (hoặc cả folder chứa chúng) vào đây.",
       "reading": "Đang đọc skeleton…",
       "fmt_json": "Skeleton JSON (.json) xuất từ Spine",
       "fmt_atlas": "Texture atlas (.atlas) + ảnh page PNG cùng folder",
       "fmt_png": "Region xoay (rotate) và trim (offsets) đều được giữ đúng",
       "fmt_ver": "Phiên bản Spine 4.2 (khác 4.2 sẽ báo rõ)",
-      "fmt_skel": "Chưa hỗ trợ .skel nhị phân — xuất JSON từ Spine Editor",
+      "fmt_bin": "Skeleton nhị phân (.skel) xuất từ Spine",
       "pick": "Chọn file…",
-      "dropHint": "Mẹo: chọn cả 3 file cùng lúc, hoặc chỉ file .json — app tự tìm .atlas cạnh nó.",
+      "dropHint": "Mẹo: chọn cả 3 file cùng lúc, hoặc chỉ file .json/.skel — app tự tìm .atlas cạnh nó.",
       "dropTitle": "Thả skeleton, atlas và page vào đây",
       "skeleton": "Skeleton",
       "atlas": "Atlas",
@@ -1763,12 +1763,15 @@
       "clear": "Gỡ skeleton",
       "next": "Tiếp: Region & skin",
       "err": {
-        "skel": "File .skel nhị phân chưa được hỗ trợ — trong Spine Editor hãy xuất dạng JSON.",
         "version": "Skeleton là Spine {{detail}} — bản này chỉ hỗ trợ Spine 4.2. Mở bằng Spine 4.2 rồi xuất lại.",
         "noAtlas": "Không tìm thấy file .atlas — thêm file .atlas cùng tên hoặc chọn kèm.",
         "noPage": "Không tìm thấy ảnh page của atlas ({{detail}}) — để ảnh cạnh file .atlas.",
         "parse": "Không đọc được skeleton/atlas ({{detail}}).",
-        "noSkeleton": "Chưa chọn file skeleton .json."
+        "noSkeleton": "Chưa chọn file skeleton (.json/.skel)."
+      },
+      "format": {
+        "json": "JSON",
+        "binary": "Nhị phân .skel"
       }
     },
     "preview": {
@@ -1845,7 +1848,7 @@
       "page": "Page",
       "replaced": "Region thay",
       "kept": "Giữ gốc",
-      "rigNew": "Có {{count}} chỉnh rigging → ghi {{name}} mới (kèm bản gốc .original.json).",
+      "rigNew": "Có {{count}} chỉnh rigging → ghi {{name}} mới (giữ bản gốc .original).",
       "rigCopy": "Không chỉnh rigging → {{name}} chép nguyên.",
       "atlasCopy": "File .atlas chép nguyên, không đổi.",
       "none": "Chưa có region nào được duyệt.",

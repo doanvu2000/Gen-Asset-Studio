@@ -12,9 +12,10 @@ interface Props {
   height?: number
   single?: 'orig' | 'new'
   onNewPlayer?: (p: SpinePlayer | null) => void
+  onOrigPlayer?: (p: SpinePlayer | null) => void
 }
 
-export function SpineCompare({ viewer: v, orig, next, highlightSlots, height = 340, single, onNewPlayer }: Props): ReactElement {
+export function SpineCompare({ viewer: v, orig, next, highlightSlots, height = 340, single, onNewPlayer, onOrigPlayer }: Props): ReactElement {
   const { t } = useTranslation()
   return (
     <div className="spc">
@@ -32,6 +33,7 @@ export function SpineCompare({ viewer: v, orig, next, highlightSlots, height = 3
             height={height}
             label={single ? undefined : t('spineProject.preview.orig')}
             onReady={v.setInfo}
+            onPlayer={onOrigPlayer}
           />
         )}
         {single !== 'orig' && (

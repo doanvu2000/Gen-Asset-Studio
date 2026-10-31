@@ -52,7 +52,7 @@ export function importErrorText(code: string | null): string {
   if (!code) return ''
   const [k, ...rest] = code.split(':')
   const detail = rest.join(':')
-  const known = ['skel', 'version', 'noAtlas', 'noPage', 'parse', 'noSkeleton'] as const
+  const known = ['version', 'noAtlas', 'noPage', 'parse', 'noSkeleton'] as const
   type K = (typeof known)[number]
   return (known as readonly string[]).includes(k) ? i18n.t(`spineProject.import.err.${k as K}`, { detail }) : code
 }

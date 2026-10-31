@@ -143,7 +143,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
             )}
           </ul>
           {result.backupDir && <p className="muted">{t('spriteProject.export.backup', { path: result.backupDir })}</p>}
-          <button type="button" className="btn" onClick={() => void window.gas.spriteGen.reveal(result.outDir)}>
+          <button type="button" className="btn spx-open" onClick={() => void window.gas.spriteGen.reveal(result.outDir)}>
             <Icon name="external" size={14} />
             {t('spriteProject.export.open')}
           </button>

@@ -151,9 +151,9 @@ function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
           <h2>{busy ? t('spineProject.import.reading') : t('spineProject.import.title')}</h2>
           <p>{t('spineProject.import.desc')}</p>
           <ul className="sp-formats">
-            {(['json', 'atlas', 'png', 'ver', 'skel'] as const).map((k) => (
-              <li key={k} className={k === 'skel' ? 'no' : undefined}>
-                <Icon name={k === 'skel' ? 'x' : 'check'} size={12} />
+            {(['json', 'bin', 'atlas', 'png', 'ver'] as const).map((k) => (
+              <li key={k}>
+                <Icon name="check" size={12} />
                 {t(`spineProject.import.fmt_${k}`)}
               </li>
             ))}
@@ -187,6 +187,7 @@ function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
               Spine {sk?.version ?? ''}
             </span>
             <b>{v.skeletonName}</b>
+            {v.skeletonFormat && <span className="chip c-gray">{t(`spineProject.import.format.${v.skeletonFormat}`)}</span>}
             {v.status !== 'ok' && <span className={v.status === 'missing' ? 'chip c-red' : 'chip c-orange'}>{t(`spineProject.status.${v.status}`)}</span>}
           </div>
           <dl className="kv">
