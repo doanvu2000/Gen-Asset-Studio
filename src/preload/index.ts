@@ -13,7 +13,7 @@ import type {
   Unsubscribe
 } from '@shared/types'
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
-import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteSettings, type SpriteStripPatch, type SpriteStyle } from '@shared/sprite'
+import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteSettings, type SpriteStripPatch, type SpriteStyle, type NewSheetSpec } from '@shared/sprite'
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
@@ -184,7 +184,10 @@ const api: GasApi = {
     versions: (rel: string, key: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.versions, rel, key),
     exportRun: (rel: string, outDir: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.exportRun, rel, outDir),
     exportDir: (rel: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.exportDir, rel),
-    reveal: (path: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.reveal, path)
+    reveal: (path: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.reveal, path),
+    pickCharacter: () => ipcRenderer.invoke(SPRITE_GEN_IPC.pickCharacter),
+    createSheet: (rel: string, spec: NewSheetSpec) => ipcRenderer.invoke(SPRITE_GEN_IPC.createSheet, rel, spec),
+    snippets: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.snippets, rel, sheetId)
   },
   storage: {
     get: () => ipcRenderer.invoke(STORAGE_IPC.get),

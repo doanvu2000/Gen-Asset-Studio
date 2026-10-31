@@ -16,6 +16,7 @@ export interface StripReviewEntry {
 
 export interface StripSheetLike {
   id: string
+  origin?: 'import' | 'new'
   path: string
   hash: string
   frames: FrameRect[]

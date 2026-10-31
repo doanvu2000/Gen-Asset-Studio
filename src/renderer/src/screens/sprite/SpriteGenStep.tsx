@@ -4,6 +4,7 @@ import type { QueueJob } from '@shared/queue'
 import type { SpriteProjectView, StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
+import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
 import { genTargets, jobOf, qaFail, sourceOf, stripLabel, stripState, type StripState } from '@renderer/lib/sprite'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSprite } from '@renderer/store/sprite'
@@ -86,8 +87,8 @@ export function SpriteGenStep({ v }: { v: SpriteProjectView }): ReactElement {
       <div className="spg-top">
         <section className="spg-lock">
           <div className="spg-lock-pv">
-            <div className="spg-pv ck" title={t('spriteProject.gen.orig')}>
-              {lock && <StripPreview url={lock.origUrl} sizes={lock.frameSizes} pos={pos % Math.max(1, lock.frameCount)} size={92} />}
+            <div className="spg-pv ck" title={lock?.created ? t('spriteProject.create.character') : t('spriteProject.gen.orig')}>
+              {lock && <OrigPreview strip={lock} pos={pos % Math.max(1, lock.frameCount)} size={92} />}
             </div>
             <Icon name="right" size={14} />
             <div className="spg-pv ck" title={t('spriteProject.gen.new')}>
@@ -208,7 +209,7 @@ export function SpriteGenStep({ v }: { v: SpriteProjectView }): ReactElement {
               return (
                 <div key={s.key} className={s.key === v.lockKey ? 'spg-row lock' : 'spg-row'}>
                   <div className="spg-pv ck sm">
-                    <StripPreview url={s.origUrl} sizes={s.frameSizes} pos={p} size={52} />
+                    <OrigPreview strip={s} pos={p} size={52} />
                   </div>
                   <div className="spg-pv ck sm">
                     {s.mirrorOf ? (

@@ -90,3 +90,6 @@ Không hỗ trợ Spine 3.8/4.0/4.1 ở bản đầu: đọc header version, kh�
   - Lưới tổng chưa có Đi thử bằng frame mới (cần sheet tạm gộp dải mới).
   - Lưới tổng hiện slot theo bộ hướng của project (8) kể cả khi sheet chỉ 4 hướng.
 - Tiếp: S3 Sprite tạo mới.
+- **S3 xong** (2026-10-31): Tạo sheet mới từ ảnh nhân vật (`NewSheetDialog`), sheet trống `generated/<name>.png` hàng = anim × hướng, gen theo dải với ảnh dẫn lưới (ảnh nhân vật trong từng ô) + `fitNewStrip` (chân xuống đường đất, căn theo trọng tâm vùng chân), xuất `.json` TexturePacker array + `-snippets.md` (Flame SpriteSheet / Kotlin Bitmap / SpriteKit). Code: `src/main/sprite/{create,snippets}.ts`, SpriteService createSheet/pickCharacter/snippets. Test `npm run test:sprite-new` 28/28; E2E thật: idle 4 frame × 4 hướng, 3 lượt gen, QA sạch, xuất đúng.
+- Việc còn sau S3: walk/idle đôi khi ít khác biệt giữa frame (AI) — cân nhắc QA "chuyển động quá ít" bằng so sánh frame; intro bước Xuất ghi "atlas chép theo" chưa đúng cho sheet tạo mới; ô mô tả trong dialog hơi thấp.
+- Tiếp: S4 Spine reskin.

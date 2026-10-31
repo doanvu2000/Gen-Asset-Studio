@@ -14,6 +14,8 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Tự căn frame: tách nền, cùng tỉ lệ cho cả dải, giữ đường chân; QA lệch anchor, chênh chiều cao, thiếu frame, bị cắt, frame trùng
 - Duyệt bằng player Gốc | Mới chạy đồng bộ (cạnh nhau / chồng mờ), bấm lỗi QA nhảy tới frame, chọn phiên bản, gen lại kèm ghi chú, **Lưới tổng** xem mọi hướng chạy cùng lúc
 - Xuất sheet cùng tên, cùng W×H, đè đúng rect (kể cả frame xoay/trim của TexturePacker), frame chưa duyệt giữ gốc, file atlas chép theo không đổi, file trùng sao lưu vào `_backup`
+- **Tạo sprite sheet mới từ 1 ảnh nhân vật**: chọn bộ hướng 4/6/8 (hoặc không hướng), góc nhìn, cỡ ô 64/128/256, animation idle + walk mặc định, tick thêm run/attack/hurt/die hoặc tự đặt (2–8 frame); AI vẽ từng dải hướng × animation theo lưới, tự đặt chân cùng đường đất; dùng chung ảnh khoá nhân vật + lật gương
+- Xuất sheet tạo mới kèm **TexturePacker JSON** (có `animations` theo `<anim>_<hướng>`) và file `-snippets.md` có code mẫu **Flutter Flame · Android Kotlin · iOS SpriteKit**; màn Xuất có tab code + nút Chép
 - **Cài đặt › Lưu trữ**: xem app đang chiếm bao nhiêu dung lượng, nằm ở đâu (Codex, ảnh gốc Codex, lịch sử phiên, file tạm, log, bộ cài cập nhật, workspace, thư mục cài) và mỗi ổ còn trống bao nhiêu
 - **Chuyển dữ liệu sang ổ khác** (vd `D:\GenAssetStudio`): chọn ổ hoặc thư mục, app chép, kiểm tra rồi tự khởi động lại, không phải đăng nhập lại, bản cũ tự xoá; chuyển về chỗ mặc định được
 - Chọn nơi lưu dữ liệu ngay ở màn **Chuẩn bị môi trường** lần đầu

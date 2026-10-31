@@ -5,6 +5,7 @@ import { Icon } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
 import { DirCompass } from '@renderer/components/sprite/DirCompass'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
+import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
 import { relTime } from '@renderer/lib/format'
 import { jobOf, qaFail, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
 import { useApp } from '@renderer/store/app'
@@ -37,7 +38,7 @@ function Card({ v, s, pos, on, onOpen }: { v: SpriteProjectView; s: StripView; p
     <button type="button" className={on ? 'spr-card on' : 'spr-card'} onClick={onOpen}>
       <div className="spr-pair">
         <span className="spr-cell ck">
-          <StripPreview url={s.origUrl} sizes={s.frameSizes} pos={p} size={72} />
+          <OrigPreview strip={s} pos={p} size={72} />
         </span>
         <span className="spr-cell ck">
           {src.url ? <StripPreview url={src.url} sizes={src.frameSizes} pos={p % Math.max(1, src.frameCount)} size={72} flipX={!!s.mirrorOf} /> : <Icon name="sparkles" size={16} />}
@@ -189,8 +190,8 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
       {mode === 'side' ? (
         <div className="spr-d-stage">
           <figure className="ck">
-            <StripPreview url={s.origUrl} sizes={s.frameSizes} pos={pos} zoom={zoom} guides />
-            <figcaption>{t('spriteProject.gen.orig')}</figcaption>
+            <OrigPreview strip={s} pos={pos} zoom={zoom} guides />
+            <figcaption>{s.created ? t('spriteProject.create.character') : t('spriteProject.gen.orig')}</figcaption>
           </figure>
           <figure className="ck">
             {newPv}
@@ -338,7 +339,7 @@ function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactEleme
                   {s && src?.url ? (
                     <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} size={110} flipX={!!s.mirrorOf} />
                   ) : s ? (
-                    <StripPreview url={s.origUrl} sizes={s.frameSizes} pos={pos % Math.max(1, s.frameCount)} size={110} className="dim" />
+                    <OrigPreview strip={s} pos={pos % Math.max(1, s.frameCount)} size={110} className="dim" />
                   ) : null}
                 </span>
                 <small>
@@ -358,7 +359,7 @@ function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactEleme
               return src.url ? (
                 <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} size={260} flipX={!!cur.mirrorOf} guides />
               ) : (
-                <StripPreview url={cur.origUrl} sizes={cur.frameSizes} pos={pos % Math.max(1, cur.frameCount)} size={260} guides />
+                <OrigPreview strip={cur} pos={pos % Math.max(1, cur.frameCount)} size={260} guides />
               )
             })()
           ) : null}

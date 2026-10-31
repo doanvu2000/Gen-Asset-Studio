@@ -103,6 +103,52 @@ export const DEFAULT_SPRITE_SETTINGS: SpriteSettings = {
 }
 
 export type SheetStatus = 'ok' | 'missing' | 'changed'
+export type SheetOrigin = 'import' | 'new'
+
+export interface NewSheetAnim {
+  name: string
+  frames: number
+}
+
+export interface NewSheetSpec {
+  name: string
+  character: string
+  description: string
+  anims: NewSheetAnim[]
+  cell: 64 | 128 | 256
+}
+
+export const NEW_ANIM_PRESETS: ReadonlyArray<{ name: string; frames: number; on: boolean }> = [
+  { name: 'idle', frames: 4, on: true },
+  { name: 'walk', frames: 6, on: true },
+  { name: 'run', frames: 6, on: false },
+  { name: 'attack', frames: 6, on: false },
+  { name: 'hurt', frames: 3, on: false },
+  { name: 'die', frames: 6, on: false }
+]
+
+export const NEW_MAX_FRAMES = 8
+
+export interface PickedImage {
+  path: string
+  url: string
+  w: number
+  h: number
+}
+
+export interface SheetSnippets {
+  image: string
+  json: string
+  flame: string
+  android: string
+  ios: string
+}
+
+export interface CreateSheetResult {
+  view: SpriteProjectView | null
+  sheetId: string | null
+  error: string | null
+}
 
 export interface SheetView {
   id: string
@@ -122,6 +168,9 @@ export interface SheetView {
   empty: number[]
   anims: SpriteAnim[]
   warnings: string[]
+  origin: SheetOrigin
+  characterUrl: string | null
+  description: string
 }
 
 export interface SpriteProjectView {
@@ -187,6 +236,7 @@ export interface SpriteJobSpec {
   view: ViewAngle
   frames: FrameRect[]
   lockImages: string[]
+  create?: { character: string; description: string; cell: number }
 }
 
 export interface SpriteStyle {
@@ -246,6 +296,8 @@ export interface StripView {
   url: string | null
   decision: StripDecision | null
   qa: StripQa | null
+  created: boolean
+  refUrl: string | null
 }
 
 export interface SpriteExportState {
@@ -263,7 +315,7 @@ export interface SpriteStripPatch {
 export interface SpriteExportResult {
   ok: boolean
   outDir: string
-  sheets: Array<{ name: string; file: string; frames: number; kept: number; atlas: string | null }>
+  sheets: Array<{ name: string; file: string; frames: number; kept: number; atlas: string | null; snippets: string | null }>
   backupDir: string | null
   error: string | null
 }
@@ -277,7 +329,10 @@ export const SPRITE_GEN_IPC = {
   versions: 'sprite:versions',
   exportRun: 'sprite:export-run',
   exportDir: 'sprite:export-dir',
-  reveal: 'sprite:reveal'
+  reveal: 'sprite:reveal',
+  pickCharacter: 'sprite:pick-character',
+  createSheet: 'sprite:create-sheet',
+  snippets: 'sprite:snippets'
 } as const
 
 export interface SpriteGenApi {
@@ -290,6 +345,9 @@ export interface SpriteGenApi {
   exportRun: (rel: string, outDir: string) => Promise<SpriteExportResult>
   exportDir: (rel: string) => Promise<string | null>
   reveal: (path: string) => Promise<void>
+  pickCharacter: () => Promise<PickedImage | null>
+  createSheet: (rel: string, spec: NewSheetSpec) => Promise<CreateSheetResult>
+  snippets: (rel: string, sheetId: string) => Promise<SheetSnippets | null>
 }
 
 export function stripFrames(sizes: FrameSize[]): FrameRect[] {

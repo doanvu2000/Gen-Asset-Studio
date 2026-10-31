@@ -1,6 +1,7 @@
-import { useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SpriteExportResult, SpriteProjectView } from '@shared/sprite'
+import type { SheetSnippets, SheetView, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
+import { Segmented } from '@renderer/components/Segmented'
 import { Icon } from '@renderer/components/Icon'
 import { relTime } from '@renderer/lib/format'
 import { isApproved } from '@renderer/lib/sprite'
@@ -10,6 +11,64 @@ import { toast } from '@renderer/store/toast'
 
 function defaultOut(dir: string): string {
   return `${dir.replace(/[\\/]+$/, '')}${dir.includes('/') && !dir.includes('\\') ? '/' : '\\'}output`
+}
+
+type SnipTab = 'flame' | 'android' | 'ios'
+
+function Snippets({ rel, sheet }: { rel: string; sheet: SheetView }): ReactElement {
+  const { t } = useTranslation()
+  const [data, setData] = useState<SheetSnippets | null>(null)
+  const [tab, setTab] = useState<SnipTab>('flame')
+  const [failed, setFailed] = useState(false)
+  useEffect(() => {
+    let live = true
+    setFailed(false)
+    window.gas.spriteGen
+      .snippets(rel, sheet.id)
+      .then((r) => {
+        if (!live) return
+        setData(r)
+        setFailed(!r)
+      })
+      .catch(() => live && setFailed(true))
+    return () => {
+      live = false
+    }
+  }, [rel, sheet.id, sheet.anims])
+  const code = data ? data[tab] : ''
+  const copy = async (): Promise<void> => {
+    if (!code) return
+    await navigator.clipboard.writeText(code)
+    toast(t('spriteProject.export.copied'))
+  }
+  return (
+    <div className="spx-snip">
+      <div className="spx-snip-head">
+        <b>{sheet.name}</b>
+        {data && (
+          <span className="muted mono">
+            {data.image} · {data.json}
+          </span>
+        )}
+        <span className="grow" />
+        <Segmented<SnipTab>
+          value={tab}
+          ariaLabel={t('spriteProject.export.useTitle')}
+          options={[
+            { value: 'flame', label: 'Flame' },
+            { value: 'android', label: 'Android (Kotlin)' },
+            { value: 'ios', label: 'iOS (Swift)' }
+          ]}
+          onChange={setTab}
+        />
+        <button type="button" className="btn sm" disabled={!code} onClick={() => void copy()}>
+          <Icon name="copy" size={13} />
+          {t('spriteProject.export.copy')}
+        </button>
+      </div>
+      {failed ? <div className="note warn">{t('spriteProject.export.snipFailed')}</div> : <pre className="spx-code mono">{code || '…'}</pre>}
+    </div>
+  )
 }
 
 export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement {
@@ -33,6 +92,7 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
     [v]
   )
   const any = rows.some((r) => r.ok > 0)
+  const newSheets = v.sheets.filter((sh) => sh.origin === 'new')
 
   const pick = async (): Promise<void> => {
     const d = await window.gas.spriteGen.exportDir(v.rel)
@@ -103,7 +163,7 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
                 </td>
                 <td>{r.replaced}</td>
                 <td>{r.kept}</td>
-                <td>{r.sheet.atlasName ?? '—'}</td>
+                <td>{r.sheet.origin === 'new' ? <span className="chip c-orange">{t('spriteProject.export.atlasNew', { name: r.sheet.name.replace(/\.[^.]+$/, '') })}</span> : (r.sheet.atlasName ?? '—')}</td>
               </tr>
             ))}
           </tbody>
@@ -121,6 +181,18 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
           </button>
         </div>
       </section>
+      {newSheets.length > 0 && (
+        <section className="spx-card">
+          <h3>
+            <Icon name="terminal" size={14} />
+            {t('spriteProject.export.useTitle')}
+          </h3>
+          <p className="muted">{t('spriteProject.export.useDesc')}</p>
+          {newSheets.map((sh) => (
+            <Snippets key={sh.id} rel={v.rel} sheet={sh} />
+          ))}
+        </section>
+      )}
       {result && (
         <section className="spx-card">
           <h3>
@@ -134,9 +206,15 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
                 <b>{s.name}</b>
                 <span className="muted">{t('spriteProject.export.resLine', { frames: s.frames, kept: s.kept })}</span>
                 {s.atlas && <span className="chip c-blue">{s.atlas}</span>}
+                {s.snippets && (
+                  <span className="chip c-orange" title={s.snippets}>
+                    {s.snippets.split(/[\\/]/).pop()}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
+          {result.sheets.some((x) => x.snippets) && <p className="muted">{t('spriteProject.export.newNote')}</p>}
           {result.backupDir && <p className="muted">{t('spriteProject.export.backup', { path: result.backupDir })}</p>}
           <button type="button" className="btn" onClick={() => void window.gas.spriteGen.reveal(result.outDir)}>
             <Icon name="external" size={14} />

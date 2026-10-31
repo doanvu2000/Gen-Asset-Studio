@@ -4,7 +4,8 @@ import type { JobResult, QaSummary, QueueJob } from '@shared/queue'
 import type { StripQa } from '@shared/sprite'
 import type { GeneratedImage } from '../codex/service'
 import { JobFailure, releaseVersion, reserveVersion, versionsDir, type GenContext } from '../queue/GenJob'
-import { hexToRgb } from '../pipeline/image'
+import { decode, hexToRgb } from '../pipeline/image'
+import { buildNewStripPrompt, composeGuide, fitNewStrip } from './create'
 import { buildStripPrompt, composeSource, fitStrip, joinFrames, keyStrip, loadSheet, savePng, stripLayout, uprightFrame } from './strip'
 
 const DEVELOPER_INSTRUCTIONS = [
@@ -43,20 +44,36 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
   }
 
   ctx.onStep('chroma', 'building frame grid')
-  const sheet = await loadSheet(job.sourcePath)
-  const originals = await Promise.all(spec.frames.map((f) => uprightFrame(sheet, f)))
-  const layout = stripLayout(originals.length, Math.max(...originals.map((o) => o.width)), Math.max(...originals.map((o) => o.height)))
+  const create = spec.create
+  if (create && !existsSync(create.character)) throw new JobFailure('sourceMissing', `character image not found: ${create.character}`)
+  const originals = create ? [] : await loadSheet(job.sourcePath).then((sheet) => Promise.all(spec.frames.map((f) => uprightFrame(sheet, f))))
+  const layout = create
+    ? stripLayout(spec.frames.length, create.cell, create.cell)
+    : stripLayout(originals.length, Math.max(...originals.map((o) => o.width)), Math.max(...originals.map((o) => o.height)))
   const dir = versionsDir(job.projectPath, job.assetRelPath)
   const version = await reserveVersion(dir)
   try {
     const srcPath = join(dir, `v${version}-src.png`)
-    await savePng(composeSource(originals, layout), srcPath)
+    await savePng(create ? await composeGuide(await decode(create.character), layout) : composeSource(originals, layout), srcPath)
     const chroma = await ctx.pipeline.pickChroma({ source: srcPath, styleRefs: [...lockImages, ...styleImages, ...refImages] })
     lap('compose')
     checkAbort()
 
     ctx.onStep('prompt', 'building prompt')
-    const prompt = buildStripPrompt({
+    const common = {
+      stylePrompt: job.stylePrompt,
+      note: job.note,
+      anim: spec.anim,
+      dir: spec.dir,
+      view: spec.view,
+      layout,
+      chromaName: chroma.promptName,
+      chromaHex: chroma.hex,
+      lockCount: lockImages.length,
+      styleImageCount: styleImages.length,
+      refImageCount: refImages.length
+    }
+    const prompt = create ? buildNewStripPrompt({ ...common, description: create.description }) : buildStripPrompt({
       stylePrompt: job.stylePrompt,
       note: job.note,
       anim: spec.anim,
@@ -123,7 +140,9 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
     let fit
     try {
       const keyed = await keyStrip(rawPath, layout, hexToRgb(chroma.hex))
-      fit = await fitStrip(keyed, layout, originals)
+      fit = create
+        ? await fitNewStrip(keyed, layout, Math.round(create.cell * 0.78), create.cell - Math.max(2, Math.round(create.cell * 0.05)), !/jump/i.test(spec.anim)).then((r) => ({ ...r, offsetX: 0, offsetY: 0 }))
+        : await fitStrip(keyed, layout, originals)
     } catch (e) {
       throw new JobFailure('pipeline', `strip pipeline failed: ${(e as Error).message.split('\n')[0]}`)
     }

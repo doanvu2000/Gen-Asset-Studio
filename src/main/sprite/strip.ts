@@ -149,7 +149,7 @@ function frameOrigin(f: RawImage, l: StripLayout, i: number): { x: number; y: nu
   return { x: b.x + l.pad + Math.floor((l.cellW - f.width) / 2), y: b.y + l.pad + (l.cellH - f.height) }
 }
 
-function components(img: RawImage, region: Box, threshold = 40): Array<Box & { area: number }> {
+export function components(img: RawImage, region: Box, threshold = 40): Array<Box & { area: number }> {
   const { width: W, data } = img
   const seen = new Uint8Array(region.width * region.height)
   const out: Array<Box & { area: number }> = []
@@ -196,7 +196,7 @@ function components(img: RawImage, region: Box, threshold = 40): Array<Box & { a
   return out
 }
 
-function union(boxes: Box[]): Box | null {
+export function union(boxes: Box[]): Box | null {
   if (!boxes.length) return null
   let x0 = Infinity
   let y0 = Infinity
@@ -211,14 +211,14 @@ function union(boxes: Box[]): Box | null {
   return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }
 }
 
-function median(v: number[]): number {
+export function median(v: number[]): number {
   if (!v.length) return 0
   const s = [...v].sort((a, b) => a - b)
   const m = s.length >> 1
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2
 }
 
-function cellContent(img: RawImage, region: Box): { box: Box | null; touches: boolean } {
+export function cellContent(img: RawImage, region: Box): { box: Box | null; touches: boolean } {
   const comps = components(img, region)
   const biggest = comps.reduce((m, c) => Math.max(m, c.area), 0)
   const keep = comps.filter((c) => c.area >= Math.max(12, biggest * 0.003))
@@ -266,7 +266,7 @@ function sampleBilinear(src: RawImage, x: number, y: number, out: Uint8Array, o:
   out[o + 3] = Math.round(Math.min(1, a) * 255)
 }
 
-async function scaleRegion(src: RawImage, box: Box, s: number): Promise<RawImage> {
+export async function scaleRegion(src: RawImage, box: Box, s: number): Promise<RawImage> {
   const part = cropBox(src, box)
   const w = Math.max(1, Math.round(part.width * s))
   const h = Math.max(1, Math.round(part.height * s))
@@ -350,7 +350,7 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
   return { frames, scale: s, offsetX: offX, offsetY: offY, qa: { pass: !checks.some((c) => c.status === 'fail'), checks } }
 }
 
-function same(a: RawImage, b: RawImage): boolean {
+export function same(a: RawImage, b: RawImage): boolean {
   if (a.width !== b.width || a.height !== b.height) return false
   let diff = 0
   for (let i = 3; i < a.data.length; i += 4) if (Math.abs(a.data[i] - b.data[i]) > 24) diff++
@@ -395,7 +395,7 @@ export function flipFrame(f: RawImage): RawImage {
 
 export { encodePng }
 
-const DIR_TEXT: Record<Direction, string> = {
+export const DIR_TEXT: Record<Direction, string> = {
   S: 'facing the camera (front view, walking down the screen)',
   SW: 'facing down-left (three-quarter front view toward the left)',
   W: 'facing left (side profile looking left)',
@@ -406,7 +406,7 @@ const DIR_TEXT: Record<Direction, string> = {
   SE: 'facing down-right (three-quarter front view toward the right)'
 }
 
-const VIEW_TEXT: Record<ViewAngle, string> = {
+export const VIEW_TEXT: Record<ViewAngle, string> = {
   topdown: 'top-down 3/4 RPG camera',
   iso: 'isometric camera',
   side: 'side-view platformer camera'

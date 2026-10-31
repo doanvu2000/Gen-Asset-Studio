@@ -26,6 +26,12 @@ import {
   type SpriteSettings,
   type SpriteSkipped,
   type SpriteExportResult,
+  type CreateSheetResult,
+  type NewSheetSpec,
+  type PickedImage,
+  type SheetOrigin,
+  type SheetSnippets,
+  NEW_MAX_FRAMES,
   type SpriteStripPatch,
   type SpriteStyle,
   type StripVersion,
@@ -36,6 +42,7 @@ import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
 import { autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, stripVersions, versionPath, type ExportPiece, type StripDef, type StripReviewEntry } from './strips'
 import { savePng } from './strip'
+import { atlasJson, buildSnippets, snippetsMarkdown } from './snippets'
 import { ensureThumb, pathKey, type ProjectFile } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
@@ -59,6 +66,10 @@ export interface SheetRecord {
   anims: SpriteAnim[]
   warnings: string[]
   animsAuto: boolean
+  origin: SheetOrigin
+  character: string | null
+  description: string
+  cell: number
 }
 
 export interface SpriteData {
@@ -223,7 +234,11 @@ function sanitizeSheet(raw: unknown): SheetRecord | null {
     empty: Array.isArray(r.empty) ? r.empty.filter((i): i is number => typeof i === 'number' && Number.isInteger(i) && i >= 0 && i < frames.length) : [],
     anims: sanitizeAnims(r.anims, frames.length),
     warnings: Array.isArray(r.warnings) ? r.warnings.filter((x): x is string => typeof x === 'string').slice(0, 20) : [],
-    animsAuto: r.animsAuto !== false
+    animsAuto: r.animsAuto !== false,
+    origin: r.origin === 'new' ? 'new' : 'import',
+    character: typeof r.character === 'string' && r.character ? r.character : null,
+    description: typeof r.description === 'string' ? r.description.slice(0, 2000) : '',
+    cell: num(r.cell, 128)
   }
 }
 
@@ -382,7 +397,10 @@ export class SpriteService {
         frames: rec.frames,
         empty: rec.empty,
         anims: rec.anims,
-        warnings: rec.warnings
+        warnings: rec.warnings,
+        origin: rec.origin,
+        characterUrl: this.characterUrl(dir, rec),
+        description: rec.description
       })
     }
     if (dirty) await this.save(dir, data, sprite)
@@ -444,14 +462,136 @@ export class SpriteService {
       dir: d.anim.dir,
       frameCount: d.frames.length,
       frameSizes: frameSizes(d.frames),
-      origUrl: orig ? fileUrl(orig, basename(orig)) : null,
+      origUrl: d.sheet.origin === 'new' ? null : orig ? fileUrl(orig, basename(orig)) : null,
       mirrorOf: d.mirrorOf,
       versions,
       selected,
       url: selected ? fileUrl(versionPath(dir, d.assetRel, selected), `${selected}`) : null,
       decision: selected ? (entry?.decision ?? null) : null,
-      qa: meta?.qa ?? null
+      qa: meta?.qa ?? null,
+      created: d.sheet.origin === 'new',
+      refUrl: d.sheet.origin === 'new' ? this.characterUrl(dir, d.sheet as SheetRecord) : null
     }
+  }
+
+  private characterPath(dir: string, rec: Pick<SheetRecord, 'character'>): string | null {
+    if (!rec.character) return null
+    const p = join(dir, rec.character)
+    return existsSync(p) ? p : null
+  }
+
+  private characterUrl(dir: string, rec: Pick<SheetRecord, 'character'>): string | null {
+    const p = this.characterPath(dir, rec)
+    if (!p) return null
+    this.deps.allow(p)
+    return fileUrl(p, rec.character ?? '')
+  }
+
+  async pickCharacter(win: BrowserWindow | null): Promise<PickedImage | null> {
+    const { dialog } = await import('electron')
+    const opts: Electron.OpenDialogOptions = { properties: ['openFile', 'dontAddToRecent'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] }
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (r.canceled || !r.filePaths.length) return null
+    const p = resolve(r.filePaths[0])
+    const meta = await sharp(p).metadata()
+    if (!meta.width || !meta.height) return null
+    this.deps.allow(p)
+    return { path: p, url: fileUrl(p, String(Date.now())), w: meta.width, h: meta.height }
+  }
+
+  createSheet(rel: string, spec: NewSheetSpec): Promise<CreateSheetResult> {
+    return this.deps.run(async () => {
+      try {
+        const { dir, data, sprite } = await this.load(rel)
+        const src = typeof spec?.character === 'string' ? spec.character : ''
+        if (!src || !existsSync(src)) return { view: null, sheetId: null, error: 'noCharacter' }
+        const cell = spec.cell === 64 || spec.cell === 256 ? spec.cell : 128
+        const seen = new Set<string>()
+        const anims = (Array.isArray(spec.anims) ? spec.anims : [])
+          .map((a) => ({ name: String(a?.name ?? '').trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '_').slice(0, 30), frames: int(a?.frames, 4, 2, NEW_MAX_FRAMES) }))
+          .filter((a) => a.name && !seen.has(a.name) && seen.add(a.name))
+          .slice(0, 12)
+        if (!anims.length) return { view: null, sheetId: null, error: 'noAnims' }
+        const slug = (String(spec.name ?? '').trim().replace(/.png$/i, '').replace(/[^a-zA-Z0-9_-]+/g, '_').replace(/^_+|_+$/g, '') || 'character').slice(0, 60)
+        const genDir = join(dir, 'generated')
+        await fs.mkdir(genDir, { recursive: true })
+        let name = `${slug}.png`
+        for (let n = 2; existsSync(join(genDir, name)) || sprite.sheets.some((x) => basename(x.path).toLowerCase() === name.toLowerCase()); n++) name = `${slug}_${n}.png`
+        const dirs: Array<Direction | null> = sprite.settings.dirSet ? (sprite.settings.rowOrder.length ? sprite.settings.rowOrder : DIRECTIONS[sprite.settings.dirSet]) : [null]
+        const cols = Math.max(...anims.map((a) => a.frames))
+        const rows = anims.length * dirs.length
+        const grid: GridSpec = { cellW: cell, cellH: cell, cols, rows, offsetX: 0, offsetY: 0, gapX: 0, gapY: 0 }
+        const frames = gridFrames(grid)
+        const out: SpriteAnim[] = []
+        const empty: number[] = []
+        const taken = new Set<string>()
+        let r = 0
+        for (const a of anims) {
+          for (const d of dirs) {
+            const idx = Array.from({ length: a.frames }, (_, c) => r * cols + c)
+            for (let c = a.frames; c < cols; c++) empty.push(r * cols + c)
+            idx.forEach((i, k) => (frames[i].name = `${a.name}${d ? `_${d}` : ''}_${String(k).padStart(2, '0')}`))
+            out.push({
+              id: animId(a.name, d, taken),
+              name: a.name,
+              dir: d,
+              frames: idx,
+              fps: /idle/.test(a.name) ? 6 : /run|attack/.test(a.name) ? 12 : /die/.test(a.name) ? 8 : 10,
+              loop: /attack|hurt|die/.test(a.name) ? 'once' : 'loop'
+            })
+            r++
+          }
+        }
+        const path = join(genDir, name)
+        await sharp({ create: { width: cols * cell, height: rows * cell, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } }).png().toFile(path)
+        const charDir = join(dir, 'styles', 'sprite')
+        await fs.mkdir(charDir, { recursive: true })
+        const charRel = `styles/sprite/character_${name.replace(/\.png$/i, '')}.png`
+        await sharp(src).png().toFile(join(dir, charRel))
+        const st = await fs.stat(path)
+        const rec: SheetRecord = {
+          id: newId(),
+          path,
+          w: cols * cell,
+          h: rows * cell,
+          size: st.size,
+          mtime: Math.round(st.mtimeMs),
+          hash: await hashFile(path),
+          atlasPath: null,
+          format: 'grid',
+          grid,
+          frames,
+          empty,
+          anims: out,
+          warnings: [],
+          animsAuto: false,
+          origin: 'new',
+          character: charRel,
+          description: typeof spec.description === 'string' ? spec.description.trim().slice(0, 2000) : '',
+          cell
+        }
+        sprite.sheets.push(rec)
+        this.deps.log(`sprite ${rel}: created sheet ${name} ${cols}x${rows} cell ${cell}`)
+        const view = await this.view(rel, dir, data, sprite, true)
+        return { view, sheetId: rec.id, error: null }
+      } catch (e) {
+        this.deps.log(`sprite create sheet failed: ${(e as Error).message}`)
+        return { view: null, sheetId: null, error: (e as Error).message }
+      }
+    })
+  }
+
+  snippets(rel: string, sheetId: string): Promise<SheetSnippets | null> {
+    return this.deps.run(async () => {
+      try {
+        const { sprite } = await this.load(rel)
+        const rec = sprite.sheets.find((x) => x.id === sheetId)
+        if (!rec || !rec.grid) return null
+        return buildSnippets({ image: basename(rec.path), w: rec.w, h: rec.h, grid: rec.grid, frames: rec.frames, anims: rec.anims })
+      } catch {
+        return null
+      }
+    })
   }
 
   private async mutateView(rel: string, fn: (ctx: { dir: string; data: ProjectFile; sprite: SpriteData }) => Promise<void> | void, what: string): Promise<SpriteProjectView | null> {
@@ -597,7 +737,10 @@ export class SpriteService {
             dir: d.anim.dir,
             view: sprite.settings.view,
             frames: d.frames,
-            lockImages: d.key === lockKey ? [] : lockImages
+            lockImages: d.key === lockKey ? [] : lockImages,
+            ...(d.sheet.origin === 'new' && this.characterPath(dir, d.sheet as SheetRecord)
+              ? { create: { character: this.characterPath(dir, d.sheet as SheetRecord) as string, description: (d.sheet as SheetRecord).description, cell: (d.sheet as SheetRecord).cell } }
+              : {})
           }
         })
       }
@@ -673,7 +816,23 @@ export class SpriteService {
             atlas = basename(a)
           }
           const used = rec.anims.reduce((n, a) => n + a.frames.length, 0)
-          result.push({ name, file: target, frames: replaced, kept: Math.max(0, rec.frames.length - rec.empty.length - replaced), atlas })
+          let snippets: string | null = null
+          if (rec.origin === 'new' && rec.grid) {
+            const jsonName = name.replace(/\.png$/i, '.json')
+            const mdName = name.replace(/\.png$/i, '-snippets.md')
+            for (const f of [jsonName, mdName].map((n) => join(outDir, n))) {
+              if (!existsSync(f)) continue
+              backupDir = backupDir ?? join(outDir, '_backup', stamp)
+              await fs.mkdir(backupDir, { recursive: true })
+              await fs.copyFile(f, join(backupDir, basename(f)))
+            }
+            const sheet = { image: name, w: rec.w, h: rec.h, grid: rec.grid, frames: rec.frames, anims: rec.anims }
+            await fs.writeFile(join(outDir, jsonName), atlasJson(sheet), 'utf8')
+            await fs.writeFile(join(outDir, mdName), snippetsMarkdown(buildSnippets(sheet), name), 'utf8')
+            atlas = jsonName
+            snippets = join(outDir, mdName)
+          }
+          result.push({ name, file: target, frames: replaced, kept: Math.max(0, rec.frames.length - rec.empty.length - replaced), atlas, snippets })
           this.deps.log(`sprite export ${rel}: ${name} ${replaced}/${used} frame(s) replaced`)
         }
         if (!result.length) return fail('nothingApproved', outDir)
@@ -719,7 +878,11 @@ export class SpriteService {
       empty: [],
       anims: [],
       warnings: [],
-      animsAuto: true
+      animsAuto: true,
+      origin: 'import',
+      character: null,
+      description: '',
+      cell: 0
     }
     let parsed: ParsedAtlas | undefined
     if (atlas) {
@@ -965,6 +1128,9 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_GEN_IPC.versions, (_e, rel: unknown, key: unknown) => service.versions(s(rel), s(key)))
   ipcMain.handle(SPRITE_GEN_IPC.exportRun, (_e, rel: unknown, outDir: unknown) => service.exportRun(s(rel), s(outDir)))
   ipcMain.handle(SPRITE_GEN_IPC.exportDir, (_e, rel: unknown) => service.pickExportDir(s(rel), getWindow()))
+  ipcMain.handle(SPRITE_GEN_IPC.pickCharacter, () => service.pickCharacter(getWindow()))
+  ipcMain.handle(SPRITE_GEN_IPC.createSheet, (_e, rel: unknown, spec: unknown) => service.createSheet(s(rel), o<NewSheetSpec>(spec)))
+  ipcMain.handle(SPRITE_GEN_IPC.snippets, (_e, rel: unknown, id: unknown) => service.snippets(s(rel), s(id)))
   ipcMain.handle(SPRITE_GEN_IPC.reveal, async (_e, p: unknown) => {
     const target = s(p)
     if (!target || !existsSync(target)) return
