@@ -257,7 +257,6 @@ export function StripDetail({ v, s, chip, onNext }: { v: SpriteProjectView; s: S
           </div>
         </section>
       )}
-      <div className="grow" />
       <div className="spr-d-acts">
         {busy ? (
           <span className="chip c-blue">
