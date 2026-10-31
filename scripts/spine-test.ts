@@ -4,8 +4,9 @@ import type { JobSpec } from '../src/shared/queue'
 import { parseSpineAtlas } from '../src/main/spine/atlas'
 import { parseSkeleton, applyRig, SkeletonError } from '../src/main/spine/skeleton'
 import { applyRigBinary, parseSkeletonBinary } from '../src/main/spine/binary'
-import { extractRegion, writeRegion } from '../src/main/spine/regions'
-import { SpineService, regionAsset } from '../src/main/spine/service'
+import { extractRegion, premultiply, writeRegion } from '../src/main/spine/regions'
+import { SpineService, assignAssets, refersTo, regionAsset } from '../src/main/spine/service'
+import { AtlasError } from '../src/main/spine/atlas'
 import { versionsDir } from '../src/main/queue/GenJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { createImage, decode } from '../src/main/pipeline/image'
@@ -302,6 +303,7 @@ async function main(): Promise<void> {
   await svc.open('Hero Spine')
   check(statSync(join(cache, 'board.png')).mtimeMs === coverAt && existsSync(join(cache, 'board.key')), 'cover board not rebuilt when selection unchanged')
   await skelProject(page)
+  await backendFixes(page)
   console.log(`\n${passed} passed, ${failed} failed`)
   rmSync(base, { recursive: true, force: true })
   if (failed) process.exit(1)
@@ -338,6 +340,155 @@ async function skelProject(page: Awaited<ReturnType<typeof decode>>): Promise<vo
   ex = await svc.exportRun('Hero Skel', out)
   const outSd = await coreRead(readFileSync(join(out, 'hero.skel')))
   check(ex.rigChanged && ex.skeleton === 'hero.skel' && outSd.bones.find((b) => b.name === 'head')?.y === 66 && readFileSync(join(out, 'hero.original.skel')).equals(heroSkel), 'rig export writes new .skel + .original.skel')
+}
+
+type Raw = Awaited<ReturnType<typeof decode>>
+
+function region(img: Raw, x: number, y: number, w: number, h: number): number[] {
+  const out: number[] = []
+  for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) out.push(...img.data.subarray((j * img.width + i) * 4, (j * img.width + i) * 4 + 4))
+  return out
+}
+
+function sameish(a: number[], b: number[]): boolean {
+  return a.length === b.length && a.every((v, i) => Math.abs(v - b[i]) <= 2)
+}
+
+async function backendFixes(page: Raw): Promise<void> {
+  const straight = { data: page.data.slice(), width: page.width, height: page.height }
+  for (let i = 0; i < straight.data.length; i += 4) if (straight.data[i + 3]) straight.data[i + 3] = 1 + ((i >> 2) % 255)
+  const pmaPage = premultiply({ data: straight.data.slice(), width: page.width, height: page.height })
+  const atlas = parseSpineAtlas(readFileSync(join(sample, 'hero.atlas'), 'utf8'))
+  const rebuilt = createImage(page.width, page.height)
+  let semi = true
+  for (const r of atlas.regions) {
+    const up = await extractRegion(pmaPage, r, true)
+    const ref = await extractRegion(straight, r)
+    for (let i = 0; i < up.data.length; i += 4) if (ref.data[i + 3] >= 128 && !sameish([...up.data.subarray(i, i + 4)], [...ref.data.subarray(i, i + 4)])) semi = false
+    await writeRegion(rebuilt, r, up, true)
+  }
+  check(semi, 'pma extract → straight colours (alpha ≥ 128, ≤ 2)')
+  check(diff(rebuilt, pmaPage) === 0, 'pma extract → write round-trip with semi-transparent pixels (≤ 2)')
+
+  const src = join(base, 'src16')
+  mkdirSync(join(src, 'img'), { recursive: true })
+  copyFileSync(join(sample, 'hero.json'), join(src, 'hero.json'))
+  const atlasText = readFileSync(join(sample, 'hero.atlas'), 'utf8').replace(/\r/g, '').replace('hero.png\n', 'img/hero.png\npma:true\n')
+  writeFileSync(join(src, 'hero.atlas'), atlasText)
+  await savePng(pmaPage, join(src, 'img', 'hero.png'))
+  const dir = join(base, 'Fix16')
+  mkdirSync(dir, { recursive: true })
+  await writeProject(dir, emptyProject('Fix16', 'spine'))
+  const svc = new SpineService({ projectDir: () => dir, run: (fn) => fn(), allow: () => undefined, log: () => undefined, readProject, writeProject, enqueue: () => (specs) => specs.map(() => 'j'), template: async () => null })
+  const r = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  check(!r.error && r.view?.status === 'ok' && r.view.pages[0]?.pma === true, `pma atlas with page in subfolder imported (${r.error})`)
+  const srcHead = await decode(join(dir, '.cache', 'spine', readdirSync(join(dir, '.cache', 'spine'))[0], 'src', 'head.png'))
+  const head = atlas.regions.find((x) => x.name === 'head')!
+  check(sameish([...srcHead.data].filter((_, i) => i % 4 === 3), region(straight, head.x, head.y, head.w, head.h).filter((_, i) => i % 4 === 3)), 'region source sent to AI keeps alpha, un-premultiplied')
+  for (const x of atlas.regions) {
+    const vdir = versionsDir(dir, regionAsset(x.name))
+    mkdirSync(vdir, { recursive: true })
+    await savePng(await extractRegion(pmaPage, x, true), join(vdir, 'v1.png'))
+  }
+  const all: Record<string, { decision: 'approved' }> = {}
+  for (const x of atlas.regions) all[x.name] = { decision: 'approved' }
+  await svc.review('Fix16', all)
+  const out = join(base, 'out16')
+  let ex = await svc.exportRun('Fix16', out)
+  check(ex.ok && ex.pages[0]?.name === 'img/hero.png' && existsSync(join(out, 'img', 'hero.png')) && !existsSync(join(out, 'hero.png')), `export keeps page sub-path img/hero.png (${ex.error})`)
+  check(diff(await decode(join(out, 'img', 'hero.png')), pmaPage) === 0, 'pma export: identity versions → premultiplied page reproduced (≤ 2)')
+  ex = await svc.exportRun('Fix16', out)
+  check(!!ex.backupDir && existsSync(join(ex.backupDir, 'img', 'hero.png')), '_backup keeps page sub-path')
+
+  const red = createImage(head.w, head.h)
+  red.data.fill(255)
+  await savePng(red, join(versionsDir(dir, regionAsset('head')), 'v2.png'))
+  await svc.review('Fix16', { head: { decision: 'rejected' } })
+  const decodeData = async (u: string | undefined): Promise<Raw> => decode(Buffer.from((u ?? '').split(',')[1] ?? '', 'base64'))
+  let prev = await decodeData((await svc.assets('Fix16', 'new'))?.pages['img/hero.png'])
+  check(sameish(region(prev, head.x, head.y, head.w, head.h), region(pmaPage, head.x, head.y, head.w, head.h)), 'preview: rejected version not composed, original kept')
+  await svc.review('Fix16', { head: { decision: null } })
+  prev = await decodeData((await svc.assets('Fix16', 'new'))?.pages['img/hero.png'])
+  check(region(prev, head.x, head.y, 1, 1).join() === '255,255,255,255', 'preview: pending version is composed')
+  ex = await svc.exportRun('Fix16', out)
+  check(ex.ok && ex.pages[0]?.regions === 5, 'export still approved-only (pending head skipped)')
+
+  await svc.review('Fix16', { head: { selected: 1, decision: 'approved' } })
+  let v = await svc.open('Fix16')
+  check(v?.regions.find((x) => x.name === 'head')?.selected === 1 && v.regions.find((x) => x.name === 'head')?.decision === 'approved', 'pinned v1 stays while no newer version')
+  await savePng(red, join(versionsDir(dir, regionAsset('head')), 'v3.png'))
+  v = await svc.open('Fix16')
+  check(v?.regions.find((x) => x.name === 'head')?.selected === 3 && v.regions.find((x) => x.name === 'head')?.decision === null, 'new version unpins selection → latest, pending')
+  await svc.review('Fix16', { head: { decision: 'approved' } })
+  v = await svc.open('Fix16')
+  const pj = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(v?.regions.find((x) => x.name === 'head')?.selected === 3 && v.regions.find((x) => x.name === 'head')?.decision === 'approved' && pj.spine.review.head.selected === 0, 'approving after unpin approves the latest, pin cleared')
+
+  const pagePath = join(src, 'img', 'hero.png')
+  const before = statSync(join(dir, 'project.json')).mtimeMs
+  await svc.open('Fix16')
+  check(statSync(join(dir, 'project.json')).mtimeMs === before, 'open with unchanged sources does not rewrite project')
+  const t = new Date(Date.now() + 5000)
+  const { utimesSync } = await import('node:fs')
+  utimesSync(pagePath, t, t)
+  v = await svc.open('Fix16')
+  const pj2 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(v?.status === 'ok' && Math.abs(pj2.spine.pages['img/hero.png'].mtime - t.getTime()) < 2, 'touched page (same bytes) → ok, new mtime stored')
+  const p3 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  delete p3.spine.skeleton.mtime
+  delete p3.spine.skeleton.size
+  delete p3.spine.assets
+  p3.updatedAt = '2020-01-01T00:00:00.000Z'
+  writeFileSync(join(dir, 'project.json'), JSON.stringify(p3))
+  v = await svc.open('Fix16')
+  const p3b = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(v?.status === 'ok' && typeof p3b.spine.skeleton.mtime === 'number', 'legacy project without mtime → rehash once, ok, stats stored')
+  check(p3b.updatedAt === '2020-01-01T00:00:00.000Z' && p3b.spine.assets.head === 'spine/head' && v?.regions.find((x) => x.name === 'head')?.versions.length === 3, 'open-time migration (stats + asset map) does not bump updatedAt')
+  await savePng(red, pagePath)
+  v = await svc.open('Fix16')
+  check(v?.status === 'changed' && v.error === 'sourceChanged' && v.changedFiles?.length === 1 && v.regions.length === 0, 'page replaced in place → status changed / sourceChanged')
+  await svc.setStyle('Fix16', { promptEn: 'x', locked: true })
+  check((await svc.exportRun('Fix16', out)).error === 'sourceChanged' && (await svc.enqueue('Fix16', ['head'])) === 0, 'export / enqueue refused while sources changed')
+  await savePng(pmaPage, pagePath)
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('head\nbounds:2,2,100,100', 'head\nbounds:2,2,100,99'))
+  const re = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  const pj4 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(re.view?.status === 'ok' && !pj4.spine.review.head && pj4.spine.review.body?.decision === 'approved' && re.view.regions.find((x) => x.name === 'head')?.versions.length === 3, 're-import with re-packed atlas: resized region review reset, versions + other reviews kept')
+
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('head\nbounds:2,2,100,100', 'Head\nbounds:2,2,10,10\nhead\nbounds:2,2,100,100'))
+  const coll = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  const pj5 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(!coll.error && pj5.spine.assets.head === 'spine/head' && pj5.spine.assets.Head.startsWith('spine/Head-') && coll.view?.regions.find((x) => x.name === 'head')?.versions.length === 3, 'colliding region added before an existing one → existing asset dir kept')
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('rotate:90', 'rotate:180'))
+  await svc.review('Fix16', { head: { decision: 'approved' }, nope: { decision: 'approved' } })
+  const pj6 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+  check(pj6.spine.review.head.version === 3 && pj6.spine.review.head.seen === 3 && !pj6.spine.review.nope.version && !pj6.spine.review.nope.seen, 'review uses stored asset map (atlas unparseable), unknown region gets no version/seen')
+  copyFileSync(join(src, 'img', 'hero.png'), join(base, 'evil.png'))
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('img/hero.png\n', '../evil.png\n'))
+  const evil = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  const exEvil = await svc.exportRun('Fix16', join(base, 'out-evil'))
+  check(!evil.error && exEvil.error === 'pagePath:../evil.png' && !existsSync(join(base, 'out-evil', 'evil.png')), `page path escaping outDir → ${exEvil.error}`)
+
+  let code = ''
+  try {
+    parseSpineAtlas('p.png\nsize:8,8\nr\nbounds:0,0,2,2\nrotate:180\n')
+  } catch (e) {
+    code = e instanceof AtlasError ? e.code : 'other'
+  }
+  check(code === 'unsupportedRotate', 'rotate 180 → AtlasError unsupportedRotate')
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('rotate:90', 'rotate:270'))
+  const rot = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  check(rot.error?.startsWith('unsupportedRotate:') === true, `import with rotate 270 → ${rot.error}`)
+
+  const seq = { skin: 'default', slot: 's', name: 'fx', region: 'seq/fx', kind: 'region' as const, sequence: { count: 3, start: 1, digits: 2 } }
+  check(refersTo(seq, 'seq/fx01') && refersTo(seq, 'seq/fx03') && !refersTo(seq, 'seq/fx04') && !refersTo(seq, 'seq/fx1') && !refersTo(seq, 'seq/fx00') && refersTo(seq, 'seq/fx'), 'sequence attachment matches padded frame regions')
+  const r2 = parseSkeletonBinary(writeSkel(RICH, { nonessential: false })).info.attachments.find((a) => a.name === 'r2')
+  check(r2?.sequence?.count === 3 && r2.sequence.start === 1 && r2.sequence.digits === 2, 'binary reader keeps sequence count/start/digits')
+
+  const m = assignAssets(['a b', 'a_b', 'c', 'Head', 'head', 'x y', 'x:y'], {})
+  check(m['a b'] === 'spine/a_b' && m['a_b'].startsWith('spine/a_b-') && m.c === 'spine/c' && m.Head === 'spine/Head' && m.head.startsWith('spine/head-') && m['x y'] === 'spine/x_y' && m['x:y'] !== m['x y'] && new Set(Object.values(m)).size === 7, 'assignAssets: first in atlas order keeps the legacy name, suffix only on collisions')
+  const m2 = assignAssets(['Head', 'head', 'a b'], { head: 'spine/head', gone: 'spine/a_b' })
+  check(m2.head === 'spine/head' && m2.Head.startsWith('spine/Head-') && m2['a b'].startsWith('spine/a_b-') && m2.gone === 'spine/a_b', 'assignAssets: stored mapping never changes, new names avoid it')
 }
 
 void main().catch((e) => {

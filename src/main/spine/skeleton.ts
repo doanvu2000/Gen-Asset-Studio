@@ -53,7 +53,12 @@ export function parseSkeleton(text: string): { raw: Json; info: SpineSkeletonInf
         const at = obj(a)
         const kind = kindOf(at.type)
         if (kind === 'other') continue
-        attachments.push({ skin: skin.name, slot, name, region: typeof at.path === 'string' ? at.path : typeof at.name === 'string' ? at.name : name, kind })
+        const ref: SpineAttachmentRef = { skin: skin.name, slot, name, region: typeof at.path === 'string' ? at.path : typeof at.name === 'string' ? at.name : name, kind }
+        if (at.sequence !== undefined) {
+          const sq = obj(at.sequence)
+          ref.sequence = { count: Math.max(0, Math.round(num(sq.count))), start: Math.round(num(sq.start, 1)), digits: Math.max(0, Math.round(num(sq.digits))) }
+        }
+        attachments.push(ref)
       }
     }
   }

@@ -10,15 +10,45 @@ async function rotate(img: RawImage, angle: number): Promise<RawImage> {
   return { data: new Uint8Array(buf.data.buffer, buf.data.byteOffset, buf.data.byteLength), width: buf.info.width, height: buf.info.height }
 }
 
-export async function extractRegion(page: RawImage, r: SpineRegion): Promise<RawImage> {
+export function unpremultiply(img: RawImage): RawImage {
+  const d = img.data
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3]
+    if (a === 255) continue
+    if (!a) {
+      d[i] = d[i + 1] = d[i + 2] = 0
+      continue
+    }
+    d[i] = Math.min(255, Math.round((d[i] * 255) / a))
+    d[i + 1] = Math.min(255, Math.round((d[i + 1] * 255) / a))
+    d[i + 2] = Math.min(255, Math.round((d[i + 2] * 255) / a))
+  }
+  return img
+}
+
+export function premultiply(img: RawImage): RawImage {
+  const d = img.data
+  for (let i = 0; i < d.length; i += 4) {
+    const a = d[i + 3]
+    if (a === 255) continue
+    d[i] = Math.round((d[i] * a) / 255)
+    d[i + 1] = Math.round((d[i + 1] * a) / 255)
+    d[i + 2] = Math.round((d[i + 2] * a) / 255)
+  }
+  return img
+}
+
+export async function extractRegion(page: RawImage, r: SpineRegion, pma = false): Promise<RawImage> {
   const s = regionPageSize(r)
   const part = crop(page, { x: r.x, y: r.y, w: s.w, h: s.h })
+  if (pma) unpremultiply(part)
   return r.degrees === 90 ? rotate(part, 90) : part
 }
 
-export async function writeRegion(page: RawImage, r: SpineRegion, upright: RawImage): Promise<void> {
+export async function writeRegion(page: RawImage, r: SpineRegion, upright: RawImage, pma = false): Promise<void> {
   let img = upright.width === r.w && upright.height === r.h ? upright : await resizeRaw(upright, r.w, r.h)
   if (r.degrees === 90) img = await rotate(img, -90)
+  if (pma) img = premultiply(img === upright ? { ...img, data: img.data.slice() } : img)
   const s = regionPageSize(r)
   for (let y = Math.max(0, r.y); y < Math.min(page.height, r.y + s.h); y++) {
     page.data.fill(0, (y * page.width + Math.max(0, r.x)) * 4, (y * page.width + Math.min(page.width, r.x + s.w)) * 4)

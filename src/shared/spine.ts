@@ -35,6 +35,7 @@ export interface SpineAttachmentRef {
   name: string
   region: string
   kind: SpineAttachmentKind
+  sequence?: { count: number; start: number; digits: number }
 }
 
 export interface SpineSkeletonInfo {
@@ -111,6 +112,7 @@ export interface SpineProjectView {
   skeletonFormat: SpineSkeletonFormat | null
   status: 'ok' | 'missing' | 'changed' | 'none'
   error: string | null
+  changedFiles?: string[]
   skeleton: SpineSkeletonInfo | null
   pages: Array<SpineAtlasPage & { url: string | null; path: string | null }>
   regions: SpineRegionView[]

@@ -1,5 +1,14 @@
 import type { SpineAtlasData, SpineAtlasPage, SpineRegion } from '@shared/spine'
 
+export class AtlasError extends Error {
+  constructor(
+    readonly code: 'unsupportedRotate',
+    message: string
+  ) {
+    super(message)
+  }
+}
+
 function entry(line: string): [string, string[]] | null {
   const i = line.indexOf(':')
   if (i < 0) return null
@@ -80,7 +89,7 @@ export function parseSpineAtlas(text: string): SpineAtlasData {
       region.hasOrig = true
     } else if (k === 'rotate') {
       const d = v[0] === 'true' ? 90 : v[0] === 'false' ? 0 : n[0]
-      if (d !== 0 && d !== 90) throw new Error(`unsupported region rotation ${d}`)
+      if (d !== 0 && d !== 90) throw new AtlasError('unsupportedRotate', `${region.name} ${v[0]}`)
       region.degrees = d
     } else if (k === 'index') region.index = n[0]
   }

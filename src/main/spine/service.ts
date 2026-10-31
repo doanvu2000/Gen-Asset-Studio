@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
-import { basename, dirname, extname, join, resolve } from 'node:path'
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import sharp from 'sharp'
 import type { BrowserWindow, IpcMain } from 'electron'
 import type { JobSpec } from '@shared/queue'
@@ -11,6 +11,7 @@ import {
   SPINE_IPC,
   type SpineAssets,
   type SpineAtlasData,
+  type SpineAttachmentRef,
   type SpineDecision,
   type SpineExportResult,
   type SpineImportResult,
@@ -23,16 +24,16 @@ import {
   skeletonFormatOf
 } from '@shared/spine'
 import type { ProjectFile } from '../workspace/project'
-import { pathKey } from '../workspace/project'
+import { PROJECT_FILE, pathKey } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
 import { readVersionQa } from '../workspace/review'
 import { versionsDir } from '../queue/GenJob'
-import { decode, encodePng } from '../pipeline/image'
+import { decode, encodePng, rawSharp } from '../pipeline/image'
 import type { RawImage } from '../pipeline/types'
 import { savePng } from '../sprite/strip'
 import { decisionAt } from '../sprite/strips'
-import { parseSpineAtlas } from './atlas'
+import { AtlasError, parseSpineAtlas } from './atlas'
 import { applyRig, parseSkeleton, rigIsEmpty, sanitizeRig, SkeletonError } from './skeleton'
 import { applyRigBinary, parseSkeletonBinary } from './binary'
 import { extractRegion, partsBoard, writeRegion } from './regions'
@@ -51,6 +52,8 @@ export interface SpineDeps {
 interface FileRef {
   path: string
   hash: string
+  mtime?: number
+  size?: number
 }
 
 interface SpineData {
@@ -58,7 +61,9 @@ interface SpineData {
   atlas: FileRef | null
   pages: Record<string, FileRef>
   style: SpriteStyle
-  review: Record<string, { decision: SpineDecision | null; selected: number; version?: number }>
+  review: Record<string, { decision: SpineDecision | null; selected: number; version?: number; seen?: number }>
+  dims: Record<string, number[]>
+  assets: Record<string, string>
   rig: SpineRig
   exportDir: string
   lastExport: { at: number; pages: number; regions: number } | null
@@ -97,7 +102,13 @@ function num(v: unknown, d = 0): number {
 
 function fileRef(v: unknown): FileRef | null {
   const r = o(v)
-  return typeof r.path === 'string' && r.path ? { path: r.path, hash: typeof r.hash === 'string' ? r.hash : '' } : null
+  if (typeof r.path !== 'string' || !r.path) return null
+  const f: FileRef = { path: r.path, hash: typeof r.hash === 'string' ? r.hash : '' }
+  if (typeof r.mtime === 'number' && typeof r.size === 'number') {
+    f.mtime = r.mtime
+    f.size = r.size
+  }
+  return f
 }
 
 function relRef(v: unknown): string | null {
@@ -128,8 +139,17 @@ function readData(data: ProjectFile): SpineData {
   const review: SpineData['review'] = {}
   for (const [k, v] of Object.entries(o(raw.review))) {
     const e = o(v)
-    review[k] = { decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null, selected: Math.max(0, Math.round(num(e.selected))), version: Math.max(0, Math.round(num(e.version))) }
+    review[k] = {
+      decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null,
+      selected: Math.max(0, Math.round(num(e.selected))),
+      version: Math.max(0, Math.round(num(e.version))),
+      seen: Math.max(0, Math.round(num(e.seen)))
+    }
   }
+  const dims: SpineData['dims'] = {}
+  for (const [k, v] of Object.entries(o(raw.dims))) if (Array.isArray(v) && v.length === 4 && v.every((x) => typeof x === 'number')) dims[k] = v as number[]
+  const assets: SpineData['assets'] = {}
+  for (const [k, v] of Object.entries(o(raw.assets))) if (typeof v === 'string' && v.startsWith('spine/') && !v.split('/').includes('..')) assets[k] = v
   const last = o(raw.lastExport)
   return {
     skeleton: fileRef(raw.skeleton),
@@ -137,6 +157,8 @@ function readData(data: ProjectFile): SpineData {
     pages,
     style: raw.style ? sanitizeStyle(raw.style) : { ...EMPTY_SPRITE_STYLE },
     review,
+    dims,
+    assets,
     rig: sanitizeRig(raw.rig),
     exportDir: typeof raw.exportDir === 'string' ? raw.exportDir : '',
     lastExport: raw.lastExport ? { at: num(last.at), pages: num(last.pages), regions: num(last.regions) } : null
@@ -148,9 +170,63 @@ export function regionAsset(name: string): string {
   return `spine/${safe}`
 }
 
+const flatKey = (asset: string): string => asset.replace(/\//g, '__').toLowerCase()
+
+export function assignAssets(names: string[], known: Record<string, string>): Record<string, string> {
+  const out = { ...known }
+  const used = new Set(Object.values(out).map(flatKey))
+  for (const n of names) {
+    if (out[n]) continue
+    const plain = regionAsset(n)
+    const hashed = `${plain}-${createHash('sha1').update(n).digest('hex').slice(0, 6)}`
+    let a = used.has(flatKey(plain)) ? hashed : plain
+    for (let i = 2; used.has(flatKey(a)); i++) a = `${hashed}-${i}`
+    out[n] = a
+    used.add(flatKey(a))
+  }
+  return out
+}
+
+export function refersTo(a: SpineAttachmentRef, name: string): boolean {
+  const base = name.replace(/#\d+$/, '')
+  if (a.region === name || a.region === base) return true
+  const sq = a.sequence
+  if (!sq || !base.startsWith(a.region)) return false
+  const tail = base.slice(a.region.length)
+  if (!/^\d+$/.test(tail)) return false
+  const n = Number(tail)
+  return n >= sq.start && n < sq.start + sq.count && tail === String(n).padStart(sq.digits, '0')
+}
+
+function regionDims(atlas: SpineAtlasData): Record<string, number[]> {
+  const out: Record<string, number[]> = {}
+  for (const r of atlas.regions) out[r.name] = [r.w, r.h, r.origW, r.origH]
+  return out
+}
+
+async function statRef(path: string): Promise<FileRef> {
+  const st = await fs.stat(path)
+  return { path: resolve(path), hash: await hashFile(path), mtime: st.mtimeMs, size: st.size }
+}
+
+function pageTarget(outDir: string, name: string): string | null {
+  const t = resolve(outDir, name)
+  const rel = relative(outDir, t)
+  return !rel || isAbsolute(rel) || rel.split(/[\\/]/)[0] === '..' ? null : t
+}
+
+async function savePage(img: RawImage, path: string): Promise<void> {
+  const ext = extname(path).toLowerCase()
+  if (ext === '.jpg' || ext === '.jpeg') await rawSharp(img).flatten({ background: '#000000' }).jpeg({ quality: 95 }).toFile(path)
+  else if (ext === '.webp') await rawSharp(img).webp({ lossless: true }).toFile(path)
+  else await savePng(img, path)
+}
+
 const IMG = new Set(['.png', '.jpg', '.jpeg', '.webp'])
 
 export class SpineService {
+  private readonly hashMemo = new Map<string, { mtime: number; size: number; hash: string }>()
+
   constructor(private readonly deps: SpineDeps) {}
 
   private async load(rel: string): Promise<Loaded> {
@@ -172,22 +248,62 @@ export class SpineService {
     return { format, data, atlasText, atlas: parseSpineAtlas(atlasText), info: readSkeleton(data, format) }
   }
 
+  private async sourceChanges(l: Loaded): Promise<string[]> {
+    const refs = [l.spine.skeleton, l.spine.atlas, ...Object.values(l.spine.pages)].filter((r): r is FileRef => !!r)
+    const changed: string[] = []
+    let dirty = false
+    for (const ref of refs) {
+      const st = await fs.stat(ref.path).catch(() => null)
+      if (!st || !st.isFile() || (ref.mtime === st.mtimeMs && ref.size === st.size)) continue
+      const memo = this.hashMemo.get(ref.path)
+      const hash = memo && memo.mtime === st.mtimeMs && memo.size === st.size ? memo.hash : await hashFile(ref.path)
+      this.hashMemo.set(ref.path, { mtime: st.mtimeMs, size: st.size, hash })
+      if (ref.hash && ref.hash !== hash) {
+        changed.push(ref.path)
+        continue
+      }
+      ref.hash = hash
+      ref.mtime = st.mtimeMs
+      ref.size = st.size
+      dirty = true
+    }
+    if (dirty) await this.saveQuiet(l)
+    return changed
+  }
+
+  private async saveQuiet(l: Loaded): Promise<void> {
+    l.data.spine = { ...l.spine }
+    const file = join(l.dir, PROJECT_FILE)
+    const tmp = `${file}.${process.pid}.tmp`
+    await fs.writeFile(tmp, JSON.stringify(l.data, null, 2), 'utf8')
+    await fs.rename(tmp, file)
+  }
+
+  private async assetsFor(l: Loaded, atlas: SpineAtlasData): Promise<Map<string, string>> {
+    const names = atlas.regions.map((r) => r.name)
+    if (names.some((n) => !l.spine.assets[n])) {
+      l.spine.assets = assignAssets(names, l.spine.assets)
+      await this.saveQuiet(l)
+    }
+    return new Map(names.map((n) => [n, l.spine.assets[n]]))
+  }
+
   private cacheDir(dir: string, spine: SpineData): string {
     const sig = createHash('sha1')
-      .update([spine.atlas?.hash ?? '', ...Object.values(spine.pages).map((p) => p.hash)].join('|'))
+      .update(['pma1', spine.atlas?.hash ?? '', ...Object.values(spine.pages).map((p) => p.hash)].join('|'))
       .digest('hex')
       .slice(0, 10)
     return join(dir, '.cache', 'spine', sig)
   }
 
-  private async ensureSources(dir: string, spine: SpineData, atlas: SpineAtlasData): Promise<Map<string, string>> {
+  private async ensureSources(dir: string, spine: SpineData, atlas: SpineAtlasData, assets: Map<string, string>): Promise<Map<string, string>> {
     const cache = this.cacheDir(dir, spine)
     const out = new Map<string, string>()
     const pages = new Map<string, RawImage>()
     const parts: RawImage[] = []
     let made = false
     for (const r of atlas.regions) {
-      const file = join(cache, 'src', `${regionAsset(r.name).slice(6).replace(/\//g, '__')}.png`)
+      const file = join(cache, 'src', `${(assets.get(r.name) ?? regionAsset(r.name)).slice(6).replace(/\//g, '__')}.png`)
       out.set(r.name, file)
       if (existsSync(file)) continue
       const pageRef = spine.pages[r.page]
@@ -197,7 +313,7 @@ export class SpineService {
         page = await decode(pageRef.path)
         pages.set(r.page, page)
       }
-      const img = await extractRegion(page, r)
+      const img = await extractRegion(page, r, atlas.pages.find((p) => p.name === r.page)?.pma === true)
       await fs.mkdir(dirname(file), { recursive: true })
       await savePng(img, file)
       made = true
@@ -243,9 +359,9 @@ export class SpineService {
     }
   }
 
-  private async versionsOf(dir: string, name: string): Promise<number[]> {
+  private async versionsOf(dir: string, asset: string): Promise<number[]> {
     try {
-      return (await fs.readdir(versionsDir(dir, regionAsset(name))))
+      return (await fs.readdir(versionsDir(dir, asset)))
         .map((n) => /^v(\d+)\.png$/i.exec(n))
         .filter((m): m is RegExpExecArray => !!m)
         .map((m) => Number(m[1]))
@@ -256,8 +372,11 @@ export class SpineService {
   }
 
   private selectedOf(spine: SpineData, name: string, versions: number[]): number {
-    const sel = spine.review[name]?.selected
-    return sel && versions.includes(sel) ? sel : versions[versions.length - 1] ?? 0
+    const e = spine.review[name]
+    const latest = versions[versions.length - 1] ?? 0
+    const sel = e?.selected
+    if (!sel || !versions.includes(sel)) return latest
+    return e.seen && latest > e.seen ? latest : sel
   }
 
   private async view(rel: string, l: Loaded, error: string | null = null): Promise<SpineProjectView> {
@@ -283,26 +402,30 @@ export class SpineService {
       updatedAt: Date.parse(data.updatedAt) || 0
     }
     if (!spine.skeleton) return base
+    const changedFiles = await this.sourceChanges(l)
+    if (changedFiles.length) return { ...base, status: 'changed', error: error ?? 'sourceChanged', changedFiles }
     let parsed: Parsed | null = null
     try {
       parsed = await this.parse(spine)
     } catch (e) {
-      return { ...base, status: 'changed', error: e instanceof SkeletonError ? `${e.code}:${e.message}` : `parse:${(e as Error).message}` }
+      return { ...base, status: 'changed', error: e instanceof SkeletonError || e instanceof AtlasError ? `${e.code}:${e.message}` : `parse:${(e as Error).message}` }
     }
     if (!parsed) return { ...base, status: 'missing' }
-    const sources = await this.ensureSources(dir, spine, parsed.atlas)
+    const assets = await this.assetsFor(l, parsed.atlas)
+    const sources = await this.ensureSources(dir, spine, parsed.atlas, assets)
     const regions: SpineRegionView[] = []
     for (const r of parsed.atlas.regions) {
-      const refs = parsed.info.attachments.filter((a) => a.region === r.name || a.region === r.name.replace(/#\d+$/, ''))
-      const versions = await this.versionsOf(dir, r.name)
+      const refs = parsed.info.attachments.filter((a) => refersTo(a, r.name))
+      const assetRel = assets.get(r.name) ?? regionAsset(r.name)
+      const versions = await this.versionsOf(dir, assetRel)
       const selected = this.selectedOf(spine, r.name, versions)
       const src = sources.get(r.name)
       if (src) this.deps.allow(src)
-      const vdir = versionsDir(dir, regionAsset(r.name))
+      const vdir = versionsDir(dir, assetRel)
       regions.push({
         ...r,
         key: r.name,
-        assetRel: regionAsset(r.name),
+        assetRel,
         sourceUrl: src && existsSync(src) ? fileUrl(src, basename(src)) : null,
         slots: [...new Set(refs.map((a) => a.slot))],
         skins: [...new Set(refs.map((a) => a.skin))],
@@ -402,19 +525,32 @@ export class SpineService {
         try {
           parsed = parseSpineAtlas(await fs.readFile(atlas, 'utf8'))
         } catch (e) {
-          return fail(`parse:${(e as Error).message}`)
+          return fail(e instanceof AtlasError ? `${e.code}:${e.message}` : `parse:${(e as Error).message}`)
         }
         const pages: Record<string, FileRef> = {}
         for (const p of parsed.pages) {
           const cands = [join(dirname(atlas), p.name), ...files.filter((f) => basename(f) === basename(p.name))]
           const found = cands.find((c) => existsSync(c) && IMG.has(extname(c).toLowerCase()))
           if (!found) return fail(`noPage:${p.name}`)
-          pages[p.name] = { path: resolve(found), hash: await hashFile(found) }
+          pages[p.name] = await statRef(found)
         }
         const sameSkel = l.spine.skeleton && pathKey(l.spine.skeleton.path) === pathKey(skeleton)
-        l.spine.skeleton = { path: resolve(skeleton), hash: await hashFile(skeleton) }
-        l.spine.atlas = { path: resolve(atlas), hash: await hashFile(atlas) }
+        const dims = regionDims(parsed)
+        if (sameSkel) {
+          let old = l.spine.dims
+          if (!Object.keys(old).length && l.spine.atlas && existsSync(l.spine.atlas.path)) {
+            old = await fs
+              .readFile(l.spine.atlas.path, 'utf8')
+              .then((t) => regionDims(parseSpineAtlas(t)))
+              .catch(() => ({}))
+          }
+          for (const k of Object.keys(l.spine.review)) if (old[k] && dims[k] && old[k].join() !== dims[k].join()) delete l.spine.review[k]
+        }
+        l.spine.skeleton = await statRef(skeleton)
+        l.spine.atlas = await statRef(atlas)
         l.spine.pages = pages
+        l.spine.dims = dims
+        l.spine.assets = assignAssets(parsed.regions.map((r) => r.name), l.spine.assets)
         if (!sameSkel) {
           l.spine.rig = { ...EMPTY_RIG, bones: {}, attachments: {} }
           l.spine.review = {}
@@ -437,29 +573,33 @@ export class SpineService {
         l.spine.atlas = null
         l.spine.pages = {}
         l.spine.review = {}
+        l.spine.dims = {}
         l.spine.rig = { bones: {}, attachments: {} }
       },
       'clear'
     )
   }
 
-  private async composedPages(l: Loaded, parsed: Parsed, approvedOnly: boolean): Promise<Map<string, { image: RawImage; regions: number }>> {
-    const out = new Map<string, { image: RawImage; regions: number }>()
+  private async composedPages(l: Loaded, parsed: Parsed, mode: 'preview' | 'export'): Promise<Map<string, { image: RawImage; regions: number; pma: boolean }>> {
+    const out = new Map<string, { image: RawImage; regions: number; pma: boolean }>()
     for (const p of parsed.atlas.pages) {
       const ref = l.spine.pages[p.name]
       if (!ref || !existsSync(ref.path)) continue
-      out.set(p.name, { image: await decode(ref.path), regions: 0 })
+      out.set(p.name, { image: await decode(ref.path), regions: 0, pma: p.pma })
     }
+    const assets = await this.assetsFor(l, parsed.atlas)
     for (const r of parsed.atlas.regions) {
       const page = out.get(r.page)
       if (!page) continue
-      const versions = await this.versionsOf(l.dir, r.name)
+      const asset = assets.get(r.name) ?? regionAsset(r.name)
+      const versions = await this.versionsOf(l.dir, asset)
       const v = this.selectedOf(l.spine, r.name, versions)
       if (!v) continue
-      if (approvedOnly && decisionAt(l.spine.review[r.name], v) !== 'approved') continue
-      const file = join(versionsDir(l.dir, regionAsset(r.name)), `v${v}.png`)
+      const decision = decisionAt(l.spine.review[r.name], v)
+      if (mode === 'export' ? decision !== 'approved' : decision === 'rejected') continue
+      const file = join(versionsDir(l.dir, asset), `v${v}.png`)
       if (!existsSync(file)) continue
-      await writeRegion(page.image, r, await decode(file))
+      await writeRegion(page.image, r, await decode(file), page.pma)
       page.regions++
     }
     return out
@@ -471,6 +611,7 @@ export class SpineService {
         const l = await this.load(rel)
         const parsed = await this.parse(l.spine)
         if (!parsed || !l.spine.skeleton || !l.spine.atlas) return null
+        if ((await this.sourceChanges(l)).length) return null
         const pages: Record<string, string> = {}
         if (which === 'orig') {
           for (const p of parsed.atlas.pages) {
@@ -478,7 +619,7 @@ export class SpineService {
             if (ref && existsSync(ref.path)) pages[p.name] = `data:image/png;base64,${(await sharp(ref.path).png().toBuffer()).toString('base64')}`
           }
         } else {
-          for (const [name, p] of await this.composedPages(l, parsed, false)) pages[name] = `data:image/png;base64,${Buffer.from(await encodePng(p.image)).toString('base64')}`
+          for (const [name, p] of await this.composedPages(l, parsed, 'preview')) pages[name] = `data:image/png;base64,${Buffer.from(await encodePng(p.image)).toString('base64')}`
         }
         const skel = which === 'new' ? riggedSkeleton(parsed, l.spine.rig) : parsed.data
         return {
@@ -540,9 +681,11 @@ export class SpineService {
       if (!push) return 0
       const l = await this.load(rel)
       if (!l.spine.style.locked) return -1
+      if ((await this.sourceChanges(l)).length) return 0
       const parsed = await this.parse(l.spine)
       if (!parsed) return 0
-      const sources = await this.ensureSources(l.dir, l.spine, parsed.atlas)
+      const assets = await this.assetsFor(l, parsed.atlas)
+      const sources = await this.ensureSources(l.dir, l.spine, parsed.atlas, assets)
       const board = join(this.cacheDir(l.dir, l.spine), 'parts-board.png')
       let styleImages: string[] = []
       let prompt = l.spine.style.promptEn
@@ -568,7 +711,7 @@ export class SpineService {
           .join('\n')
         specs.push({
           projectPath: l.dir,
-          assetRelPath: regionAsset(r.name),
+          assetRelPath: assets.get(r.name) ?? regionAsset(r.name),
           sourcePath: src,
           groupId: 'spine',
           stylePrompt: prompt,
@@ -592,13 +735,19 @@ export class SpineService {
       async (l) => {
         for (const [k, v] of Object.entries(patch && typeof patch === 'object' ? patch : {}).slice(0, 5000)) {
           if (!v || typeof v !== 'object') continue
+          const asset = l.spine.assets[k]
+          const versions = asset ? await this.versionsOf(l.dir, asset) : null
           const cur = l.spine.review[k] ?? { decision: null, selected: 0 }
+          if (versions) {
+            if (cur.selected && cur.selected !== this.selectedOf(l.spine, k, versions)) cur.selected = 0
+            cur.seen = versions[versions.length - 1] ?? 0
+          }
           if (v.decision !== undefined) cur.decision = v.decision === 'approved' || v.decision === 'rejected' ? v.decision : null
           if (v.selected !== undefined) {
             cur.selected = Math.max(0, Math.round(num(v.selected)))
             if (v.decision === undefined) cur.decision = null
           }
-          cur.version = this.selectedOf({ ...l.spine, review: { [k]: cur } }, k, await this.versionsOf(l.dir, k))
+          if (versions) cur.version = this.selectedOf({ ...l.spine, review: { [k]: cur } }, k, versions)
           l.spine.review[k] = cur
         }
       },
@@ -638,10 +787,17 @@ export class SpineService {
         const l = await this.load(rel)
         const parsed = await this.parse(l.spine)
         if (!parsed || !l.spine.skeleton || !l.spine.atlas) return fail('noSkeleton')
+        if ((await this.sourceChanges(l)).length) return fail('sourceChanged')
         const outDir = resolve(l.dir, outDirRaw.trim() || l.spine.exportDir || 'output')
         const srcDirs = [dirname(l.spine.skeleton.path), dirname(l.spine.atlas.path), ...Object.values(l.spine.pages).map((p) => dirname(p.path))]
         if (srcDirs.some((d) => pathKey(d) === pathKey(outDir))) return fail('outIsSource', outDir)
-        const composed = await this.composedPages(l, parsed, true)
+        const targets = new Map<string, string>()
+        for (const p of parsed.atlas.pages) {
+          const t = pageTarget(outDir, p.name)
+          if (!t) return fail(`pagePath:${p.name}`, outDir)
+          targets.set(p.name, t)
+        }
+        const composed = await this.composedPages(l, parsed, 'export')
         const total = [...composed.values()].reduce((n, p) => n + p.regions, 0)
         if (!total && rigIsEmpty(l.spine.rig)) return fail('nothingApproved', outDir)
         await fs.mkdir(outDir, { recursive: true })
@@ -650,17 +806,20 @@ export class SpineService {
         const backup = async (f: string): Promise<void> => {
           if (!existsSync(f)) return
           backupDir = backupDir ?? join(outDir, '_backup', stamp)
-          await fs.mkdir(backupDir, { recursive: true })
-          await fs.copyFile(f, join(backupDir, basename(f)))
+          const dst = join(backupDir, relative(outDir, f))
+          await fs.mkdir(dirname(dst), { recursive: true })
+          await fs.copyFile(f, dst)
         }
         const pages: SpineExportResult['pages'] = []
         for (const p of parsed.atlas.pages) {
           const c = composed.get(p.name)
           if (!c) continue
-          const target = join(outDir, basename(p.name))
+          const target = targets.get(p.name)
+          if (!target) continue
+          await fs.mkdir(dirname(target), { recursive: true })
           await backup(target)
-          await savePng(c.image, target)
-          pages.push({ name: basename(p.name), regions: c.regions, kept: parsed.atlas.regions.filter((r) => r.page === p.name).length - c.regions })
+          await savePage(c.image, target)
+          pages.push({ name: relative(outDir, target).replace(/\\/g, '/'), regions: c.regions, kept: parsed.atlas.regions.filter((r) => r.page === p.name).length - c.regions })
         }
         const atlasOut = join(outDir, basename(l.spine.atlas.path))
         await backup(atlasOut)

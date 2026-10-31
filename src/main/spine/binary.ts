@@ -1,4 +1,4 @@
-import type { SpineAttachmentKind, SpineRig, SpineSkeletonInfo } from '@shared/spine'
+import type { SpineAttachmentKind, SpineAttachmentRef, SpineRig, SpineSkeletonInfo } from '@shared/spine'
 import { attachmentKey } from '@shared/spine'
 import { rigIsEmpty, SkeletonError } from './skeleton'
 
@@ -131,8 +131,12 @@ function readVersion(bytes: Uint8Array): string {
   return v
 }
 
-function skipSequence(input: Input): void {
-  for (let i = 0; i < 4; i++) input.varint()
+function readSequence(input: Input): NonNullable<SpineAttachmentRef['sequence']> {
+  const count = input.varint()
+  const start = input.varint()
+  const digits = input.varint()
+  input.varint()
+  return { count, start, digits }
 }
 
 function skipVertices(input: Input, weighted: boolean): number {
@@ -186,20 +190,20 @@ function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayou
   const flags = input.ubyte()
   const name = flags & 8 ? input.stringRef() : key
   if (!name) throw new SkeletonError('parse', 'attachment name missing')
-  const push = (kind: SpineAttachmentKind, path: string | null): void => {
-    info.attachments.push({ skin, slot, name: key, region: path ?? name, kind })
+  const push = (kind: SpineAttachmentKind, path: string | null, sequence?: SpineAttachmentRef['sequence']): void => {
+    info.attachments.push(sequence ? { skin, slot, name: key, region: path ?? name, kind, sequence } : { skin, slot, name: key, region: path ?? name, kind })
   }
   switch (flags & 7) {
     case 0: {
       const path = flags & 16 ? input.stringRef() : null
       if (flags & 32) input.skip(4)
-      if (flags & 64) skipSequence(input)
+      const sequence = flags & 64 ? readSequence(input) : undefined
       const rotationAt = flags & 128 ? input.index : null
       if (rotationAt !== null) input.skip(4)
       const xAt = input.index
       input.skip(24)
       layout.regions.push({ key: attachmentKey(skin, slot, key), flagsAt, rotationAt, xAt })
-      push('region', path)
+      push('region', path, sequence)
       return
     }
     case 1:
@@ -209,7 +213,7 @@ function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayou
     case 2: {
       const path = flags & 16 ? input.stringRef() : null
       if (flags & 32) input.skip(4)
-      if (flags & 64) skipSequence(input)
+      const sequence = flags & 64 ? readSequence(input) : undefined
       const hull = input.varint()
       const vertexCount = skipVertices(input, (flags & 128) !== 0)
       input.skip(vertexCount * 8)
@@ -220,17 +224,17 @@ function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayou
         for (let i = 0; i < edges; i++) input.varint()
         input.skip(8)
       }
-      push('mesh', path)
+      push('mesh', path, sequence)
       return
     }
     case 3: {
       const path = flags & 16 ? input.stringRef() : null
       if (flags & 32) input.skip(4)
-      if (flags & 64) skipSequence(input)
+      const sequence = flags & 64 ? readSequence(input) : undefined
       input.varint()
       input.stringRef()
       if (nonessential) input.skip(8)
-      push('linkedmesh', path)
+      push('linkedmesh', path, sequence)
       return
     }
     case 4: {
