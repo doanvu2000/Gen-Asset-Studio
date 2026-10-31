@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { SheetPatch, SpriteAddResult, SpriteProjectView, SpriteSettings, SpriteStripPatch, SpriteStyle } from '@shared/sprite'
 import i18n from '@renderer/i18n'
+import { firstOpenStep } from '@renderer/lib/sprite'
 import { toast } from './toast'
 
 interface SpriteStore {
@@ -26,6 +27,7 @@ interface SpriteStore {
   addRefs: () => Promise<void>
   setLock: (key: string | null) => Promise<void>
   enqueue: (keys: string[], note?: string) => Promise<number>
+  enqueueAll: (sheetId: string) => Promise<number>
   review: (patch: Record<string, SpriteStripPatch>) => Promise<void>
 }
 
@@ -36,6 +38,13 @@ function names(list: SpriteAddResult['skipped']): string {
       .map((s) => s.name)
       .join(', ') + (list.length > 3 ? '…' : '')
   )
+}
+
+function queuedToast(n: number): number {
+  if (n < 0) toast(i18n.t('spriteProject.toast.styleFirst'), 'warn')
+  else if (n === 0) toast(i18n.t('spriteProject.toast.nothingQueued'), 'info')
+  else toast(i18n.t('spriteProject.toast.queued', { count: n }))
+  return n
 }
 
 let animTimer: ReturnType<typeof setTimeout> | null = null
@@ -65,7 +74,7 @@ export const useSprite = create<SpriteStore>()((set, get) => ({
     const view = await window.gas.sprite.open(rel)
     if (get().rel !== rel) return
     const keep = view?.sheets.some((s) => s.id === get().sheetId)
-    set({ view, loading: false, sheetId: keep ? get().sheetId : (view?.sheets[0]?.id ?? null) })
+    set({ view, loading: false, sheetId: keep ? get().sheetId : (view?.sheets[0]?.id ?? null), ...(same || !view ? {} : { step: firstOpenStep(view), stepDir: 1 as const }) })
   },
   reset: () => {
     void flushAnims()
@@ -177,11 +186,12 @@ export const useSprite = create<SpriteStore>()((set, get) => ({
   enqueue: async (keys, note) => {
     const rel = get().rel
     if (!rel || !keys.length) return 0
-    const n = await window.gas.spriteGen.enqueue(rel, keys, note)
-    if (n < 0) toast(i18n.t('spriteProject.toast.styleFirst'), 'warn')
-    else if (n === 0) toast(i18n.t('spriteProject.toast.nothingQueued'), 'info')
-    else toast(i18n.t('spriteProject.toast.queued', { count: n }))
-    return n
+    return queuedToast(await window.gas.spriteGen.enqueue(rel, keys, note))
+  },
+  enqueueAll: async (sheetId) => {
+    const rel = get().rel
+    if (!rel) return 0
+    return queuedToast(await window.gas.spriteGen.enqueueAll(rel, sheetId))
   },
   review: async (patch) => {
     const rel = get().rel
@@ -198,6 +208,8 @@ export const useSprite = create<SpriteStore>()((set, get) => ({
       }
     })
     const view = await window.gas.spriteGen.review(rel, patch)
-    if (view && get().rel === rel) set({ view })
+    if (!view || get().rel !== rel) return
+    set({ view })
+    if (view.chained) toast(i18n.t('spriteProject.toast.chained', { count: view.chained }))
   }
 }))

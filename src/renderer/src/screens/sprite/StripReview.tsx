@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DIRECTIONS, type Direction, type SpriteProjectView, type StripQaCheck, type StripVersion, type StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
@@ -8,12 +8,11 @@ import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
 import { SpritePlayground } from '@renderer/components/sprite/SpritePlayground'
 import { relTime } from '@renderer/lib/format'
-import { jobOf, qaFail, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
+import { jobOf, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
 import { useApp } from '@renderer/store/app'
 import { useQueue } from '@renderer/store/queue'
 import { useSprite } from '@renderer/store/sprite'
 
-type Filter = 'all' | 'pending' | 'approved' | 'rejected' | 'qa'
 type Mode = 'side' | 'onion'
 type TrySrc = 'orig' | 'new'
 
@@ -42,56 +41,7 @@ function fpsOf(v: SpriteProjectView, s: StripView): number {
   return anim?.fps ?? 10
 }
 
-function matches(v: SpriteProjectView, s: StripView, f: Filter): boolean {
-  if (f === 'all') return true
-  if (s.mirrorOf) return f === 'approved' ? sourceOf(v, s).decision === 'approved' : false
-  if (f === 'pending') return !!s.url && !s.decision
-  if (f === 'approved') return s.decision === 'approved'
-  if (f === 'rejected') return s.decision === 'rejected'
-  return qaFail(s)
-}
-
-function Card({ v, s, pos, on, onOpen }: { v: SpriteProjectView; s: StripView; pos: number; on: boolean; onOpen: () => void }): ReactElement {
-  const { t } = useTranslation()
-  const src = sourceOf(v, s)
-  const p = pos % Math.max(1, s.frameCount)
-  const decision = s.mirrorOf ? src.decision : s.decision
-  return (
-    <button type="button" className={on ? 'spr-card on' : 'spr-card'} onClick={onOpen}>
-      <div className="spr-pair">
-        <span className="spr-cell ck">
-          <OrigPreview strip={s} pos={p} size={72} />
-        </span>
-        <span className="spr-cell ck">
-          {src.url ? <StripPreview url={src.url} sizes={src.frameSizes} pos={p % Math.max(1, src.frameCount)} size={72} flipX={!!s.mirrorOf} /> : <Icon name="sparkles" size={16} />}
-        </span>
-      </div>
-      <div className="spr-meta">
-        <b>{stripLabel(s)}</b>
-        <small>{s.sheetName}</small>
-      </div>
-      <div className="spr-chips">
-        {s.mirrorOf && (
-          <span className="chip c-purple">
-            <Icon name="refresh" size={10} />
-            {t('spriteProject.review.mirror')}
-          </span>
-        )}
-        {!s.mirrorOf && !s.url && <span className="chip c-gray">{t('spriteProject.gen.state.none')}</span>}
-        {!s.mirrorOf && s.url && !decision && <span className="chip c-blue">{t('spriteProject.review.pending')}</span>}
-        {decision && <span className={decision === 'approved' ? 'chip c-green' : 'chip c-orange'}>{t(`spriteProject.review.decision.${decision}`)}</span>}
-        {!s.mirrorOf && qaFail(s) && (
-          <span className="chip c-orange">
-            <Icon name="alert" size={10} />
-            QA
-          </span>
-        )}
-      </div>
-    </button>
-  )
-}
-
-function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView; onNext: () => void; onClose: () => void }): ReactElement {
+export function StripDetail({ v, s, chip, onNext }: { v: SpriteProjectView; s: StripView; chip: ReactNode; onNext: () => void }): ReactElement {
   const { t } = useTranslation()
   const lang = useApp((st) => st.settings.lang)
   const review = useSprite((st) => st.review)
@@ -109,6 +59,8 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
   const [regen, setRegen] = useState(false)
   const job = jobOf(v, target, snap?.jobs ?? [])
   const state = stripState(target, job)
+  const busy = state === 'running' || state === 'queued'
+  const canRegen = !mirror && !busy && target.versions.length > 0
 
   useEffect(() => {
     let live = true
@@ -135,18 +87,17 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
       if (e.key === 'a' || e.key === 'A') approve()
       else if (e.key === 'x' || e.key === 'X') reject()
-      else if (e.key === 'r' || e.key === 'R') setRegen(true)
+      else if ((e.key === 'r' || e.key === 'R') && canRegen) setRegen(true)
       else if (e.key === ' ') {
         e.preventDefault()
         setPlaying((p) => !p)
       } else if (e.key === ',' ) setPos((pos - 1 + s.frameCount) % s.frameCount)
       else if (e.key === '.') setPos((pos + 1) % s.frameCount)
-      else if (e.key === 'Escape') onClose()
       else return
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [approve, reject, onClose, pos, s.frameCount, setPos])
+  }, [approve, reject, canRegen, pos, s.frameCount, setPos])
 
   const jump = (frames: number[]): void => {
     if (!frames.length) return
@@ -175,10 +126,14 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
           </small>
         </div>
         <div className="grow" />
-        <button type="button" className="icon-btn" aria-label={t('dialogs.cancel')} onClick={onClose}>
-          <Icon name="x" size={14} />
-        </button>
+        {chip}
       </div>
+      {state === 'error' && job?.error && (
+        <div className="note err">
+          <Icon name="alert" size={14} />
+          <span>{job.error.message}</span>
+        </div>
+      )}
       {mirror && (
         <div className="note">
           <Icon name="refresh" size={14} />
@@ -275,7 +230,7 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
           </div>
         </section>
       )}
-      {regen && !mirror && (
+      {regen && canRegen && (
         <section className="spr-d-sec">
           <label className="fld">
             <span>{t('spriteProject.review.regenNote')}</span>
@@ -304,16 +259,21 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
       )}
       <div className="grow" />
       <div className="spr-d-acts">
-        {state === 'running' || state === 'queued' ? (
+        {busy ? (
           <span className="chip c-blue">
             <span className="spin sm" />
-            {t('spriteProject.review.regenRunning')}
+            {target.versions.length ? t('spriteProject.review.regenRunning') : t('spriteProject.work.genRunning')}
           </span>
+        ) : canRegen ? (
+          <button type="button" className="btn" onClick={() => setRegen((r) => !r)} title="R">
+            <Icon name="refresh" size={14} />
+            {t('spriteProject.gen.regen')}
+          </button>
         ) : (
           !mirror && (
-            <button type="button" className="btn" onClick={() => setRegen((r) => !r)} title="R">
-              <Icon name="refresh" size={14} />
-              {t('spriteProject.gen.regen')}
+            <button type="button" className="btn primary" onClick={() => void enqueue([target.key])}>
+              <Icon name="sparkles" size={14} />
+              {target.key === v.lockKey ? t('spriteProject.gen.genLock') : t('spriteProject.gen.gen')}
             </button>
           )
         )}
@@ -355,7 +315,7 @@ function usePreviewSheet(rel: string, sheetId: string, sig: string, on: boolean)
   }
 }
 
-function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactElement {
+export function StripOverview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactElement {
   const { t } = useTranslation()
   const sheets = useMemo(() => v.sheets.filter((sh) => v.strips.some((s) => s.sheetId === sh.id && s.dir)), [v.sheets, v.strips])
   const [sheetSel, setSheetSel] = useState(sheets[0]?.id ?? '')
@@ -473,78 +433,6 @@ function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactEleme
         <DirCompass dirSet={v.settings.dirSet} available={order} value={(cur?.dir as Direction | undefined) ?? null} onChange={setDir} size={140} />
         <small className="muted">{t('spriteProject.review.compassHint')}</small>
       </div>
-    </div>
-  )
-}
-
-export function SpriteReviewStep({ v }: { v: SpriteProjectView }): ReactElement {
-  const { t } = useTranslation()
-  const review = useSprite((s) => s.review)
-  const setStep = useSprite((s) => s.setStep)
-  const [filter, setFilter] = useState<Filter>('all')
-  const [tab, setTab] = useState<'strips' | 'overview'>('strips')
-  const [open, setOpen] = useState<string | null>(null)
-  const [pos] = useClock(1000, 8, true)
-  const list = v.strips.filter((s) => matches(v, s, filter))
-  const cur = v.strips.find((s) => s.key === open) ?? null
-  const approved = v.strips.filter((s) => !s.mirrorOf && s.decision === 'approved').length
-  const generated = v.strips.filter((s) => !s.mirrorOf && s.url).length
-  const qaOk = v.strips.filter((s) => !s.mirrorOf && s.url && !s.decision && !qaFail(s))
-
-  const next = (): void => {
-    if (!cur) return
-    const idx = list.findIndex((s) => s.key === cur.key)
-    const after = [...list.slice(idx + 1), ...list.slice(0, idx)].find((s) => !s.mirrorOf && s.url && s.decision !== 'approved')
-    if (after) setOpen(after.key)
-  }
-
-  return (
-    <div className="spr-wrap">
-      <div className="toolbar">
-        <Segmented<'strips' | 'overview'>
-          value={tab}
-          ariaLabel={t('spriteProject.review.tab')}
-          onChange={setTab}
-          options={[
-            { value: 'strips', label: t('spriteProject.review.tabStrips') },
-            { value: 'overview', label: t('spriteProject.review.tabOverview') }
-          ]}
-        />
-        {tab === 'strips' && (
-          <Segmented<Filter>
-            value={filter}
-            ariaLabel={t('spriteProject.review.filter')}
-            onChange={setFilter}
-            options={(['all', 'pending', 'approved', 'rejected', 'qa'] as const).map((f) => ({ value: f, label: t(`spriteProject.review.f.${f}`) }))}
-          />
-        )}
-        <div className="grow" />
-        <span className="muted">{t('spriteProject.review.count', { approved, total: generated })}</span>
-        {qaOk.length > 0 && (
-          <button type="button" className="btn sm" onClick={() => void review(Object.fromEntries(qaOk.map((s) => [s.key, { decision: 'approved' as const }])))}>
-            <Icon name="check" size={13} />
-            {t('spriteProject.review.approveQa', { count: qaOk.length })}
-          </button>
-        )}
-        <button type="button" className="btn primary sm" disabled={!approved} onClick={() => setStep(6)}>
-          {t('spriteProject.review.toExport')}
-          <Icon name="right" size={13} />
-        </button>
-      </div>
-      {tab === 'overview' ? (
-        <Overview v={v} pos={pos} />
-      ) : (
-        <div className="spr-body">
-          <div className="spr-grid">
-            {list.length ? (
-              list.map((s) => <Card key={s.key} v={v} s={s} pos={pos} on={s.key === open} onOpen={() => setOpen(s.key)} />)
-            ) : (
-              <div className="proj-state muted">{t('spriteProject.review.empty')}</div>
-            )}
-          </div>
-          {cur && <Detail key={cur.key} v={v} s={cur} onNext={next} onClose={() => setOpen(null)} />}
-        </div>
-      )}
     </div>
   )
 }

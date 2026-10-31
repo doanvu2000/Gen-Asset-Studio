@@ -1274,38 +1274,55 @@
   },
   "spriteProject": {
     "steps": {
-      "sheets": "Sheets",
-      "grid": "Grid & directions",
+      "import": "Import",
       "style": "Style",
-      "gen": "Generate per direction",
-      "review": "Review",
+      "work": "Generate & review",
       "export": "Export"
     },
     "sub": {
-      "sheets": "{{count}} sheets",
-      "grid": "{{frames}} frames · {{anims}} anims",
+      "import": "{{sheets}} sheets · {{anims}} anims",
       "styleLocked": "Locked",
       "styleOpen": "Not locked",
-      "gen": "{{done}}/{{total}} strips generated",
-      "review": "{{count}} strips approved",
+      "work": "{{approved}}/{{total}} strips approved",
       "exported": "Exported {{count}} sheets",
       "notExported": "Not exported"
     },
     "lock": {
-      "grid": "Add at least 1 sheet first",
-      "gen": "Lock the style first",
-      "review": "Generate at least 1 strip first",
+      "noSheet": "Add at least 1 sheet first",
+      "style": "Lock the style first",
       "export": "Approve at least 1 strip first"
     },
     "intro": {
-      "sheets": "Add source sprite sheets — with their atlas file (TexturePacker, Aseprite, .plist, Unity .meta) if you have one; otherwise the grid is detected automatically. Pick the direction set and camera angle on the right.",
-      "grid": "Check the grid/frames, name each animation and set its direction, then play it: the compass switches direction, arrow keys/WASD walk the character on a grid floor.",
+      "import": "Add the source sprite sheet (with its TexturePacker, Aseprite, .plist or Unity .meta atlas if any), or create a new sheet from a character image. Sheets with an atlas already know their grid and animations — just check the summary; sheets without one get the grid and direction editor right below.",
       "style": "Pick one style for the whole character: a built-in template, or your own description + reference images. Lock it before generating.",
-      "gen": "Generate the lock strip first (usually direction S) and approve it as the character lock — later directions follow it so they match. Right-facing directions are mirrored from left-facing ones at no cost.",
-      "review": "Compare Source | New frame by frame, check anchor / height QA, approve or regenerate with a note. The Overview tab plays every direction at once.",
+      "work": "Generate the lock strip first (usually facing S) and approve it — the remaining directions then generate from that lock image. As each strip finishes, compare Source | New, check QA, approve or regenerate with a note right here. Right-facing strips are mirrored from the left, at no cost.",
       "export": "Export sheets with the same names and W×H; only frames of approved strips are replaced, the rest stay original. Atlas files are copied unchanged.",
       "exportNew": "Export created sheets: PNG + TexturePacker .json (array) and a -snippets.md with ready-to-use loading code for Flame / Kotlin / SpriteKit. Only frames of approved strips are filled in.",
       "exportMixed": "Imported sheets: same names and W×H, only frames of approved strips are replaced, atlas files copied unchanged. Created sheets: PNG + TexturePacker .json and -snippets.md."
+    },
+    "import": {
+      "stats": "{{anims}} anims × {{dirs}} directions · {{frames}} frames",
+      "noAtlas": "This sheet has no atlas — the grid was detected automatically. Check the grid and assign a direction to each animation below.",
+      "noDirs": "No animation has a direction yet — assign directions below so each one is generated correctly.",
+      "openEditor": "Edit grid & directions",
+      "closeEditor": "Collapse",
+      "next": "Next: Style"
+    },
+    "work": {
+      "flowAuto": "Generate the lock strip ({{name}}) first → approve → the remaining directions generate automatically.",
+      "flowManual": "Generate the lock strip ({{name}}) first → approve → press “Generate all” for the remaining directions.",
+      "lockDone": "Lock image approved — every later generation follows this strip.",
+      "auto": "Auto-continue",
+      "autoSub": "Queue the remaining directions once the lock strip is approved",
+      "autoHint": "When on: approving the lock strip queues every strip that has no version yet",
+      "genAll": "Generate all ({{count}})",
+      "genAllHint": "Queue every strip of this sheet that has no version yet",
+      "nothingLeft": "Every strip is generated or queued",
+      "progress": "{{done}}/{{total}} generated · {{approved}} approved · {{mirror}} mirrored",
+      "genRunning": "Generating…",
+      "needLock": "Approve the lock strip first",
+      "lockRunning": "The lock strip is generating — approve it once done",
+      "genAllLockFirst": "Generates the lock strip first — once approved, the remaining strips follow (or press Generate all again)"
     },
     "settings": {
       "title": "Character setup",
@@ -1360,8 +1377,6 @@
       "fmt_grid": "No atlas → grid detected automatically, editable",
       "dropHint": "Drop more sheets or atlas files here",
       "dropTitle": "Drop sheets or atlas files",
-      "next": "Next: Grid & directions",
-      "open": "Open grid",
       "remove": "Remove from project",
       "frames": "{{count}} frames",
       "anims": "{{count}} anims"
@@ -1376,7 +1391,8 @@
       "saveFailed": "Could not save changes",
       "styleFirst": "Lock the style before generating",
       "nothingQueued": "No strips need generating",
-      "queued": "Queued {{count}} strips"
+      "queued": "Queued {{count}} strips",
+      "chained": "Queued the remaining {{count}} directions"
     },
     "style": {
       "source": "Style source",
@@ -1403,7 +1419,7 @@
       "tip": "The character lock (first approved strip) is attached to every later generation to keep face, colors and outfit.",
       "lock": "Lock style",
       "unlock": "Unlock",
-      "next": "Next: Generate",
+      "next": "Next: Generate & review",
       "lockedNote": "Style locked — unlock to edit",
       "lockedToast": "Style locked",
       "needPick": "Pick a template or enter a description / reference first"
@@ -1412,24 +1428,13 @@
       "orig": "Source",
       "new": "New",
       "lockTitle": "Character lock",
-      "lockDesc": "The first generated strip — once approved it is attached to every later generation so all directions match.",
-      "lockApproved": "Approved as lock",
       "lockBadge": "Lock",
-      "step1": "Generate and approve the lock strip",
-      "step2": "Generate the {{count}} remaining strips",
-      "step2Sub": "{{mirror}} mirrored strips cost nothing · about {{est}} generations",
       "genLock": "Generate lock strip",
       "approveLock": "Approve as lock",
-      "openReview": "Inspect in Review",
-      "genRest": "Generate {{count}} strips",
-      "needLock": "Approve the lock strip first",
-      "nothingLeft": "Every strip is generated or queued",
-      "progress": "{{done}}/{{total}} strips generated · {{mirror}} mirrored",
       "active": "{{count}} running",
       "pause": "Pause",
       "resume": "Resume",
       "cancel": "Cancel all",
-      "toReview": "Next: Review",
       "stripCount": "{{count}} strips",
       "noDir": "No direction",
       "retry": "Retry",
@@ -1471,7 +1476,6 @@
         "rejected": "Needs fix",
         "qa": "QA issues"
       },
-      "count": "{{approved}}/{{total}} approved",
       "approveQa": "Approve {{count}} QA-passed strips",
       "toExport": "Next: Export",
       "empty": "No strips match the filter",
@@ -1589,10 +1593,8 @@
       "feat_dirs": "4 / 6 / 8 directions, right-facing mirrored from left-facing",
       "feat_anims": "idle + walk by default; add run, attack, hurt, die or your own",
       "feat_out": "Exports grid PNG + TexturePacker JSON + Flame / Android / iOS sample code",
-      "cell": "{{size}} cells",
       "gridNote": "The sheet is still empty — AI draws the cells in the Generate step. The grid is laid out by animation × direction.",
       "colAnim": "Animation",
-      "toStyle": "Go to Style",
       "errNoCharacter": "Cannot read the character image — pick it again.",
       "errNoAnims": "Pick at least 1 animation."
     }
@@ -1705,39 +1707,30 @@
   },
   "spineProject": {
     "steps": {
-      "import": "Skeleton",
-      "regions": "Regions & skins",
+      "import": "Import",
       "style": "Style",
-      "gen": "Generate",
-      "rig": "Rigging",
-      "review": "Review",
+      "gen": "Generate & Review",
       "export": "Export"
     },
     "intro": {
-      "import": "Import a Spine 4.2 skeleton (.json or .skel) with its .atlas and page images — drop the folder or pick the files. Source files are never copied or overwritten.",
-      "regions": "Browse every atlas region: size, rotation/trim, and the slots and skins using it. Click a region to highlight it on the character.",
+      "import": "Import a Spine 4.2 skeleton (.json or .skel) with its .atlas and page images — drop the folder or pick the files. Once imported, click a region to highlight it on the character. Source files are never copied or overwritten.",
       "style": "Pick one style for the whole character: a built-in template, or describe it + reference images. Lock it to start generating.",
-      "gen": "Each region is regenerated like a single image at its exact size; the original pages are attached so all parts stay one character.",
-      "rig": "New regions may not fit perfectly: adjust the setup pose (bones, attachment position/rotation/scale) and watch Original | New play right away.",
-      "review": "Review region by region: compare Original | New, watch the new character animate, regenerate with a note if needed.",
-      "export": "Export page PNGs with the same names and W×H, regions at the exact coordinates; the .atlas is unchanged; a new skeleton (.json/.skel) only when rigging changed."
+      "gen": "Regenerate each region (exact size, original pages attached so all parts stay one character). Pick a region to compare Original | New animating, then approve; if a new region doesn't fit, open Adjust position.",
+      "export": "Export page PNGs with the same names and W×H, regions at the exact coordinates; the .atlas is unchanged; a new skeleton (.json/.skel) only when positions were adjusted."
     },
     "sub": {
       "none": "Not imported",
       "regions": "{{count}} regions",
       "styleLocked": "Locked",
       "styleOpen": "Not locked",
-      "gen": "{{done}}/{{total}} generated",
-      "rig": "{{count}} edits",
-      "rigNone": "No edits",
-      "review": "{{count}} approved",
+      "genReview": "{{gen}}/{{total}} generated · {{approved}} approved",
+      "rig": "{{count}} position edits",
       "exported": "Exported {{count}} pages",
       "notExported": "Not exported"
     },
     "lock": {
       "import": "Import a skeleton first",
       "style": "Lock a style first",
-      "gen": "Generate at least 1 region first",
       "review": "Approve at least 1 region first"
     },
     "status": {
@@ -1765,7 +1758,7 @@
       "countsVal": "{{regions}} regions · {{bones}} bones · {{slots}} slots · {{skins}} skins · {{anims}} animations",
       "reimport": "Re-import",
       "clear": "Remove skeleton",
-      "next": "Next: Regions & skins",
+      "details": "File details",
       "err": {
         "version": "This skeleton is Spine {{detail}} — only Spine 4.2 is supported. Open it in Spine 4.2 and export again.",
         "noAtlas": "No .atlas file found — add the matching .atlas or pick it too.",
@@ -1812,14 +1805,31 @@
       "lockedToast": "Style locked"
     },
     "gen": {
-      "scope": "Scope",
-      "scopeTodo": "Not generated",
-      "scopeAll": "All used regions",
-      "scopePicked": "Selected ({{count}})",
-      "go": "Generate {{count}} regions",
-      "estimate": "≈ {{count}} generations",
-      "progress": "{{done}}/{{total}} regions generated",
-      "toRig": "Next: Rigging"
+      "filter": "Filter regions",
+      "f": {
+        "all": "All ({{count}})",
+        "todo": "Not generated ({{count}})",
+        "pending": "To review ({{count}})",
+        "rejected": "Needs fixing ({{count}})",
+        "approved": "Approved ({{count}})"
+      },
+      "st": {
+        "none": "Not generated",
+        "queued": "Queued",
+        "running": "Generating",
+        "error": "Error",
+        "pending": "To review",
+        "approved": "Approved",
+        "rejected": "Needs fixing"
+      },
+      "all": "Generate all regions ({{count}})",
+      "allTitle": "Generate every used region that has no new version yet",
+      "progress": "{{done}}/{{total}} regions approved",
+      "toExport": "Next: Export",
+      "empty": "No regions match this filter.",
+      "preview": "Preview",
+      "pickHint": "Pick a region on the left to compare Original | New, switch versions, regenerate with a note, then Approve (A) or Needs fixing (X).",
+      "pickHintNoGen": "No new version yet — click Generate all regions or Generate on a row. Once done, Original | New animate right here."
     },
     "rig": {
       "bones": "Bones",
@@ -1832,7 +1842,10 @@
       "meshNote": "Mesh — vertex/weight editing comes later.",
       "noAtt": "This bone has no attachments.",
       "tip": "Setup pose edits apply to New right away. A new skeleton (.json/.skel) (plus the original as a backup) is written on export only when something changed.",
-      "next": "Next: Review",
+      "title": "Adjust position",
+      "open": "Adjust position",
+      "done": "Done",
+      "locked": "No New version to adjust yet — generate at least 1 region first; Adjust position works on the new character.",
       "f": {
         "x": "X",
         "y": "Y",

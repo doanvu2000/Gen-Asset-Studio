@@ -1,5 +1,5 @@
 import type { QueueJob } from '@shared/queue'
-import type { SpriteProjectView, StripView } from '@shared/sprite'
+import type { SheetView, SpriteProjectView, SpriteSettings, StripView } from '@shared/sprite'
 import { isActive, samePath } from '@renderer/store/queue'
 
 export type StripState = 'mirror' | 'none' | 'queued' | 'running' | 'error' | 'done'
@@ -45,4 +45,32 @@ export function isApproved(view: SpriteProjectView, strip: StripView): boolean {
 
 export function genTargets(view: SpriteProjectView): StripView[] {
   return view.strips.filter((s) => !s.mirrorOf)
+}
+
+export type StripFilter = 'all' | 'pending' | 'approved' | 'rejected' | 'qa'
+
+export function stripMatches(view: SpriteProjectView, strip: StripView, f: StripFilter): boolean {
+  if (f === 'all') return true
+  if (strip.mirrorOf) return f === 'approved' ? sourceOf(view, strip).decision === 'approved' : false
+  if (f === 'pending') return !!strip.url && !strip.decision
+  if (f === 'approved') return strip.decision === 'approved'
+  if (f === 'rejected') return strip.decision === 'rejected'
+  return qaFail(strip)
+}
+
+export function animRow(name: string): string {
+  return name.replace(/[\s_.-]+(s|sw|w|nw|n|ne|e|se|south|north|east|west|down|up|left|right)$/i, '') || name
+}
+
+export function needsGridEdit(sheet: SheetView, settings: SpriteSettings): boolean {
+  if (sheet.origin === 'new' || sheet.status === 'missing') return false
+  return sheet.format === 'grid' || !sheet.anims.length || (settings.dirSet !== 0 && !sheet.anims.some((a) => a.dir))
+}
+
+export function firstOpenStep(view: SpriteProjectView): number {
+  if (!view.sheets.length) return 1
+  const targets = genTargets(view)
+  if (!targets.length) return 1
+  if (!view.style.locked) return 2
+  return targets.some((s) => s.decision !== 'approved') ? 3 : 4
 }

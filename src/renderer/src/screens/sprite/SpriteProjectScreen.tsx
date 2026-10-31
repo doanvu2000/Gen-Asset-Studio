@@ -2,55 +2,53 @@ import { useEffect, useRef, useState, type DragEvent, type ReactElement } from '
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
-import { DIRECTIONS, ROW_PRESETS, type DirSet, type RowPreset, type SheetView, type SpriteProjectView, type SpriteSettings, type ViewAngle } from '@shared/sprite'
+import { DIRECTIONS, ROW_PRESETS, type Direction, type DirSet, type RowPreset, type SheetView, type SpriteProjectView, type SpriteSettings, type ViewAngle } from '@shared/sprite'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
 import { SpriteDemo } from '@renderer/components/sprite/SpriteDemo'
+import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
+import { useClock } from '@renderer/components/sprite/StripPreview'
 import { EASE, viewTransition } from '@renderer/lib/motion'
 import { fileSize } from '@renderer/lib/format'
+import { animRow, genTargets, needsGridEdit } from '@renderer/lib/sprite'
 import { useSprite } from '@renderer/store/sprite'
 import { useWs } from '@renderer/store/workspace'
 import { samePath, useQueue } from '@renderer/store/queue'
 import { SpriteStyleStep } from './SpriteStyleStep'
-import { SpriteGenStep } from './SpriteGenStep'
-import { SpriteReviewStep } from './SpriteReviewStep'
+import { SpriteWorkStep } from './SpriteWorkStep'
 import { SpriteExportStep } from './SpriteExportStep'
 import { NewSheetDialog } from './NewSheetDialog'
 
-const STEPS = ['sheets', 'grid', 'style', 'gen', 'review', 'export'] as const
+const STEPS = ['import', 'style', 'work', 'export'] as const
 type StepKey = (typeof STEPS)[number]
-const STEP_ICON: Record<StepKey, IconName> = { sheets: 'upload', grid: 'grid', style: 'palette', gen: 'sparkles', review: 'eye', export: 'download' }
+const STEP_ICON: Record<StepKey, IconName> = { import: 'upload', style: 'palette', work: 'sparkles', export: 'download' }
 
-function canStep(v: SpriteProjectView, n: number): boolean {
-  if (n === 1) return true
-  if (n === 2 || n === 3) return v.sheets.length > 0
-  if (n === 4) return v.sheets.length > 0 && v.style.locked
-  if (n === 5) return v.strips.some((s) => s.versions.length > 0)
-  return v.strips.some((s) => s.decision === 'approved')
+function lockReason(v: SpriteProjectView, n: number): 'noSheet' | 'style' | 'export' | null {
+  if (n === 1) return null
+  if (!v.sheets.length) return 'noSheet'
+  if (n === 3) return v.style.locked || v.strips.some((s) => s.versions.length > 0) ? null : 'style'
+  if (n === 4) return v.strips.some((s) => s.decision === 'approved') ? null : 'export'
+  return null
 }
-
-const LOCK_KEY = ['', 'grid', 'grid', 'gen', 'review', 'export'] as const
 
 function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
   const step = useSprite((s) => s.step)
   const setStep = useSprite((s) => s.setStep)
-  const frames = v.sheets.reduce((n, s) => n + s.frames.length - s.empty.length, 0)
   const anims = v.sheets.reduce((n, s) => n + s.anims.length, 0)
-  const gens = v.strips.filter((s) => !s.mirrorOf)
+  const gens = genTargets(v)
   const subs = [
-    t('spriteProject.sub.sheets', { count: v.sheets.length }),
-    t('spriteProject.sub.grid', { frames, anims }),
+    t('spriteProject.sub.import', { sheets: v.sheets.length, anims }),
     v.style.locked ? t('spriteProject.sub.styleLocked') : t('spriteProject.sub.styleOpen'),
-    t('spriteProject.sub.gen', { done: gens.filter((s) => s.versions.length > 0).length, total: gens.length }),
-    t('spriteProject.sub.review', { count: gens.filter((s) => s.decision === 'approved').length }),
+    t('spriteProject.sub.work', { approved: gens.filter((s) => s.decision === 'approved').length, total: gens.length }),
     v.export.lastAt > 0 ? t('spriteProject.sub.exported', { count: v.export.lastSheets }) : t('spriteProject.sub.notExported')
   ]
   return (
     <div className="steps" role="tablist">
       {STEPS.map((key, i) => {
         const n = i + 1
-        const locked = !canStep(v, n)
+        const reason = lockReason(v, n)
+        const locked = !!reason
         const cur = step === n
         const done = n < step && !locked
         const cls = ['stp', cur && 'cur', done && !cur && 'done', locked && 'locked'].filter(Boolean).join(' ')
@@ -67,13 +65,13 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
               role="tab"
               aria-selected={cur}
               aria-disabled={locked || undefined}
-              title={locked ? t(`spriteProject.lock.${LOCK_KEY[n - 1] || 'grid'}`) : undefined}
+              title={reason ? t(`spriteProject.lock.${reason}`) : undefined}
               onClick={() => !locked && setStep(n)}
             >
               <span className="num">{done && !cur ? <Icon name="check" size={13} /> : locked ? <Icon name="lock" size={12} /> : n}</span>
               <span>
                 <b>{t(`spriteProject.steps.${key}`)}</b>
-                <small>{subs[i]}</small>
+                <small>{reason ? t(`spriteProject.lock.${reason}`) : subs[i]}</small>
               </span>
             </button>
           </div>
@@ -130,14 +128,14 @@ function useDrop(onPaths: (paths: string[]) => void): { over: boolean; bind: Rec
   }
 }
 
-function SettingsCard({ v }: { v: SpriteProjectView }): ReactElement {
+function SettingsCard({ v, inline = false }: { v: SpriteProjectView; inline?: boolean }): ReactElement {
   const { t } = useTranslation()
   const setSettings = useSprite((s) => s.setSettings)
   const st = v.settings
   const dirKey = String(st.dirSet) as '0' | '4' | '6' | '8'
   const order = (dirSet: DirSet, preset: RowPreset): SpriteSettings['rowOrder'] => (dirSet === 0 ? [] : preset === 'custom' ? st.rowOrder : ROW_PRESETS[preset][dirSet])
   return (
-    <aside className="sp-set">
+    <aside className={inline ? 'sp-set inline' : 'sp-set'}>
       <h3>
         <Icon name="gear" size={14} />
         {t('spriteProject.settings.title')}
@@ -207,18 +205,18 @@ function SettingsCard({ v }: { v: SpriteProjectView }): ReactElement {
   )
 }
 
-function SheetCard({ s, index, onOpen }: { s: SheetView; index: number; onOpen: () => void }): ReactElement {
+function SheetCard({ s, index, on, onOpen }: { s: SheetView; index: number; on: boolean; onOpen: () => void }): ReactElement {
   const { t } = useTranslation()
   const remove = useSprite((st) => st.remove)
   const real = s.frames.length - s.empty.length
   return (
     <motion.div
-      className="sp-card"
+      className={on ? 'sp-card on' : 'sp-card'}
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: EASE, delay: Math.min(index, 10) * 0.03 }}
     >
-      <button type="button" className="sp-thumb ck" onClick={onOpen} title={t('spriteProject.sheets.open')}>
+      <button type="button" className="sp-thumb ck" onClick={onOpen} aria-pressed={on} title={s.path}>
         {s.origin === 'new' ? (
           s.characterUrl ? <img src={s.characterUrl} alt="" draggable={false} /> : <Icon name="image" size={28} />
         ) : s.status === 'missing' ? (
@@ -242,22 +240,17 @@ function SheetCard({ s, index, onOpen }: { s: SheetView; index: number; onOpen: 
         </div>
         <div className="sp-chips">
           {s.origin === 'new' ? (
-            <>
-              <span className="chip c-orange">
-                <Icon name="sparkles" size={10} />
-                {t('spriteProject.create.badge')}
-              </span>
-              <span className="chip c-gray">{t('spriteProject.sheets.anims', { count: new Set(s.anims.map((a) => a.name)).size })}</span>
-              <span className="chip c-gray">{t('spriteProject.create.dirsChip', { count: Math.max(1, new Set(s.anims.map((a) => a.dir ?? '-')).size) })}</span>
-            </>
+            <span className="chip c-orange">
+              <Icon name="sparkles" size={10} />
+              {t('spriteProject.create.badge')}
+            </span>
           ) : (
             <>
               <span className={s.format === 'grid' ? 'chip c-gray' : 'chip c-blue'} title={s.atlasPath ?? undefined}>
                 <Icon name={s.format === 'grid' ? 'grid' : 'file'} size={10} />
-                {s.format === 'grid' ? t('spriteProject.format.grid') : `${t(`spriteProject.format.${s.format}`)} · ${s.atlasName ?? ''}`}
+                {s.format === 'grid' ? t('spriteProject.format.grid') : t(`spriteProject.format.${s.format}`)}
               </span>
               <span className="chip c-gray">{t('spriteProject.sheets.frames', { count: real })}</span>
-              <span className="chip c-gray">{t('spriteProject.sheets.anims', { count: s.anims.length })}</span>
             </>
           )}
           {s.status !== 'ok' && <span className={s.status === 'missing' ? 'chip c-red' : 'chip c-orange'}>{t(`spriteProject.status.${s.status}`)}</span>}
@@ -269,10 +262,6 @@ function SheetCard({ s, index, onOpen }: { s: SheetView; index: number; onOpen: 
           </div>
         )}
         <div className="sp-acts">
-          <button type="button" className="btn sm" onClick={onOpen} disabled={s.status === 'missing'}>
-            <Icon name="grid" size={13} />
-            {t('spriteProject.sheets.open')}
-          </button>
           <button type="button" className="btn ghost sm danger" onClick={() => void remove(s.id)}>
             <Icon name="trash" size={13} />
             {t('spriteProject.sheets.remove')}
@@ -283,30 +272,157 @@ function SheetCard({ s, index, onOpen }: { s: SheetView; index: number; onOpen: 
   )
 }
 
-function SheetsStep({ v }: { v: SpriteProjectView }): ReactElement {
+function SheetSummary({ v, sheet, open, onToggle }: { v: SpriteProjectView; sheet: SheetView; open: boolean; onToggle: () => void }): ReactElement {
+  const { t } = useTranslation()
+  const setStep = useSprite((s) => s.setStep)
+  const [pick, setPick] = useState<string | null>(null)
+  const rows = [...new Set(sheet.anims.map((a) => animRow(a.name)))]
+  const present = new Set(sheet.anims.map((a) => a.dir))
+  const order = DIRECTIONS[v.settings.dirSet || 8]
+  const dirs: Array<Direction | null> = [...order, ...DIRECTIONS[8].filter((d) => !order.includes(d))].filter((d) => present.has(d))
+  if (present.has(null)) dirs.push(null)
+  const anim = sheet.anims.find((a) => a.id === pick) ?? sheet.anims.find((a) => a.dir === 'S') ?? sheet.anims[0] ?? null
+  const strip = anim ? (v.strips.find((s) => s.sheetId === sheet.id && s.animId === anim.id) ?? null) : null
+  const [pos] = useClock(strip?.frameCount ?? 1, anim?.fps ?? 8, true)
+  const real = sheet.frames.length - sheet.empty.length
+  const hint = needsGridEdit(sheet, v.settings) ? (sheet.format === 'grid' ? 'noAtlas' : 'noDirs') : null
+  return (
+    <div className="sp-new-sum sp-sum">
+      <div className="sp-new-char ck">
+        {strip ? (
+          <OrigPreview strip={strip} pos={pos % Math.max(1, strip.frameCount)} size={200} />
+        ) : sheet.origin === 'new' ? (
+          sheet.characterUrl ? <img src={sheet.characterUrl} alt="" draggable={false} /> : <Icon name="image" size={30} />
+        ) : (
+          <img src={sheet.thumb ?? sheet.url} alt="" draggable={false} />
+        )}
+      </div>
+      <div className="sp-new-body">
+        <div className="sp-new-head">
+          {sheet.origin === 'new' ? (
+            <span className="chip c-orange">
+              <Icon name="sparkles" size={10} />
+              {t('spriteProject.create.badge')}
+            </span>
+          ) : (
+            <span className={sheet.format === 'grid' ? 'chip c-gray' : 'chip c-blue'} title={sheet.atlasPath ?? undefined}>
+              {sheet.format === 'grid' ? t('spriteProject.format.grid') : `${t(`spriteProject.format.${sheet.format}`)} · ${sheet.atlasName ?? ''}`}
+            </span>
+          )}
+          <b>{sheet.name}</b>
+          <span className="muted mono">
+            {sheet.w} × {sheet.h} · {t('spriteProject.import.stats', { anims: rows.length, dirs: dirs.filter(Boolean).length, frames: real })}
+          </span>
+        </div>
+        {sheet.description && <p className="sp-new-desc">{sheet.description}</p>}
+        {sheet.origin === 'new' && <p className="muted">{t('spriteProject.create.gridNote')}</p>}
+        {hint && (
+          <div className="note warn">
+            <Icon name="alert" size={14} />
+            <span>{t(`spriteProject.import.${hint}`)}</span>
+          </div>
+        )}
+        {rows.length > 0 && (
+          <table className="sp-new-tbl">
+            <thead>
+              <tr>
+                <th>{t('spriteProject.create.colAnim')}</th>
+                {dirs.map((d) => (
+                  <th key={d ?? '-'}>{d ? t(`spriteProject.dir.${d}`) : '—'}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((n) => (
+                <tr key={n}>
+                  <td>
+                    <b>{n}</b>
+                  </td>
+                  {dirs.map((d) => {
+                    const a = sheet.anims.find((x) => animRow(x.name) === n && x.dir === d)
+                    return (
+                      <td key={d ?? '-'}>
+                        {a ? (
+                          <button type="button" className={anim?.id === a.id ? 'sp-cell on' : 'sp-cell'} onClick={() => setPick(a.id)} title={a.name}>
+                            {t('spriteProject.create.frames', { count: a.frames.length })}
+                          </button>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
+                    )
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <div className="actions">
+          <button type="button" className="btn" aria-expanded={open} onClick={onToggle}>
+            <Icon name={open ? 'up' : 'grid'} size={14} />
+            {open ? t('spriteProject.import.closeEditor') : t('spriteProject.import.openEditor')}
+          </button>
+          <button type="button" className="btn primary" onClick={() => setStep(2)}>
+            {t('spriteProject.import.next')}
+            <Icon name="right" size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SheetPanel({ v, sheet }: { v: SpriteProjectView; sheet: SheetView }): ReactElement {
+  const { t } = useTranslation()
+  const update = useSprite((s) => s.update)
+  const detect = useSprite((s) => s.detect)
+  const detecting = useSprite((s) => s.detecting)
+  const [open, setOpen] = useState<Record<string, boolean>>({})
+  const [initial] = useState<Record<string, boolean>>(() => ({}))
+  if (!(sheet.id in initial)) initial[sheet.id] = needsGridEdit(sheet, v.settings)
+  const isOpen = open[sheet.id] ?? initial[sheet.id]
+  if (sheet.status === 'missing') {
+    return (
+      <div className="note err sp-panel-note">
+        <Icon name="alert" size={14} />
+        <span>{t('spriteProject.status.missing')}</span>
+      </div>
+    )
+  }
+  return (
+    <div className="sp-panel">
+      <SheetSummary key={sheet.id} v={v} sheet={sheet} open={isOpen} onToggle={() => setOpen((o) => ({ ...o, [sheet.id]: !isOpen }))} />
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div className="sp-editor" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2, ease: EASE }}>
+            <SettingsCard v={v} inline />
+            {sheet.origin !== 'new' && <SpriteDemo key={sheet.id} sheet={sheet} settings={v.settings} busy={detecting} onUpdate={(patch) => void update(sheet.id, patch)} onDetect={() => void detect(sheet.id)} />}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function ImportStep({ v }: { v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
   const busy = useSprite((s) => s.busy)
   const add = useSprite((s) => s.add)
+  const sheetId = useSprite((s) => s.sheetId)
   const pickSheet = useSprite((s) => s.pickSheet)
-  const setStep = useSprite((s) => s.setStep)
   const { over, bind } = useDrop((paths) => void add(paths))
   const [creating, setCreating] = useState(false)
+  const sheet = v.sheets.find((s) => s.id === sheetId) ?? v.sheets[0] ?? null
   const addBtn = (
     <button type="button" className="btn primary" disabled={busy} onClick={() => void add(null)}>
       {busy ? <span className="spin" /> : <Icon name="plus" size={14} />}
       {t('spriteProject.sheets.add')}
     </button>
   )
-  const newBtn = (
-    <button type="button" className="btn" onClick={() => setCreating(true)}>
-      <Icon name="sparkles" size={14} />
-      {t('spriteProject.create.open')}
-    </button>
-  )
   return (
     <div className={over ? 'sp-wrap over' : 'sp-wrap'} {...bind}>
       <div className="sp-main">
-        {v.sheets.length === 0 ? (
+        {!sheet ? (
           <div className="sp-choose">
             <div className="sp-choice">
               <span className="sp-ch-ic">{busy ? <span className="spin lg" /> : <Icon name="grid" size={30} />}</span>
@@ -350,127 +466,30 @@ function SheetsStep({ v }: { v: SpriteProjectView }): ReactElement {
           <>
             <div className="toolbar">
               {addBtn}
-              {newBtn}
-              <span className="muted">{t('spriteProject.sheets.dropHint')}</span>
-              <div className="grow" />
-              <button type="button" className="btn" onClick={() => setStep(2)}>
-                {t('spriteProject.sheets.next')}
-                <Icon name="right" size={14} />
+              <button type="button" className="btn" onClick={() => setCreating(true)}>
+                <Icon name="sparkles" size={14} />
+                {t('spriteProject.create.open')}
               </button>
+              <span className="muted">{t('spriteProject.sheets.dropHint')}</span>
             </div>
-            <div className="sp-grid">
-              {v.sheets.map((s, i) => (
-                <SheetCard
-                  key={s.id}
-                  s={s}
-                  index={i}
-                  onOpen={() => {
-                    pickSheet(s.id)
-                    setStep(2)
-                  }}
-                />
-              ))}
-            </div>
+            {v.sheets.length > 1 && (
+              <div className="sp-shelf">
+                {v.sheets.map((s, i) => (
+                  <SheetCard key={s.id} s={s} index={i} on={s.id === sheet.id} onOpen={() => pickSheet(s.id)} />
+                ))}
+              </div>
+            )}
+            <SheetPanel v={v} sheet={sheet} />
           </>
         )}
       </div>
-      <SettingsCard v={v} />
+      {!sheet && <SettingsCard v={v} />}
       <NewSheetDialog open={creating} v={v} onClose={() => setCreating(false)} />
       {over && (
         <div className="sp-drop">
           <Icon name="upload" size={34} />
           <b>{t('spriteProject.sheets.dropTitle')}</b>
         </div>
-      )}
-    </div>
-  )
-}
-
-function NewSheetSummary({ sheet }: { sheet: SheetView }): ReactElement {
-  const { t } = useTranslation()
-  const setStep = useSprite((s) => s.setStep)
-  const names = [...new Set(sheet.anims.map((a) => a.name))]
-  const dirs = [...new Set(sheet.anims.map((a) => a.dir))]
-  const cell = sheet.grid ? `${sheet.grid.cellW} × ${sheet.grid.cellH}` : ''
-  return (
-    <div className="sp-new-sum">
-      <div className="sp-new-char ck">{sheet.characterUrl ? <img src={sheet.characterUrl} alt="" draggable={false} /> : <Icon name="image" size={30} />}</div>
-      <div className="sp-new-body">
-        <div className="sp-new-head">
-          <span className="chip c-orange">
-            <Icon name="sparkles" size={10} />
-            {t('spriteProject.create.badge')}
-          </span>
-          <b>{sheet.name}</b>
-          <span className="muted mono">
-            {sheet.w} × {sheet.h} · {t('spriteProject.create.cell', { size: cell })}
-          </span>
-        </div>
-        {sheet.description && <p className="sp-new-desc">{sheet.description}</p>}
-        <p className="muted">{t('spriteProject.create.gridNote')}</p>
-        <table className="sp-new-tbl">
-          <thead>
-            <tr>
-              <th>{t('spriteProject.create.colAnim')}</th>
-              {dirs.map((d) => (
-                <th key={d ?? '-'}>{d ? t(`spriteProject.dir.${d}`) : '—'}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {names.map((n) => (
-              <tr key={n}>
-                <td>
-                  <b>{n}</b>
-                </td>
-                {dirs.map((d) => {
-                  const a = sheet.anims.find((x) => x.name === n && x.dir === d)
-                  return <td key={d ?? '-'}>{a ? t('spriteProject.create.frames', { count: a.frames.length }) : '—'}</td>
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="actions">
-          <button type="button" className="btn primary" onClick={() => setStep(3)}>
-            {t('spriteProject.create.toStyle')}
-            <Icon name="right" size={14} />
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function GridStep({ v }: { v: SpriteProjectView }): ReactElement {
-  const { t } = useTranslation()
-  const sheetId = useSprite((s) => s.sheetId)
-  const pickSheet = useSprite((s) => s.pickSheet)
-  const update = useSprite((s) => s.update)
-  const detect = useSprite((s) => s.detect)
-  const sheet = v.sheets.find((s) => s.id === sheetId) ?? v.sheets[0]
-  if (!sheet) return <div className="proj-state muted">{t('spriteProject.lock.grid')}</div>
-  return (
-    <div className="sp-grid-step">
-      {v.sheets.length > 1 && (
-        <div className="sp-tabs" role="tablist">
-          {v.sheets.map((s) => (
-            <button key={s.id} type="button" role="tab" aria-selected={s.id === sheet.id} className={s.id === sheet.id ? 'on' : undefined} onClick={() => pickSheet(s.id)}>
-              {(s.origin === 'new' ? s.characterUrl : s.thumb) && <img src={(s.origin === 'new' ? s.characterUrl : s.thumb) as string} alt="" draggable={false} />}
-              {s.name}
-            </button>
-          ))}
-        </div>
-      )}
-      {sheet.origin === 'new' ? (
-        <NewSheetSummary sheet={sheet} />
-      ) : sheet.status === 'missing' ? (
-        <div className="note err">
-          <Icon name="alert" size={14} />
-          <span>{t('spriteProject.status.missing')}</span>
-        </div>
-      ) : (
-        <SpriteDemo key={sheet.id} sheet={sheet} settings={v.settings} onUpdate={(patch) => void update(sheet.id, patch)} onDetect={() => void detect(sheet.id)} />
       )}
     </div>
   )
@@ -548,16 +567,12 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
             transition={viewTransition}
           >
             <Intro step={key} n={step} v={view} />
-            {key === 'sheets' ? (
-              <SheetsStep v={view} />
-            ) : key === 'grid' ? (
-              <GridStep v={view} />
+            {key === 'import' ? (
+              <ImportStep v={view} />
             ) : key === 'style' ? (
               <SpriteStyleStep v={view} />
-            ) : key === 'gen' ? (
-              <SpriteGenStep v={view} />
-            ) : key === 'review' ? (
-              <SpriteReviewStep v={view} />
+            ) : key === 'work' ? (
+              <SpriteWorkStep v={view} />
             ) : (
               <SpriteExportStep v={view} />
             )}
