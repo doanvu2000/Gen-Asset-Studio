@@ -236,7 +236,13 @@ export interface SpriteJobSpec {
   view: ViewAngle
   frames: FrameRect[]
   lockImages: string[]
+  mirrors?: SpriteMirrorRects[]
   create?: { character: string; description: string; cell: number }
+}
+
+export interface SpriteMirrorRects {
+  dir: Direction | null
+  frames: Array<FrameRect | null>
 }
 
 export interface SpriteStyle {

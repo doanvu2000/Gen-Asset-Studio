@@ -8,7 +8,8 @@ import { runStripJob } from '../src/main/sprite/stripJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { pickChroma } from '../src/main/pipeline/chroma'
 import { createImage, decode } from '../src/main/pipeline/image'
-import { overflowCheck, staticCheck, trimBox, isTrimmed } from '../src/main/sprite/strip'
+import { overflowCheck, staticCheck, trimBox, isTrimmed, mirrorNeedsCheck } from '../src/main/sprite/strip'
+import type { FrameRect } from '../src/shared/sprite'
 import type { RawImage } from '../src/main/pipeline/types'
 import type { CodexLike, PipelineLike } from '../src/main/queue/GenJob'
 
@@ -106,6 +107,20 @@ function unitChecks(): void {
   const f = overflowCheck([inside, lot], [trim, trim], [])
   check(f.status === 'fail' && f.frames.join() === '1' && f.value > 5, `overflow fail big spill (${f.value}%)`)
   check(overflowCheck([lot], [trim], [0]).status === 'pass', 'overflow skips missing frames')
+  const rect = (x: number, y: number, w: number, h: number, rotated = false, srcW = 64, srcH = 64): FrameRect => ({ name: 'f', x: 0, y: 0, w: rotated ? h : w, h: rotated ? w : h, rotated, trimmed: true, srcX: x, srcY: y, srcW, srcH, pivotX: 0.5, pivotY: 1 })
+  const full = rect(0, 0, 64, 64)
+  const left = blob(64, 64, 4, 10, 20, 40)
+  const mFit = overflowCheck([left], [], [], [{ dir: 'E', frames: [rect(40, 10, 20, 40)] }])
+  check(mFit.status === 'pass' && mFit.value === 0 && /E mirror/.test(mFit.message), `mirror pass when flipped frame fits mirror trim (${mFit.message})`)
+  const mBad = overflowCheck([left, left], [], [], [{ dir: 'E', frames: [rect(40, 10, 20, 40), rect(36, 10, 20, 40)] }])
+  check(mBad.status === 'fail' && mBad.frames.join() === '1' && /^E \(mirror\): 1 frame/.test(mBad.message), `mirror overflow reported on mirror trim (${mBad.message})`)
+  check(overflowCheck([left], [], [], [{ dir: 'E', frames: [rect(4, 10, 20, 40)] }]).status === 'fail', 'mirror check flips the frame (unflipped rect fails)')
+  check(overflowCheck([left], [], [], [{ dir: 'E', frames: [rect(40, 10, 20, 40, true)] }]).status === 'pass', 'mirror rotated rect uses upright trim')
+  check(overflowCheck([left], [], [], [{ dir: 'E', frames: [rect(40, 10, 20, 40, false, 64, 54)] }]).status === 'fail', 'mirror smaller canvas bottom-aligns like export')
+  const both = overflowCheck([left, left], [rect(4, 10, 20, 40), rect(4, 12, 20, 40)].map(trimBox), [], [{ dir: 'NE', frames: [rect(36, 10, 20, 40), rect(40, 10, 20, 40)] }])
+  check(both.status === 'fail' && both.frames.join() === '0,1' && /exceed.*; NE \(mirror\)/.test(both.message), `source + mirror overflow merged in one check (${both.message})`)
+  check(overflowCheck([left], [], [0], [{ dir: 'E', frames: [rect(36, 10, 20, 40)] }]).status === 'pass', 'mirror skips missing frames')
+  check(!mirrorNeedsCheck({ dir: 'E', frames: [full, null] }, [full]) && mirrorNeedsCheck({ dir: 'E', frames: [rect(40, 10, 20, 40)] }, [full]) && mirrorNeedsCheck({ dir: 'E', frames: [rect(0, 0, 64, 60, false, 64, 60)] }, [full]), 'mirrorNeedsCheck: trimmed or resized mirror only')
   const a = blob(64, 64, 20, 10, 20, 50)
   const b = blob(64, 64, 24, 10, 20, 50)
   const still = staticCheck([a, a, a], 'walk', [])
@@ -166,7 +181,8 @@ async function main(): Promise<void> {
       const job = { ...spec, id: 'x', attempt: 1, status: 'running', step: 'waiting', progress: '', error: null, result: null, createdAt: 0, startedAt: 0, finishedAt: null, notBefore: null } as QueueJob
       const r = await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
       const ids = r.qa.checks.map((c) => c.id)
-      const trimmed = (spec.sprite?.frames ?? []).some(isTrimmed)
+      const own = spec.sprite?.frames ?? []
+      const trimmed = own.some(isTrimmed) || (spec.sprite?.mirrors ?? []).some((mm) => mirrorNeedsCheck(mm, own))
       check(ids.includes('static') && ids.includes('overflow') === trimmed, `${spec.assetRelPath} static check, overflow ${trimmed ? 'on' : 'off'}`)
       const fails = r.qa.checks.filter((c) => c.status !== 'pass').map((c) => `${c.id}=${c.value}`)
       check(r.qa.pass && fails.length === 0, `${spec.assetRelPath} v${r.version} qa clean ${fails.join(' ')}`)
@@ -177,6 +193,8 @@ async function main(): Promise<void> {
   const rest = (view?.strips ?? []).filter((s) => s.key !== lock && !s.mirrorOf).map((s) => s.key)
   const m = await svc.enqueue('Hero', rest)
   check(m === rest.length && queued.every((q) => q.sprite?.lockImages.length === 1), `rest enqueued with lock image (${m})`)
+  const withMirror = queued.filter((q) => q.sprite?.mirrors?.length).map((q) => `${q.sprite?.dir}->${q.sprite?.mirrors?.map((x) => x.dir).join('')}`)
+  check(withMirror.sort().join() === 'NW->NE,SW->SE,W->E,W->E', `mirror rects passed with source spec (${withMirror.join()})`)
   await runAll()
   view = await svc.open('Hero')
   const patch: Record<string, { decision: 'approved' }> = {}

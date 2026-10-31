@@ -742,6 +742,7 @@ export class SpriteService {
             view: sprite.settings.view,
             frames: d.frames,
             lockImages: d.key === lockKey ? [] : lockImages,
+            mirrors: defs.filter((x) => x.mirrorOf === d.key).map((x) => ({ dir: x.anim.dir, frames: x.anim.frames.map((i) => x.sheet.frames[i] ?? null) })),
             ...(d.sheet.origin === 'new' && this.characterPath(dir, d.sheet as SheetRecord)
               ? { create: { character: this.characterPath(dir, d.sheet as SheetRecord) as string, description: (d.sheet as SheetRecord).description, cell: (d.sheet as SheetRecord).cell } }
               : {})

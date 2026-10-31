@@ -1,5 +1,5 @@
 import sharp from 'sharp'
-import type { Direction, FrameRect, StripQa, StripQaCheck, ViewAngle } from '@shared/sprite'
+import type { Direction, FrameRect, SpriteMirrorRects, StripQa, StripQaCheck, ViewAngle } from '@shared/sprite'
 import { removeBackground } from '../pipeline/background'
 import { alphaBBox, crop, createImage, decode, encodePng, resizeRaw } from '../pipeline/image'
 import type { RawImage, Rgb } from '../pipeline/types'
@@ -278,7 +278,7 @@ export async function scaleRegion(src: RawImage, box: Box, s: number): Promise<R
   return resizeRaw(part, w, h)
 }
 
-export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawImage[], opts: { anchorTol?: number; heightTol?: number; anim?: string; trims?: Box[] } = {}): Promise<StripFit> {
+export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawImage[], opts: { anchorTol?: number; heightTol?: number; anim?: string; trims?: Box[]; mirrors?: SpriteMirrorRects[] } = {}): Promise<StripFit> {
   const anchorTol = opts.anchorTol ?? Math.max(3, Math.round(l.cellH * 0.04))
   const heightTol = opts.heightTol ?? 0.12
   const info = originals.map((orig, i) => {
@@ -348,7 +348,7 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
     { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' },
     staticCheck(frames, opts.anim ?? '', missing, originals)
   ]
-  if (opts.trims) checks.push(overflowCheck(frames, opts.trims, missing))
+  if (opts.trims || opts.mirrors?.length) checks.push(overflowCheck(frames, opts.trims ?? [], missing, opts.mirrors))
   return { frames, scale: s, offsetX: offX, offsetY: offY, qa: { pass: !checks.some((c) => c.status === 'fail'), checks } }
 }
 
@@ -361,40 +361,61 @@ export function isTrimmed(f: FrameRect): boolean {
   return t.x > 0 || t.y > 0 || t.width < f.srcW || t.height < f.srcH
 }
 
-export function overflowRatio(img: RawImage, trim: Box): number {
+export function overflowRatio(img: RawImage, trim: Box, ox = 0, oy = 0): number {
   let total = 0
   let out = 0
   for (let y = 0; y < img.height; y++) {
-    const inY = y >= trim.y && y < trim.y + trim.height
+    const sy = y + oy
+    const inY = sy >= trim.y && sy < trim.y + trim.height
     for (let x = 0; x < img.width; x++) {
       if (img.data[(y * img.width + x) * 4 + 3] <= 20) continue
       total++
-      if (!inY || x < trim.x || x >= trim.x + trim.width) out++
+      const sx = x + ox
+      if (!inY || sx < trim.x || sx >= trim.x + trim.width) out++
     }
   }
   return total ? out / total : 0
 }
 
-export function overflowCheck(frames: RawImage[], trims: Box[], skip: number[]): StripQaCheck {
+export function mirrorOverflowRatio(frame: RawImage, rect: FrameRect): number {
+  return overflowRatio(flipFrame(frame), trimBox(rect), Math.floor((rect.srcW - frame.width) / 2), rect.srcH - frame.height)
+}
+
+export function mirrorNeedsCheck(m: SpriteMirrorRects, own: FrameRect[]): boolean {
+  return m.frames.some((f, i) => !!f && (isTrimmed(f) || f.srcW !== own[i]?.srcW || f.srcH !== own[i]?.srcH))
+}
+
+export function overflowCheck(frames: RawImage[], trims: Box[], skip: number[], mirrors: SpriteMirrorRects[] = []): StripQaCheck {
   const warnAt = 0.005
   const failAt = 0.05
-  const bad: number[] = []
+  const bad = new Set<number>()
+  const parts: string[] = []
   let worst = 0
-  frames.forEach((f, i) => {
-    const t = trims[i]
-    if (!t || skip.includes(i)) return
-    const r = overflowRatio(f, t)
-    worst = Math.max(worst, r)
-    if (r > warnAt) bad.push(i)
-  })
+  const scan = (label: string, ratio: (f: RawImage, i: number) => number | null): void => {
+    let n = 0
+    frames.forEach((f, i) => {
+      if (skip.includes(i)) return
+      const r = ratio(f, i)
+      if (r === null) return
+      worst = Math.max(worst, r)
+      if (r > warnAt) {
+        bad.add(i)
+        n++
+      }
+    })
+    if (n) parts.push(`${label}${n} frame(s) exceed the trimmed rect`)
+  }
+  scan('', (f, i) => (trims[i] ? overflowRatio(f, trims[i]) : null))
+  for (const m of mirrors) scan(`${m.dir ?? '?'} (mirror): `, (f, i) => (m.frames[i] ? mirrorOverflowRatio(f, m.frames[i] as FrameRect) : null))
   const pct = Math.round(worst * 1000) / 10
+  const extra = mirrors.length ? ` (incl. ${mirrors.map((m) => m.dir ?? '?').join(', ')} mirror)` : ''
   return {
     id: 'overflow',
-    status: worst > failAt ? 'fail' : bad.length ? 'warn' : 'pass',
+    status: worst > failAt ? 'fail' : bad.size ? 'warn' : 'pass',
     value: pct,
     threshold: warnAt * 100,
-    frames: bad,
-    message: bad.length ? `${bad.length} frame(s) exceed the trimmed rect, up to ${pct}% cut on export` : 'fits trimmed rects'
+    frames: [...bad].sort((a, b) => a - b),
+    message: bad.size ? `${parts.join('; ')}, up to ${pct}% cut on export` : `fits trimmed rects${extra}`
   }
 }
 
