@@ -1002,6 +1002,12 @@
   gap: 10px;
 }
 
+.sp-new-body > .actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .sp-new-head {
   display: flex;
   align-items: center;
