@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
 import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon, type IconName } from '@renderer/components/Icon'
+import { Modal } from '@renderer/components/Modal'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { rigEditCount, SPINE_STEPS, spineStepLock, type SpineStepKey } from '@renderer/lib/spine'
@@ -144,6 +145,8 @@ function SkeletonBar({ v, err }: { v: SpineProjectView; err: ReactElement | null
   const busy = useSpine((s) => s.busy)
   const importFrom = useSpine((s) => s.importFrom)
   const clear = useSpine((s) => s.clear)
+  const importError = useSpine((s) => s.importError)
+  const [confirmClear, setConfirmClear] = useState(false)
   const sk = v.skeleton
   return (
     <section className="spi-bar">
@@ -169,7 +172,7 @@ function SkeletonBar({ v, err }: { v: SpineProjectView; err: ReactElement | null
           {busy ? <span className="spin" /> : <Icon name="refresh" size={13} />}
           {t('spineProject.import.reimport')}
         </button>
-        <button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => void clear()}>
+        <button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => setConfirmClear(true)}>
           <Icon name="trash" size={13} />
           {t('spineProject.import.clear')}
         </button>
@@ -189,14 +192,56 @@ function SkeletonBar({ v, err }: { v: SpineProjectView; err: ReactElement | null
           <dd>{v.pages.map((p) => `${p.name} (${p.w}×${p.h})`).join(', ')}</dd>
         </dl>
       </details>
-      {v.error && (
+      {v.status === 'changed' && <SourceNote v={v} dup={importError} />}
+      {v.error && v.status !== 'changed' && v.error !== importError && (
         <div className="note warn">
           <Icon name="alert" size={14} />
-          <span>{v.error}</span>
+          <span>{importErrorText(v.error)}</span>
         </div>
       )}
       {err}
+      <Modal open={confirmClear} onClose={() => setConfirmClear(false)} label={t('spineProject.import.clear')} role="alertdialog">
+        <h2>
+          <span className="dlg-ic danger">
+            <Icon name="trash" size={22} />
+          </span>
+          {t('spineProject.import.clearTitle', { name: v.skeletonName ?? '' })}
+        </h2>
+        <p>{t('spineProject.import.clearDesc')}</p>
+        <div className="acts">
+          <button type="button" className="btn" onClick={() => setConfirmClear(false)}>
+            {t('dialogs.cancel')}
+          </button>
+          <button
+            type="button"
+            className="btn danger solid"
+            onClick={() => {
+              setConfirmClear(false)
+              void clear()
+            }}
+          >
+            <Icon name="trash" size={14} />
+            {t('spineProject.import.clear')}
+          </button>
+        </div>
+      </Modal>
     </section>
+  )
+}
+
+function SourceNote({ v, dup }: { v: SpineProjectView; dup: string | null }): ReactElement {
+  const { t } = useTranslation()
+  const kind = v.status === 'missing' ? 'missing' : v.error?.split(':')[0] === 'sourceChanged' ? 'changed' : 'unreadable'
+  const files = v.changedFiles?.length ? v.changedFiles : [v.skeletonPath, v.atlasPath].filter((f): f is string => !!f)
+  return (
+    <div className={kind === 'changed' ? 'note warn spi-src' : 'note err spi-src'}>
+      <Icon name="alert" size={14} />
+      <span>
+        <b>{t(`spineProject.import.src.${kind}Title`)}</b> {t(`spineProject.import.src.${kind}Hint`)}
+        {kind !== 'changed' && v.error && v.error !== dup && <small>{importErrorText(v.error)}</small>}
+        {files.length > 0 && <small className="mono">{files.join(' · ')}</small>}
+      </span>
+    </div>
   )
 }
 
@@ -315,6 +360,7 @@ function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
               </li>
             ))}
           </ul>
+          {(v.status === 'missing' || v.status === 'changed') && <SourceNote v={v} dup={importError} />}
           {err}
           <div className="actions">
             <button type="button" className="btn primary" disabled={busy} onClick={() => void importFrom(null)}>

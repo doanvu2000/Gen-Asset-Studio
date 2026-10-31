@@ -15,9 +15,8 @@ export function regionJob(view: SpineProjectView, r: SpineRegionView, jobs: Queu
 
 export function regionState(r: SpineRegionView, job: QueueJob | null): RegionState {
   if (job && isActive(job)) return job.status === 'queued' || job.status === 'paused' ? 'queued' : 'running'
-  if (r.versions.length) return 'done'
   if (job && job.status === 'error') return 'error'
-  return 'none'
+  return r.versions.length ? 'done' : 'none'
 }
 
 export function regionQaFail(r: SpineRegionView): boolean {

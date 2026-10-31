@@ -1770,11 +1770,23 @@
         "noAtlas": "Không tìm thấy file .atlas — thêm file .atlas cùng tên hoặc chọn kèm.",
         "noPage": "Không tìm thấy ảnh page của atlas ({{detail}}) — để ảnh cạnh file .atlas.",
         "parse": "Không đọc được skeleton/atlas ({{detail}}).",
-        "noSkeleton": "Chưa chọn file skeleton (.json/.skel)."
+        "noSkeleton": "Chưa chọn file skeleton (.json/.skel).",
+        "unsupportedRotate": "Atlas có region xoay góc không hỗ trợ ({{detail}}) — chỉ hỗ trợ xoay 0° hoặc 90°. Xuất lại atlas với rotation 90° hoặc tắt rotation.",
+        "sourceChanged": "File nguồn (skeleton/atlas/ảnh page) đã bị sửa bên ngoài app — nhập lại để dùng bản mới."
       },
       "format": {
         "json": "JSON",
         "binary": "Nhị phân .skel"
+      },
+      "clearTitle": "Gỡ skeleton {{name}}?",
+      "clearDesc": "Skeleton, atlas, kết quả duyệt và chỉnh vị trí (rig) sẽ bị gỡ khỏi project. File gốc và ảnh đã gen trên đĩa không bị xoá.",
+      "src": {
+        "changedTitle": "File nguồn đã đổi.",
+        "changedHint": "Skeleton/atlas gốc đã bị sửa hoặc không đọc được nữa — bấm Nhập lại và chọn lại file.",
+        "missingTitle": "Không tìm thấy file nguồn.",
+        "missingHint": "File skeleton/atlas/page đã bị xoá hoặc di chuyển — bấm Chọn file (hoặc kéo thả) để nhập lại.",
+        "unreadableTitle": "Không đọc được file nguồn.",
+        "unreadableHint": "Skeleton/atlas gốc bị lỗi hoặc dùng định dạng chưa hỗ trợ — sửa file trong Spine rồi bấm Nhập lại."
       }
     },
     "preview": {
@@ -1881,7 +1893,15 @@
       "resultOk": "Xuất xong",
       "resLine": "{{regions}} region thay · {{kept}} giữ gốc",
       "jsonNew": "skeleton mới",
-      "jsonCopy": "chép nguyên"
+      "jsonCopy": "chép nguyên",
+      "err": {
+        "outIsSource": "Thư mục xuất trùng thư mục chứa file gốc — chọn thư mục khác để không ghi đè file gốc.",
+        "nothingApproved": "Chưa có region nào được duyệt và chưa chỉnh vị trí — không có gì để xuất.",
+        "noSkeleton": "Không đọc được skeleton/atlas của project — nhập lại skeleton rồi thử lại.",
+        "unknown": "Xuất thất bại: {{detail}}",
+        "sourceChanged": "File nguồn đã bị sửa bên ngoài app — nhập lại skeleton rồi xuất.",
+        "pagePath": "Atlas có tên page trỏ ra ngoài thư mục chứa atlas — sửa tên page trong file .atlas rồi nhập lại."
+      }
     },
     "toast": {
       "imported": "Đã nhập {{name}}",

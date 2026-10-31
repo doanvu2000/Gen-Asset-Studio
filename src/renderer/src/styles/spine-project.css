@@ -175,6 +175,22 @@
   max-width: 560px;
 }
 
+.note.spi-src {
+  align-items: flex-start;
+  text-align: left;
+}
+
+.note.spi-src > span {
+  min-width: 0;
+}
+
+.note.spi-src small {
+  display: block;
+  margin-top: 4px;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
 .spi-wrap.loaded {
   overflow: hidden;
 }

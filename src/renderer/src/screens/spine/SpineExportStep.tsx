@@ -2,10 +2,18 @@ import { useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SpineExportResult, SpineProjectView } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
+import i18n from '@renderer/i18n'
 import { relTime } from '@renderer/lib/format'
 import { useApp } from '@renderer/store/app'
 import { useSpine } from '@renderer/store/spine'
 import { toast } from '@renderer/store/toast'
+
+const EXPORT_ERR = ['outIsSource', 'nothingApproved', 'noSkeleton', 'sourceChanged', 'pagePath'] as const
+
+function exportErrorText(code: string): string {
+  const k = code.split(':')[0]
+  return (EXPORT_ERR as readonly string[]).includes(k) ? i18n.t(`spineProject.export.err.${k as (typeof EXPORT_ERR)[number]}`) : i18n.t('spineProject.export.err.unknown', { detail: code })
+}
 
 function defaultOut(dir: string): string {
   return `${dir.replace(/[\\/]+$/, '')}${dir.includes('/') && !dir.includes('\\') ? '/' : '\\'}output`
@@ -46,7 +54,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
       const r = await window.gas.spine.exportRun(v.rel, outDir)
       setResult(r)
       if (r.ok) toast(t('spineProject.export.done', { count: r.pages.length }))
-      else toast(r.error ?? t('spineProject.export.failed'), 'err')
+      else toast(r.error ? exportErrorText(r.error) : t('spineProject.export.failed'), 'err')
       void refresh()
     } catch (e) {
       toast(String((e as Error).message ?? e), 'err')
@@ -127,7 +135,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
             <Icon name={result.ok ? 'check' : 'alert'} size={14} />
             {result.ok ? t('spineProject.export.resultOk') : t('spineProject.export.failed')}
           </h3>
-          {result.error && <div className="note err">{result.error}</div>}
+          {result.error && <div className="note err">{exportErrorText(result.error)}</div>}
           <ul className="spx-res">
             {result.pages.map((p) => (
               <li key={p.name}>

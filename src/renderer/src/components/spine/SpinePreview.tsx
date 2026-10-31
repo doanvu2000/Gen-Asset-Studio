@@ -26,6 +26,11 @@ export function skeletonKey(a: SpineAssets): string {
   return isJson ? a.skeletonName : `${a.skeletonName}.json`
 }
 
+export function atlasPma(atlas: string): boolean {
+  const pages = atlas.split(/\r?\n[ \t]*\r?\n/).filter((b) => b.trim())
+  return pages.length > 0 && pages.every((b) => /^[ \t]*pma[ \t]*:[ \t]*true[ \t]*$/im.test(b))
+}
+
 export function rawUris(a: SpineAssets): Record<string, string> {
   const skeleton = a.format === 'binary' ? `data:application/octet-stream;base64,${a.skelBase64 ?? ''}` : `data:application/json;base64,${b64(a.json)}`
   const out: Record<string, string> = {
@@ -92,7 +97,7 @@ export function SpinePreview({ assets, animation, skin, time, showBones = false,
         rawDataURIs: rawUris(assets),
         showControls: false,
         showLoading: false,
-        premultipliedAlpha: false,
+        premultipliedAlpha: atlasPma(assets.atlas),
         alpha: true,
         backgroundColor: '#00000000',
         preserveDrawingBuffer: false,
@@ -143,9 +148,12 @@ export function SpinePreview({ assets, animation, skin, time, showBones = false,
             st.apply(sk)
           }
           sk.updateWorldTransform(Physics.update)
-          for (const slot of sk.slots) {
-            if (L.hl.has(slot.data.name)) slot.color.set(1, 0.35, 0.9, 1)
-            else slot.color.setFromColor(slot.data.color)
+          if (L.hl.size) {
+            for (const slot of sk.slots) {
+              if (!L.hl.has(slot.data.name)) continue
+              const c = slot.color
+              c.set(c.r, c.g * 0.35, c.b * 0.9, Math.max(c.a, 0.6))
+            }
           }
           const cfg = (p as unknown as Loose).config
           if (cfg?.debug) cfg.debug.bones = L.showBones

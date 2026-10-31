@@ -1770,11 +1770,23 @@
         "noAtlas": "No .atlas file found — add the matching .atlas or pick it too.",
         "noPage": "Atlas page image not found ({{detail}}) — keep it next to the .atlas file.",
         "parse": "Could not read the skeleton/atlas ({{detail}}).",
-        "noSkeleton": "No skeleton (.json/.skel) selected."
+        "noSkeleton": "No skeleton (.json/.skel) selected.",
+        "unsupportedRotate": "The atlas has regions with an unsupported rotation ({{detail}}) — only 0° or 90° is supported. Re-export the atlas with 90° rotation or rotation off.",
+        "sourceChanged": "Source files (skeleton/atlas/page image) changed outside the app — re-import to use the new version."
       },
       "format": {
         "json": "JSON",
         "binary": "Binary .skel"
+      },
+      "clearTitle": "Remove skeleton {{name}}?",
+      "clearDesc": "The skeleton, atlas, review decisions and position edits (rig) will be removed from the project. Source files and generated images on disk are not deleted.",
+      "src": {
+        "changedTitle": "Source files changed.",
+        "changedHint": "The original skeleton/atlas was modified or can no longer be read — click Re-import and pick the files again.",
+        "missingTitle": "Source files not found.",
+        "missingHint": "The skeleton/atlas/page files were deleted or moved — choose the files (or drop them) to import again.",
+        "unreadableTitle": "Could not read the source files.",
+        "unreadableHint": "The original skeleton/atlas is invalid or uses an unsupported format — fix it in Spine, then click Re-import."
       }
     },
     "preview": {
@@ -1881,7 +1893,15 @@
       "resultOk": "Export finished",
       "resLine": "{{regions}} replaced · {{kept}} kept",
       "jsonNew": "new skeleton",
-      "jsonCopy": "copied"
+      "jsonCopy": "copied",
+      "err": {
+        "outIsSource": "The output folder is the source folder — pick another folder so the originals are not overwritten.",
+        "nothingApproved": "No regions approved and no position edits — nothing to export.",
+        "noSkeleton": "Could not read the project skeleton/atlas — re-import the skeleton and try again.",
+        "unknown": "Export failed: {{detail}}",
+        "sourceChanged": "Source files changed outside the app — re-import the skeleton, then export.",
+        "pagePath": "A page name in the atlas points outside the atlas folder — fix the page name in the .atlas file and import again."
+      }
     },
     "toast": {
       "imported": "Imported {{name}}",

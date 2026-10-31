@@ -49,11 +49,17 @@ async function persistRig(): Promise<void> {
   if (!view) toast(i18n.t('spineProject.toast.saveFailed'), 'err')
 }
 
+function dropRig(): void {
+  if (rigTimer) clearTimeout(rigTimer)
+  rigTimer = null
+  rigPending = null
+}
+
 export function importErrorText(code: string | null): string {
   if (!code) return ''
   const [k, ...rest] = code.split(':')
   const detail = rest.join(':')
-  const known = ['version', 'noAtlas', 'noPage', 'parse', 'noSkeleton'] as const
+  const known = ['version', 'noAtlas', 'noPage', 'parse', 'noSkeleton', 'unsupportedRotate', 'sourceChanged'] as const
   type K = (typeof known)[number]
   return (known as readonly string[]).includes(k) ? i18n.t(`spineProject.import.err.${k as K}`, { detail }) : code
 }
@@ -93,6 +99,7 @@ export const useSpine = create<SpineStore>()((set, get) => ({
   importFrom: async (paths) => {
     const rel = get().rel
     if (!rel || get().busy) return false
+    dropRig()
     set({ busy: true, importError: null })
     try {
       const r: SpineImportResult = paths ? await window.gas.spine.importPaths(rel, paths) : await window.gas.spine.importDialog(rel)
@@ -115,6 +122,7 @@ export const useSpine = create<SpineStore>()((set, get) => ({
   clear: async () => {
     const rel = get().rel
     if (!rel) return
+    dropRig()
     const view = await window.gas.spine.clear(rel)
     if (view && get().rel === rel) set({ view, orig: null, next: null, nextSig: '', step: 1 })
   },
