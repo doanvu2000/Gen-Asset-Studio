@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactElement } from 'react'
+import { Fragment, useEffect, useRef, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SpineProjectView } from '@shared/spine'
 import type { PromptPolishResult, StyleTemplate } from '@shared/style'
@@ -45,6 +45,7 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
   }
 
   const tpl = tpls.find((x) => x.id === st.templateId) ?? null
+  const sections = (['character', 'ui'] as const).map((cat) => ({ cat, list: tpls.filter((x) => x.category === cat) })).filter((x) => x.list.length > 0)
   const ready = !!(st.templateId || prompt.trim() || st.refImages.length)
 
   const pickTpl = (x: StyleTemplate): void => {
@@ -90,26 +91,33 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
           <span className="muted">{t('spineProject.style.oneStyle')}</span>
         </div>
         {source === 'template' ? (
-          <div className="tpl-grid sps-tpls">
-            {tpls.map((x) => {
-              const on = st.templateId === x.id
-              return (
-                <div key={x.id} className={['tpl', on && 'on', on && locked && 'locked'].filter(Boolean).join(' ')}>
-                  <button type="button" className="tpl-hit" disabled={locked} onClick={() => pickTpl(x)} aria-pressed={on}>
-                    <span className="tpl-img">{x.previewSmPath ? <img src={fileUrl(x.previewSmPath)} alt="" draggable={false} loading="lazy" /> : <Icon name="palette" size={22} />}</span>
-                    <span className="tpl-b">
-                      <span className="tpl-t">{x.name[lang]}</span>
-                      <span className="sw">
-                        {x.palette.slice(0, 6).map((c) => (
-                          <i key={c} style={{ background: c }} />
-                        ))}
-                      </span>
-                    </span>
-                  </button>
-                  <span className="radio">{on && <Icon name={locked ? 'lock' : 'check'} size={12} />}</span>
+          <div className="sps-tpl-secs">
+            {sections.map((sec) => (
+              <Fragment key={sec.cat}>
+                {sections.length > 1 && <div className="sub-l">{t(`spriteProject.style.cat.${sec.cat}`)}</div>}
+                <div className="tpl-grid sps-tpls">
+                  {sec.list.map((x) => {
+                    const on = st.templateId === x.id
+                    return (
+                      <div key={x.id} className={['tpl', on && 'on', on && locked && 'locked'].filter(Boolean).join(' ')}>
+                        <button type="button" className="tpl-hit" disabled={locked} onClick={() => pickTpl(x)} aria-pressed={on}>
+                          <span className="tpl-img">{x.previewSmPath ? <img src={fileUrl(x.previewSmPath)} alt="" draggable={false} loading="lazy" /> : <Icon name="palette" size={22} />}</span>
+                          <span className="tpl-b">
+                            <span className="tpl-t">{x.name[lang]}</span>
+                            <span className="sw">
+                              {x.palette.slice(0, 6).map((c) => (
+                                <i key={c} style={{ background: c }} />
+                              ))}
+                            </span>
+                          </span>
+                        </button>
+                        <span className="radio">{on && <Icon name={locked ? 'lock' : 'check'} size={12} />}</span>
+                      </div>
+                    )
+                  })}
                 </div>
-              )
-            })}
+              </Fragment>
+            ))}
           </div>
         ) : (
           <div className="sps-custom">

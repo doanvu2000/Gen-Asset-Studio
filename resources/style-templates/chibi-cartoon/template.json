@@ -1,0 +1,9 @@
+{
+  "id": "chibi-cartoon",
+  "name": { "vi": "Chibi Hoạt Hình", "en": "Chibi Cartoon" },
+  "category": "character",
+  "description": { "vi": "Chibi tròn mũm mĩm, viền đậm, cel shading 2 lớp, màu tươi.", "en": "Round chubby chibi, bold outlines, two-step cel shading, bright colors." },
+  "promptEn": "Cute 2D mobile game character in a polished chibi cartoon style. Big rounded head, soft chunky body forms and simplified hands and feet, all built from smooth rounded shapes. Thick clean dark outline (deep plum-brown, slightly heavier on the outer silhouette than on inner details), flat base colors with crisp two-step cel shading (one shadow tone, one small highlight), a small glossy highlight on hair and eyes, rosy cheeks. Palette is bright and saturated: coral red, sunny yellow, sky cyan, violet, warm peach skin; never muddy, grey or pastel-washed. Smooth vector-like edges, no texture, no noise. Keep the original character exactly: same pose, body proportions, facing direction, silhouette, hairstyle, outfit, accessories and weapon or held item; only the rendering style changes. Keep every transparent area transparent, add no background, ground, scenery, frame, text or effects, add no large drop or cast shadow, and keep the outer edge clean and solid so the sprite separates cleanly from a flat chroma key background.",
+  "palette": ["#FF5D6C", "#FFC93C", "#3EC5F0", "#7B5CFF", "#FFDCC2", "#2E1A38"],
+  "chroma": "#00FF00"
+}

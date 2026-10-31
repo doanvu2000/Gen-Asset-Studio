@@ -1,7 +1,7 @@
 import { app } from 'electron'
 import { existsSync, promises as fs } from 'node:fs'
 import { join, resolve } from 'node:path'
-import type { LocalizedText, SaveTemplateRequest, StyleTemplate } from '@shared/style'
+import { templateCategory, type LocalizedText, type SaveTemplateRequest, type StyleTemplate, type TemplateCategory } from '@shared/style'
 import { appDataDir } from '../paths'
 import { cleanPalette, cleanStr, newId, readJson, safeId, writeJsonAtomic } from './common'
 
@@ -11,6 +11,7 @@ interface TemplateFile {
   id?: string
   name?: Partial<LocalizedText> | string
   description?: Partial<LocalizedText> | string
+  category?: TemplateCategory | string
   promptEn?: string
   palette?: string[]
   chroma?: string
@@ -57,6 +58,7 @@ async function readTemplate(dir: string, builtin: boolean): Promise<StyleTemplat
     id,
     name: loc(raw.name, id),
     description: loc(raw.description, ''),
+    category: templateCategory(raw.category),
     promptEn,
     palette: cleanPalette(raw.palette),
     chroma: typeof raw.chroma === 'string' ? raw.chroma : null,
@@ -117,6 +119,8 @@ export class TemplateStore {
     const promptEn = cleanStr(g.promptEn, 6000)
     if (!promptEn) throw new Error('Style group has no English prompt to save as a template')
     const name = loc(req.name, g.name || 'Template')
+    const base = g.templateId ? await this.get(g.templateId) : null
+    const category = req.category ? templateCategory(req.category) : (base?.category ?? 'ui')
     const builtinIds = new Set((await this.listBuiltin()).map((t) => t.id))
     let id = `user-${safeId(name.en || name.vi) || 'style'}`
     if (builtinIds.has(id) || existsSync(join(this.userDir, id))) id = `${id}-${newId()}`
@@ -131,6 +135,7 @@ export class TemplateStore {
       id,
       name,
       description: req.description ?? { vi: '', en: '' },
+      category,
       promptEn,
       palette: cleanPalette(req.palette ?? []),
       createdAt: Date.now()

@@ -3,10 +3,13 @@ export interface LocalizedText {
   en: string
 }
 
+export type TemplateCategory = 'ui' | 'character'
+
 export interface StyleTemplate {
   id: string
   name: LocalizedText
   description: LocalizedText
+  category: TemplateCategory
   promptEn: string
   palette: string[]
   chroma: string | null
@@ -131,6 +134,15 @@ export interface SaveTemplateRequest {
   name: LocalizedText
   description?: LocalizedText
   palette?: string[]
+  category?: TemplateCategory
+}
+
+export function templateCategory(v: unknown): TemplateCategory {
+  return v === 'character' ? 'character' : 'ui'
+}
+
+export function templatesByCategory(list: StyleTemplate[], first: TemplateCategory): StyleTemplate[] {
+  return [...list.filter((t) => t.category === first), ...list.filter((t) => t.category !== first)]
 }
 
 export const SUGGEST_MIN = 1

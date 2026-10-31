@@ -1,0 +1,9 @@
+{
+  "id": "pixel-art",
+  "name": { "vi": "Pixel Art", "en": "Pixel Art" },
+  "category": "character",
+  "description": { "vi": "Pixel art 32-bit sạch, bảng màu giới hạn, không khử răng cưa.", "en": "Clean 32-bit pixel art, limited palette, no anti-aliasing." },
+  "promptEn": "2D mobile game character in clean 32-bit era pixel art. The character is drawn on a coarse, perfectly regular pixel grid where every pixel is a hard square of a single flat color: no anti-aliasing, no blur, no gradients, no soft brushes, no dithering noise. Use a limited palette of about 16 colors with hue-shifted ramps (shadows shift toward purple-blue, highlights toward warm yellow), a one-pixel dark selective outline around the silhouette, readable blocky shading with 2-3 tones per material, and a few bright single-pixel highlights. Crisp, tidy, intentional pixel clusters with no stray pixels. Keep the original character exactly: same pose, body proportions, facing direction, silhouette, hairstyle, outfit, accessories and weapon or held item; only the rendering style changes. Keep every transparent area transparent, add no background, ground, scenery, frame, text or effects, add no large drop or cast shadow, and keep the outer edge clean and solid so the sprite separates cleanly from a flat chroma key background. The outer edge stays hard pixel steps, never feathered.",
+  "palette": ["#1A1C2C", "#5D275D", "#B13E53", "#EF7D57", "#FFCD75", "#38B764", "#41A6F6", "#F4F4F4"],
+  "chroma": "#FF00FF"
+}

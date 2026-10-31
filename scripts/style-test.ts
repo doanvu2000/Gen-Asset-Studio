@@ -1,19 +1,71 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { codexCurrentDir, codexHome } from '../src/main/paths'
 import { CodexService } from '../src/main/codex/service'
 import type { CodexInstaller } from '../src/main/codex/installer'
 import { StyleService } from '../src/main/style'
+import type { StyleCodex } from '../src/main/style/common'
 import type { SuggestProgress } from '../src/shared/style'
 
 const root = resolve(__dirname, '..')
 const project = process.env['GAS_STYLE_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-style-test'
 const skipPolish = process.argv.includes('--skip-polish')
 const skipSuggest = process.argv.includes('--skip-suggest')
+const templatesOnly = process.argv.includes('--templates-only')
 
 const log = (m: string): void => console.log(`${new Date().toISOString().slice(11, 23)} ${m}`)
 
+function makeStyle(codex: StyleCodex): StyleService {
+  return new StyleService({
+    codex,
+    log: (m) => log(`[style] ${m}`),
+    builtinTemplatesDir: join(root, 'resources', 'style-templates'),
+    modelsFile: join(project, 'style-models.json'),
+    userTemplatesDir: join(project, 'user-templates'),
+    workDir: project,
+    suggestConcurrency: 2,
+    suggestRetries: 0
+  })
+}
+
+async function checkTemplates(style: StyleService): Promise<void> {
+  const tpls = await style.listTemplates()
+  log(`templates: ${tpls.map((t) => `${t.id}${t.previewPath ? '' : '(no preview)'}`).join(', ')}`)
+  if (tpls.length < 8) throw new Error('expected 8 built-in templates')
+  const byCat = (cat: string): string[] => tpls.filter((t) => t.builtin && t.category === cat).map((t) => t.id)
+  log(`categories: ui=${byCat('ui').join(',')} character=${byCat('character').join(',')}`)
+  if (byCat('ui').length < 4 || byCat('character').length < 4) throw new Error('expected 4 ui and 4 character built-in templates')
+  const missingPreview = tpls.filter((t) => t.builtin && (!t.previewPath || !t.previewSmPath)).map((t) => t.id)
+  if (missingPreview.length) throw new Error(`built-in templates without preview: ${missingPreview.join(', ')}`)
+
+  const legacyDir = join(project, 'user-templates', 'user-legacy')
+  mkdirSync(legacyDir, { recursive: true })
+  writeFileSync(join(legacyDir, 'template.json'), JSON.stringify({ id: 'user-legacy', name: 'Legacy', promptEn: 'legacy prompt', palette: [] }))
+  const legacy = (await style.listTemplates()).find((t) => t.id === 'user-legacy')
+  if (legacy?.category !== 'ui') throw new Error(`legacy user template category=${legacy?.category}`)
+  rmSync(legacyDir, { recursive: true, force: true })
+  const charSaved = await style.saveTemplate({
+    group: { id: 'gc', name: 'Char', promptEn: 'pixel hero', notes: '', templateId: 'pixel-art', refImages: [], assetIds: [], nineSliceOverrides: {} },
+    projectPath: project,
+    name: { vi: 'Nhân vật thử', en: 'Char Test' }
+  })
+  const uiSaved = await style.saveTemplate({
+    group: { id: 'gu', name: 'Ui', promptEn: 'ui prompt', notes: '', refImages: [], assetIds: [], nineSliceOverrides: {} },
+    projectPath: project,
+    name: { vi: 'UI thử', en: 'UI Test' }
+  })
+  log(`saved template categories: from pixel-art=${charSaved.category} plain=${uiSaved.category}`)
+  await style.deleteTemplate(charSaved.id)
+  await style.deleteTemplate(uiSaved.id)
+  if (charSaved.category !== 'character' || uiSaved.category !== 'ui') throw new Error('saved template category not preserved')
+}
+
 async function main(): Promise<void> {
+  mkdirSync(project, { recursive: true })
+  if (templatesOnly) {
+    await checkTemplates(makeStyle({} as StyleCodex))
+    return
+  }
   const exe = join(codexCurrentDir, 'bin', 'codex.exe')
   if (!existsSync(exe)) throw new Error(`codex.exe missing at ${exe}`)
   log(`CODEX_HOME=${codexHome}`)
@@ -24,21 +76,8 @@ async function main(): Promise<void> {
   if (!acc.loggedIn) throw new Error('Codex is not logged in for this CODEX_HOME')
   log(`account ${acc.email ?? '?'} plan=${acc.planType ?? '?'}`)
 
-  mkdirSync(project, { recursive: true })
-  const style = new StyleService({
-    codex,
-    log: (m) => log(`[style] ${m}`),
-    builtinTemplatesDir: join(root, 'resources', 'style-templates'),
-    modelsFile: join(project, 'style-models.json'),
-    userTemplatesDir: join(project, 'user-templates'),
-    workDir: project,
-    suggestConcurrency: 2,
-    suggestRetries: 0
-  })
-
-  const tpls = await style.listTemplates()
-  log(`templates: ${tpls.map((t) => `${t.id}${t.previewPath ? '' : '(no preview)'}`).join(', ')}`)
-  if (tpls.length < 4) throw new Error('expected 4 built-in templates')
+  const style = makeStyle(codex)
+  await checkTemplates(style)
 
   try {
     if (!skipPolish) {

@@ -1392,6 +1392,10 @@
       "removeRef": "Bỏ ảnh",
       "summary": "Style của project",
       "customName": "Style tự tạo",
+      "cat": {
+        "character": "Mẫu nhân vật",
+        "ui": "Mẫu UI"
+      },
       "none": "Chưa chọn",
       "refCount": "{{count}} ảnh tham chiếu",
       "notes": "Ghi chú cho Codex",

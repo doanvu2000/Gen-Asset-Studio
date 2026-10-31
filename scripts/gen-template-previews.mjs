@@ -10,12 +10,14 @@ const root = path.resolve(here, "..");
 const require = createRequire(import.meta.url);
 const sharp = require(path.join(root, "node_modules", "sharp"));
 const args = Object.fromEntries(process.argv.slice(2).map(a => { const [k, v] = a.replace(/^--/, "").split("="); return [k, v ?? "1"]; }));
-const ids = (args.ids ?? "candy-pop,jelly-cartoon,wood-gold-adventure,neon-arcade").split(",");
 const extra = args.extra ?? "";
 const model = args.model ?? "gpt-6-luna";
 const effort = args.effort ?? "medium";
 const tplDir = path.join(root, "resources", "style-templates");
+const ids = args.ids ? args.ids.split(",") : fs.readdirSync(tplDir).filter(d => fs.existsSync(path.join(tplDir, d, "template.json")));
 const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "gas-tpl-preview-"));
+const heroGrid = path.join(root, "resources", "sprite-samples", "hero_8dir_grid.png");
+const heroViews = [["front", 0], ["left", 2], ["back", 4], ["right", 6]];
 const logFile = path.join(workDir, "events.jsonl");
 const ev = fs.createWriteStream(logFile);
 const t0 = Date.now();
@@ -59,7 +61,36 @@ function request(method, params) {
   return new Promise((res, rej) => { pending.set(id, { res, rej }); send({ jsonrpc: "2.0", id, method, params }); });
 }
 
+async function buildCharacterBoard() {
+  const cell = 128, scale = 2.6, size = Math.round(cell * scale), gap = 48, pad = 60;
+  const width = heroViews.length * size + (heroViews.length - 1) * gap + pad * 2;
+  const height = Math.round(width * 10 / 16);
+  const top = Math.round((height - size) / 2);
+  const layers = await Promise.all(heroViews.map(async ([, row], i) => ({
+    input: await sharp(heroGrid).extract({ left: 0, top: row * cell, width: cell, height: cell }).resize(size, size, { kernel: "lanczos3" }).png().toBuffer(),
+    left: pad + i * (size + gap),
+    top
+  })));
+  const out = path.join(workDir, "character-board.png");
+  await sharp({ create: { width, height, channels: 3, background: "#F2F2F7" } }).composite(layers).png().toFile(out);
+  return out;
+}
+
+function buildCharacterPrompt(tpl) {
+  return [
+    "Use your image generation tool to create ONE image: a character style preview sheet for a 2D mobile game.",
+    `The attached image shows the source character in ${heroViews.length} views from left to right: ${heroViews.map(([v]) => v).join(", ")}. It is a simple placeholder of a young adventurer hero with purple hair, a blue tunic and dark blue boots. The small orange dots and grey ellipses under the feet are layout guides only; ignore them.`,
+    "Redraw this same hero in the style below, refining it into a finished game character (readable face, hair, tunic with belt, boots) while keeping the purple hair and blue outfit identity, the full-body standing pose, and the facing of each view.",
+    `Style: ${tpl.promptEn}`,
+    `Key palette: ${tpl.palette.join(", ")}.`,
+    "Landscape canvas, about 16:10. For this preview, place the four views in one evenly spaced row in the same order, all the same height, full body visible with generous margins, on a plain flat light grey background #F2F2F7 filling the whole canvas: no scene, no ground, no frame, no gradient, no cast shadows, no text or labels.",
+    extra,
+    "Do not write any code or files yourself; just generate the image and reply with one short sentence."
+  ].filter(Boolean).join(" ");
+}
+
 function buildPrompt(tpl) {
+  if (tpl.category === "character") return buildCharacterPrompt(tpl);
   return [
     "Use your image generation tool to create ONE image: a game UI style preview sheet for a casual mobile game.",
     `Style: ${tpl.promptEn}`,
@@ -94,7 +125,9 @@ async function genOne(tpl) {
     };
     listeners.add(l);
   });
-  await request("turn/start", { threadId, input: [{ type: "text", text: buildPrompt(tpl), text_elements: [] }], effort });
+  const input = [{ type: "text", text: buildPrompt(tpl), text_elements: [] }];
+  if (tpl.category === "character") input.push({ type: "localImage", path: characterBoard ??= await buildCharacterBoard() });
+  await request("turn/start", { threadId, input, effort });
   await Promise.race([done, new Promise((_, rej) => setTimeout(() => rej(new Error("turn timeout 300s")), 300000))]).catch(e => { info.error = String(e); });
   info.elapsedMs = Date.now() - started;
   return info;
@@ -110,6 +143,7 @@ async function saveImage(tpl, img) {
   return { out, width: meta.width, height: meta.height };
 }
 
+let characterBoard = null;
 const report = [];
 try {
   await request("initialize", { clientInfo: { name: "gas_tpl_preview", title: "Gen Asset Studio template previews", version: "0.0.1" }, capabilities: { experimentalApi: true, requestAttestation: false } });

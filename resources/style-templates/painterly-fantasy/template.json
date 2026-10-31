@@ -1,0 +1,9 @@
+{
+  "id": "painterly-fantasy",
+  "name": { "vi": "Fantasy Vẽ Tay", "en": "Painterly Fantasy" },
+  "category": "character",
+  "description": { "vi": "Vẽ tay kiểu RPG fantasy, shading mềm, chất liệu da, kim loại rõ ràng.", "en": "Hand-painted fantasy RPG look, soft shading, readable leather and metal materials." },
+  "promptEn": "2D mobile fantasy RPG character in a rich hand-painted illustration style. Visible but controlled painterly brushwork, soft volumetric shading with warm key light from the upper left and cool bounce light in the shadows, gentle rim light on the silhouette. Materials read clearly: worn leather, brushed steel and gold trim, woven cloth, soft hair strands. Earthy yet saturated palette: deep brown, burnished gold, forest green, royal blue, warm parchment highlights, with a few bright accent colors; never grey, flat or washed-out. A thin dark painted contour keeps the silhouette readable at small sizes. Keep the original character exactly: same pose, body proportions, facing direction, silhouette, hairstyle, outfit, accessories and weapon or held item; only the rendering style changes. Keep every transparent area transparent, add no background, ground, scenery, frame, text or effects, add no large drop or cast shadow, and keep the outer edge clean and solid so the sprite separates cleanly from a flat chroma key background. Brush texture stays inside the silhouette and never spills past the edge.",
+  "palette": ["#3B2A20", "#8C5A3C", "#D4A548", "#4E7A45", "#36598F", "#EFE0BC"],
+  "chroma": "#FF00FF"
+}

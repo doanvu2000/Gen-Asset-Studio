@@ -1,0 +1,9 @@
+{
+  "id": "anime-cel",
+  "name": { "vi": "Anime Cel", "en": "Anime Cel" },
+  "category": "character",
+  "description": { "vi": "Anime cel-shade 2 tông, nét mảnh sắc, màu sáng trong.", "en": "Two-tone anime cel shading, thin crisp line art, bright clean colors." },
+  "promptEn": "2D mobile game character in a modern anime cel-shaded style. Thin, crisp, even line art in a dark color tinted toward each area's own hue, slightly thicker on the outer silhouette. Strictly two-tone cel shading: one flat base color and one hard-edged shadow shape per material, plus sharp specular highlights on hair and eyes; no soft gradients or airbrushing. Expressive anime eyes with layered irises, glossy hair with a clean highlight band. Bright, clean, saturated palette: sakura pink, clear sky blue, warm gold, violet, fair skin, deep indigo line color; never dull or muddy. Keep the original character exactly: same pose, body proportions, facing direction, silhouette, hairstyle, outfit, accessories and weapon or held item; only the rendering style changes. Keep every transparent area transparent, add no background, ground, scenery, frame, text or effects, add no large drop or cast shadow, and keep the outer edge clean and solid so the sprite separates cleanly from a flat chroma key background.",
+  "palette": ["#FF7AA2", "#4FA8FF", "#FFC94D", "#9B6BFF", "#FFEADB", "#2A2650"],
+  "chroma": "#00FF00"
+}

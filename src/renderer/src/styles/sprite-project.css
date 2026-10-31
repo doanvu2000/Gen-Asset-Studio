@@ -324,6 +324,12 @@
   gap: 12px;
 }
 
+.sps-tpl-secs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .sps-tpls {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
 }

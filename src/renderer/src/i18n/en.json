@@ -1392,6 +1392,10 @@
       "removeRef": "Remove image",
       "summary": "Project style",
       "customName": "Custom style",
+      "cat": {
+        "character": "Character styles",
+        "ui": "UI styles"
+      },
       "none": "Not chosen",
       "refCount": "{{count}} reference images",
       "notes": "Notes for Codex",

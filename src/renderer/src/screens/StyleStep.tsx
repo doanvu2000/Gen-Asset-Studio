@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
-import { SUGGEST_MAX, SUGGEST_MIN, type PromptPolishResult, type StyleGroup, type StyleSuggestion, type StyleTemplate, type SuggestRun } from '@shared/style'
+import { SUGGEST_MAX, SUGGEST_MIN, templatesByCategory, type PromptPolishResult, type StyleGroup, type StyleSuggestion, type StyleTemplate, type SuggestRun } from '@shared/style'
 import type { InputView, ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
 import { Modal } from '@renderer/components/Modal'
@@ -818,7 +818,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
                 </button>
               </div>
               <div className="tpl-grid">
-                {templates.map((tpl, i) => (
+                {templatesByCategory(templates, 'ui').map((tpl, i) => (
                   <TemplateCard
                     key={tpl.id}
                     tpl={tpl}
