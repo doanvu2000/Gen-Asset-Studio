@@ -25,6 +25,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - **Tự dọn dẹp** (bật sẵn): xoá ảnh gốc Codex sau khi đã chép vào project, lịch sử phiên Codex cũ hơn 7 ngày, file tạm; nút **Dọn dẹp** báo trước số MB giải phóng
 - Banner nhắc khi app chiếm trên 1 GB ở ổ hệ thống hoặc khi ổ sắp đầy
 - Hàng đợi tự dừng khi ổ còn dưới 300 MB, kèm banner **Mở Lưu trữ**
+- **Cài đặt › Từ cùng tác giả**: giới thiệu AI Asset Studio, HyperFrames Studio, Orrery; gợi ý nhỏ hiện đúng 1 lần (sau khi xuất, ở tab Môi trường), dòng nhỏ cuối màn Workspace và splash — tắt được ở **Cài đặt › Chung**
 
 ### Update
 - File tạm gửi Codex chuyển từ `%TEMP%` vào thư mục dữ liệu app

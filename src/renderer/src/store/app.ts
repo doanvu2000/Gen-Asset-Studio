@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS, type AppSettings, type CloseWhenBusy, type Lang, type
 import { changeLang } from '@renderer/i18n'
 
 export type Route = 'setup' | 'workspace' | 'project'
-export type SettingsTab = 'general' | 'gen' | 'account' | 'env' | 'storage'
+export type SettingsTab = 'general' | 'gen' | 'account' | 'env' | 'storage' | 'about'
 
 interface AppState {
   route: Route
@@ -25,6 +25,8 @@ interface AppState {
   setTheme: (theme: ThemePref) => Promise<void>
   setLang: (lang: Lang) => Promise<void>
   setCloseWhenBusy: (v: CloseWhenBusy) => Promise<void>
+  setPromoHints: (on: boolean) => Promise<void>
+  dismissPromo: (id: string) => Promise<void>
   toggleSidebar: () => void
   openSettings: (tab?: SettingsTab) => void
   setSettingsTab: (tab: SettingsTab) => void
@@ -79,6 +81,18 @@ export const useApp = create<AppState>()((set, get) => ({
   setCloseWhenBusy: async (closeWhenBusy) => {
     set({ settings: { ...get().settings, closeWhenBusy } })
     get().applySettings(await window.gas.settings.set({ closeWhenBusy }))
+  },
+  setPromoHints: async (hints) => {
+    const promo = { ...get().settings.promo, hints }
+    set({ settings: { ...get().settings, promo } })
+    get().applySettings(await window.gas.settings.set({ promo }))
+  },
+  dismissPromo: async (id) => {
+    const cur = get().settings.promo
+    if (cur.dismissed.includes(id)) return
+    const promo = { ...cur, dismissed: [...cur.dismissed, id] }
+    set({ settings: { ...get().settings, promo } })
+    get().applySettings(await window.gas.settings.set({ promo }))
   },
   toggleSidebar: () => set({ sidebarOpen: !get().sidebarOpen }),
   openSettings: (tab) => set({ settingsOpen: true, settingsTab: tab ?? get().settingsTab }),

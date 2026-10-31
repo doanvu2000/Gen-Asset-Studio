@@ -218,7 +218,8 @@
       "account": "Tài khoản",
       "env": "Môi trường",
       "gen": "Gen & QA",
-      "storage": "Lưu trữ"
+      "storage": "Lưu trữ",
+      "about": "Từ cùng tác giả"
     },
     "appearance": "Giao diện",
     "language": "Ngôn ngữ",
@@ -1231,5 +1232,29 @@
     "setupTitle": "Nơi lưu dữ liệu",
     "setupDesc": "Codex (~160 MB) và ảnh gen sẽ nằm ở đây. Nên chọn ổ khác ổ C nếu máy có.",
     "setupChange": "Đổi ổ"
+  },
+  "promo": {
+    "lead": "Các app khác của Jin Vũ — miễn phí, chạy ngay trên máy.",
+    "github": "Xem trên GitHub",
+    "close": "Ẩn gợi ý",
+    "footer": "Từ cùng tác giả",
+    "toggle": "Gợi ý app cùng tác giả",
+    "toggleHint": "Hiện gợi ý nhỏ sau khi xuất, ở màn Workspace và lúc mở app. Tab \"Từ cùng tác giả\" luôn có.",
+    "apps": {
+      "aias": {
+        "desc": "Tạo asset game từ mô tả: sprite, texture, tileset, model 3D, nhân vật Spine có xương — xuất thẳng cho Unity, Godot, Spine."
+      },
+      "hyperframes": {
+        "desc": "Làm video motion ngắn bằng AI: mô tả để Claude/Codex viết, xem preview có tiếng, render MP4, WebM, MOV, GIF."
+      },
+      "orrery": {
+        "desc": "Theo dõi realtime mọi phiên Claude Code và Codex đang chạy: agent đang làm gì, token, chi phí; kèm terminal, editor, Git."
+      }
+    },
+    "hint": {
+      "hyperframes-export": "Làm video giới thiệu game từ bộ asset vừa xuất?",
+      "aias-export": "Cần thêm asset mới từ mô tả (sprite, tileset, Spine)?",
+      "orrery-env": "Muốn theo dõi các phiên Codex / Claude Code đang chạy?"
+    }
   }
 }

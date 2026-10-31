@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import {
   DEFAULT_GEN,
   DEFAULT_ONBOARDING,
+  DEFAULT_PROMO,
   DEFAULT_SETTINGS,
   DEFAULT_SETUP,
   type AppSettings,
@@ -11,6 +12,7 @@ import {
   type GenPrefs,
   type Lang,
   type OnboardingPersist,
+  type PromoPrefs,
   type SetupPersist,
   type ThemePref
 } from '@shared/types'
@@ -49,6 +51,15 @@ function sanitizeSetup(input: unknown, base: SetupPersist): SetupPersist {
   return out
 }
 
+function sanitizePromo(input: unknown, base: PromoPrefs): PromoPrefs {
+  const out: PromoPrefs = { hints: base.hints, dismissed: [...base.dismissed] }
+  if (!input || typeof input !== 'object') return out
+  const raw = input as Record<string, unknown>
+  if (typeof raw.hints === 'boolean') out.hints = raw.hints
+  if (Array.isArray(raw.dismissed)) out.dismissed = [...new Set(raw.dismissed.filter((x): x is string => typeof x === 'string' && x.length <= 64))].slice(0, 50)
+  return out
+}
+
 function clampInt(v: unknown, min: number, max: number, d: number): number {
   return typeof v === 'number' && Number.isFinite(v) ? Math.max(min, Math.min(max, Math.round(v))) : d
 }
@@ -64,7 +75,7 @@ function sanitizeGen(input: unknown, base: GenPrefs): GenPrefs {
 }
 
 function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSettings {
-  const out: AppSettings = { ...base, setup: { ...base.setup }, gen: { ...DEFAULT_GEN, ...base.gen }, onboarding: cloneOnboarding(base.onboarding ?? DEFAULT_ONBOARDING) }
+  const out: AppSettings = { ...base, setup: { ...base.setup }, gen: { ...DEFAULT_GEN, ...base.gen }, onboarding: cloneOnboarding(base.onboarding ?? DEFAULT_ONBOARDING), promo: sanitizePromo(null, base.promo ?? DEFAULT_PROMO) }
   if (input && typeof input === 'object') {
     const raw = input as Record<string, unknown>
     if (typeof raw.theme === 'string' && (THEMES as readonly string[]).includes(raw.theme)) {
@@ -76,6 +87,7 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
     if (raw.closeWhenBusy === 'background' || raw.closeWhenBusy === 'quit') out.closeWhenBusy = raw.closeWhenBusy
     if ('gen' in raw) out.gen = sanitizeGen(raw.gen, out.gen)
     if ('onboarding' in raw) out.onboarding = sanitizeOnboarding(raw.onboarding, out.onboarding)
+    if ('promo' in raw) out.promo = sanitizePromo(raw.promo, out.promo)
     if (internal) {
       if (typeof raw.workspace === 'string' || raw.workspace === null) out.workspace = raw.workspace
       if ('setup' in raw) out.setup = sanitizeSetup(raw.setup, out.setup)
@@ -85,12 +97,12 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
 }
 
 export class SettingsStore {
-  private current: AppSettings = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING) }
+  private current: AppSettings = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING), promo: sanitizePromo(null, DEFAULT_PROMO) }
   private writing: Promise<void> = Promise.resolve()
   private readonly file = join(app.getPath('userData'), 'settings.json')
 
   get(): AppSettings {
-    return { ...this.current, setup: { ...this.current.setup }, gen: { ...this.current.gen }, onboarding: cloneOnboarding(this.current.onboarding) }
+    return { ...this.current, setup: { ...this.current.setup }, gen: { ...this.current.gen }, onboarding: cloneOnboarding(this.current.onboarding), promo: sanitizePromo(null, this.current.promo) }
   }
 
   async load(): Promise<AppSettings> {
@@ -98,7 +110,7 @@ export class SettingsStore {
       const text = await fs.readFile(this.file, 'utf8')
       this.current = sanitize(JSON.parse(text), DEFAULT_SETTINGS, true)
     } catch {
-      this.current = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING) }
+      this.current = { ...DEFAULT_SETTINGS, setup: { ...DEFAULT_SETUP }, gen: { ...DEFAULT_GEN }, onboarding: cloneOnboarding(DEFAULT_ONBOARDING), promo: sanitizePromo(null, DEFAULT_PROMO) }
     }
     return this.get()
   }

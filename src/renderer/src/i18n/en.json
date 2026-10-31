@@ -218,7 +218,8 @@
       "account": "Account",
       "env": "Environment",
       "gen": "Generation",
-      "storage": "Storage"
+      "storage": "Storage",
+      "about": "More apps"
     },
     "appearance": "Appearance",
     "language": "Language",
@@ -1231,5 +1232,29 @@
     "setupTitle": "Data location",
     "setupDesc": "Codex (~160 MB) and generated images live here. Pick a drive other than C if you have one.",
     "setupChange": "Change drive"
+  },
+  "promo": {
+    "lead": "Other apps by Jin Vũ — free, running right on your machine.",
+    "github": "View on GitHub",
+    "close": "Hide tip",
+    "footer": "By the same author",
+    "toggle": "Tips about other apps",
+    "toggleHint": "Shows small tips after exporting, on the Workspace screen and at startup. The \"More apps\" tab is always there.",
+    "apps": {
+      "aias": {
+        "desc": "Create game assets from a description: sprites, textures, tilesets, 3D models, rigged Spine characters — export straight to Unity, Godot, Spine."
+      },
+      "hyperframes": {
+        "desc": "Make short motion videos with AI: describe it for Claude/Codex to write, preview with sound, render MP4, WebM, MOV, GIF."
+      },
+      "orrery": {
+        "desc": "Watch every running Claude Code and Codex session in real time: what agents are doing, tokens, cost; plus terminal, editor, Git."
+      }
+    },
+    "hint": {
+      "hyperframes-export": "Make a game trailer from the assets you just exported?",
+      "aias-export": "Need new assets from a description (sprites, tilesets, Spine)?",
+      "orrery-env": "Want to watch your running Codex / Claude Code sessions?"
+    }
   }
 }

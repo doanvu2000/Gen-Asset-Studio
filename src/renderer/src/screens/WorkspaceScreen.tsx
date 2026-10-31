@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import type { ProjectStatus, ProjectSummary } from '@shared/workspace'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { ContextMenu, type MenuItem } from '@renderer/components/ContextMenu'
+import { PromoFooter } from '@renderer/components/Promo'
 import { EASE } from '@renderer/lib/motion'
 import { relTime } from '@renderer/lib/format'
 import { useApp } from '@renderer/store/app'
@@ -229,6 +230,7 @@ export function WorkspaceScreen(): ReactElement {
           </Empty>
         )}
       </div>
+      <PromoFooter />
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={closeMenu} />}
     </>
   )

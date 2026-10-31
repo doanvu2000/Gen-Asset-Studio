@@ -3,6 +3,7 @@ import { AnimatePresence, MotionConfig, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import { EASE } from '@renderer/lib/motion'
 import logoUrl from '@renderer/assets/logo.png'
+import { SplashPromo } from './Promo'
 
 const WORDS = ['Gen', 'Asset', 'Studio']
 const LETTER_START = 1.05
@@ -136,6 +137,9 @@ export function Splash(): ReactElement {
             >
               {t('status.copyright', { year })}
             </motion.p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: textEnd + 0.3, duration: 0.5 }}>
+              <SplashPromo />
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

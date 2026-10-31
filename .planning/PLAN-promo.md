@@ -27,3 +27,8 @@
 
 ## Thứ tự
 Lưu trữ → Promo → Sprite/Spine.
+
+## Trạng thái (2026-10-31)
+- Xong: `components/Promo.tsx` (PROMO_APPS, AboutTab, PromoHint, PromoFooter, SplashPromo), asset `assets/promo/*` (icon 96 px + ảnh chụp 720 px webp lấy từ README 3 repo), settings `promo { hints, dismissed[] }`, tab `about` (icon `apps`), công tắc ở Cài đặt › Chung, i18n vi/en.
+- PromoHint: chỉ hiện khi bật gợi ý + chưa từng hiện + hàng đợi trống; hiện được 1,5 s thì ghi vào `dismissed` (không hiện lại).
+- Soi CDP (user-data riêng): splash, footer Workspace, tab Từ cùng tác giả, hint Orrery ở tab Môi trường (lần 2 không hiện). Hint sau khi xuất chưa soi thật (cần xuất project).

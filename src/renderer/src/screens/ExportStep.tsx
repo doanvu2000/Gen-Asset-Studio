@@ -17,6 +17,7 @@ import {
 } from '@shared/export'
 import type { ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
+import { PromoHint } from '@renderer/components/Promo'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
 import { errMsg } from '@renderer/lib/files'
 import { toast } from '@renderer/store/toast'
@@ -298,6 +299,12 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
                 </li>
               ))}
             </ul>
+          )}
+          {result.ok && !result.canceled && (
+            <div className="promo-hints">
+              <PromoHint hintId="hyperframes-export" appId="hyperframes" />
+              <PromoHint hintId="aias-export" appId="aias" />
+            </div>
           )}
           {result.reportPath && <p className="muted ex-report">{t('done.report', { path: result.reportPath })}</p>}
           <div className="ex-row">

@@ -36,6 +36,13 @@ export interface OnboardingPersist {
 
 export const DEFAULT_ONBOARDING: OnboardingPersist = { tours: {}, sampleOffered: false }
 
+export interface PromoPrefs {
+  hints: boolean
+  dismissed: string[]
+}
+
+export const DEFAULT_PROMO: PromoPrefs = { hints: true, dismissed: [] }
+
 export type CloseWhenBusy = 'background' | 'quit'
 
 export interface AppSettings {
@@ -46,6 +53,7 @@ export interface AppSettings {
   setup: SetupPersist
   gen: GenPrefs
   onboarding: OnboardingPersist
+  promo: PromoPrefs
 }
 
 export interface SettingsPatch {
@@ -54,6 +62,7 @@ export interface SettingsPatch {
   closeWhenBusy?: CloseWhenBusy
   gen?: Partial<GenPrefs>
   onboarding?: Partial<OnboardingPersist>
+  promo?: Partial<PromoPrefs>
 }
 
 export const DEFAULT_SETUP: SetupPersist = {
@@ -70,7 +79,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   workspace: null,
   setup: { ...DEFAULT_SETUP },
   gen: { ...DEFAULT_GEN },
-  onboarding: { tours: {}, sampleOffered: false }
+  onboarding: { tours: {}, sampleOffered: false },
+  promo: { hints: true, dismissed: [] }
 }
 
 export interface AppInfo {

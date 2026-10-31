@@ -15,6 +15,7 @@ import { EnvChip } from './EnvChip'
 import { ErrorActions } from './ErrorActions'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
 import { StorageTab } from './StorageSettings'
+import { AboutTab, PromoHint } from './Promo'
 import { useUpdateT } from '@renderer/lib/useUpdateT'
 
 function GeneralTab(): ReactElement {
@@ -28,6 +29,8 @@ function GeneralTab(): ReactElement {
   const setCloseWhenBusy = useApp((s) => s.setCloseWhenBusy)
   const closeSettings = useApp((s) => s.closeSettings)
   const replayTours = useApp((s) => s.replayTours)
+  const promoHints = useApp((s) => s.settings.promo.hints)
+  const setPromoHints = useApp((s) => s.setPromoHints)
 
   const themeOptions = [
     { value: 'light', label: t('settings.theme.light') },
@@ -90,6 +93,23 @@ function GeneralTab(): ReactElement {
             <Icon name="help" size={13} />
             {t('coach.ui.replay')}
           </button>
+        </div>
+      </div>
+      <div className="group">
+        <div className="row">
+          <div className="rl">
+            {t('promo.toggle')}
+            <small className="muted">{t('promo.toggleHint')}</small>
+          </div>
+          <Segmented
+            value={promoHints ? 'on' : 'off'}
+            options={[
+              { value: 'on', label: t('storage.on') },
+              { value: 'off', label: t('storage.off') }
+            ]}
+            onChange={(v) => void setPromoHints(v === 'on')}
+            ariaLabel={t('promo.toggle')}
+          />
         </div>
       </div>
       <div className="group upd-group">
@@ -417,6 +437,7 @@ function EnvTab(): ReactElement {
           </div>
         ))}
       </div>
+      <PromoHint hintId="orrery-env" appId="orrery" />
       {env && <p className="muted small mono env-paths">{t('env.paths', { dir: env.appDataDir, home: env.codexHome })}</p>}
       <div className="acts-r">
         <button type="button" className="btn ghost sm" onClick={() => void window.gas.env.checkUpdate()}>
@@ -444,7 +465,8 @@ const TABS: { id: SettingsTab; icon: IconName }[] = [
   { id: 'gen', icon: 'sparkles' },
   { id: 'account', icon: 'user' },
   { id: 'storage', icon: 'drive' },
-  { id: 'env', icon: 'box' }
+  { id: 'env', icon: 'box' },
+  { id: 'about', icon: 'apps' }
 ]
 
 export function SettingsDialog(): ReactElement {
@@ -516,6 +538,7 @@ export function SettingsDialog(): ReactElement {
               {tab === 'account' && <AccountTab />}
               {tab === 'storage' && <StorageTab />}
               {tab === 'env' && <EnvTab />}
+              {tab === 'about' && <AboutTab />}
             </div>
           </motion.div>
         </div>

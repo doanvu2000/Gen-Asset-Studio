@@ -953,3 +953,170 @@
   flex: 1;
   min-width: 0;
 }
+
+.promo-lead {
+  margin: 0 0 14px;
+  font-size: 13px;
+}
+
+.promo-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.promo-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: var(--surface2);
+  overflow: hidden;
+}
+
+.promo-shot {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: var(--sep2);
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.promo-shot img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top left;
+  transition: transform .3s;
+}
+
+.promo-shot:hover img {
+  transform: scale(1.03);
+}
+
+.promo-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  flex: 1;
+  padding: 12px;
+}
+
+.promo-body p {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text2);
+}
+
+.promo-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.promo-h > div {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+}
+
+.promo-h .muted {
+  font-size: 11px;
+}
+
+.promo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex: none;
+}
+
+.promo-icon.sm {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+
+.promo-icon.xs {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.promo-hints {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(520px, 100%);
+  margin: 4px auto 0;
+}
+
+.promo-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--surface2);
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.promo-hint-t {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  color: var(--text2);
+}
+
+.link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
+}
+
+.promo-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 28px auto 8px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text2);
+  font-size: 12px;
+  opacity: .75;
+  transition: opacity .15s, background .15s;
+}
+
+.promo-footer:hover {
+  opacity: 1;
+  background: var(--hover);
+}
+
+.promo-footer-app {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
