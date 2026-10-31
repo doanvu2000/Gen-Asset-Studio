@@ -6,6 +6,7 @@ import { Icon } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
+import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { genTargets, jobOf, qaFail, sourceOf, stripLabel, stripMatches, stripState, type StripFilter, type StripState } from '@renderer/lib/sprite'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSprite } from '@renderer/store/sprite'
@@ -94,7 +95,8 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
 
   const groups = new Map<string, StripView[]>()
   for (const s of list) groups.set(s.sheetId, [...(groups.get(s.sheetId) ?? []), s])
-  const bySheet = [...groups.entries()]
+  const bySheet = [...groups.entries()].map(([id, rows]) => [id, [...rows.filter((s) => !s.mirrorOf), ...rows.filter((s) => s.mirrorOf)]] as const)
+  const progress = t('spriteProject.work.progress', { done: doneCount, approved, total: targets.length, mirror: mirrors })
 
   const idle = (s: StripView): boolean => {
     const st = stripState(s, jobOf(v, s, jobs))
@@ -117,6 +119,17 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
   const lockName = lock ? stripLabel(lock) : ''
   const allBlock = !styleOk ? 'lock.style' : lock && lock.versions.length && !lockOk ? 'work.needLock' : lock && !lock.versions.length && !idle(lock) ? 'work.lockRunning' : null
   const allHint = lock && !lock.versions.length ? 'work.genAllLockFirst' : 'work.genAllHint'
+  const lockHint = lockOk
+    ? 'lockDone'
+    : lockState === 'queued' || lockState === 'running'
+      ? 'lockRunning'
+      : lock && lock.versions.length > 0
+        ? autoChain
+          ? 'lockReview'
+          : 'lockReviewManual'
+        : autoChain
+          ? 'flowAuto'
+          : 'flowManual'
 
   return (
     <div className="spr-wrap spw">
@@ -137,7 +150,7 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
             </select>
             {lock && <StateChip v={v} strip={lock} state={lockState} job={lockJob} />}
           </div>
-          <small className="muted">{lockOk ? t('spriteProject.work.lockDone') : t(autoChain ? 'spriteProject.work.flowAuto' : 'spriteProject.work.flowManual', { name: lockName })}</small>
+          <small className="muted">{t(`spriteProject.work.${lockHint}`, { name: lockName })}</small>
         </div>
         {lock && (lockState === 'none' || lockState === 'error') && (
           <button
@@ -194,36 +207,22 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
             options={(['all', 'pending', 'approved', 'rejected', 'qa'] as const).map((f) => ({ value: f, label: t(`spriteProject.review.f.${f}`) }))}
           />
         )}
-        <div className="grow" />
-        <span className="muted">{t('spriteProject.work.progress', { done: doneCount, approved, total: targets.length, mirror: mirrors })}</span>
-        {active.length > 0 && (
-          <span className="chip c-blue">
-            <span className="spin sm" />
-            {t('spriteProject.gen.active', { count: active.length })}
+        <div className="tb-end">
+          <span className="muted tb-prog" title={progress}>
+            {progress}
           </span>
-        )}
-        {active.length > 0 && (
-          <button type="button" className="btn sm" onClick={() => void (paused ? window.gas.queue.resume() : window.gas.queue.pause())}>
-            <Icon name={paused ? 'play' : 'pause'} size={13} />
-            {paused ? t('spriteProject.gen.resume') : t('spriteProject.gen.pause')}
+          <QueueControls count={active.length} paused={paused} dir={v.dir} />
+          {qaOk.length > 0 && (
+            <button type="button" className="btn sm" onClick={() => void review(Object.fromEntries(qaOk.map((s) => [s.key, { decision: 'approved' as const }])))}>
+              <Icon name="check" size={13} />
+              {t('spriteProject.review.approveQa', { count: qaOk.length })}
+            </button>
+          )}
+          <button type="button" className="btn primary sm" disabled={!approved} title={approved ? undefined : t('spriteProject.lock.export')} onClick={() => setStep(4)}>
+            {t('spriteProject.review.toExport')}
+            <Icon name="right" size={13} />
           </button>
-        )}
-        {active.length > 0 && (
-          <button type="button" className="btn ghost sm danger" onClick={() => void window.gas.queue.cancelAll(v.dir)}>
-            <Icon name="x" size={13} />
-            {t('spriteProject.gen.cancel')}
-          </button>
-        )}
-        {qaOk.length > 0 && (
-          <button type="button" className="btn sm" onClick={() => void review(Object.fromEntries(qaOk.map((s) => [s.key, { decision: 'approved' as const }])))}>
-            <Icon name="check" size={13} />
-            {t('spriteProject.review.approveQa', { count: qaOk.length })}
-          </button>
-        )}
-        <button type="button" className="btn primary sm" disabled={!approved} title={approved ? undefined : t('spriteProject.lock.export')} onClick={() => setStep(4)}>
-          {t('spriteProject.review.toExport')}
-          <Icon name="right" size={13} />
-        </button>
+        </div>
       </div>
       {tab === 'overview' ? (
         <StripOverview v={v} pos={pos} />

@@ -9,7 +9,7 @@ interface Props {
   orig: SpineAssets | null
   next: SpineAssets | null
   highlightSlots?: string[]
-  height?: number
+  height?: number | string
   single?: 'orig' | 'new'
   onNewPlayer?: (p: SpinePlayer | null) => void
   onOrigPlayer?: (p: SpinePlayer | null) => void

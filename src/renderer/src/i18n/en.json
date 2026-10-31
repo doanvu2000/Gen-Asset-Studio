@@ -1128,7 +1128,7 @@
       "short": "Sprite",
       "audience": "For artists · animation",
       "desc": "Multi-direction characters (4/6/8) and animation frames. Reads atlases, edit the grid, watch animations play right away.",
-      "flow": "Import sheet → Grid & directions → Style → Generate per direction → Review → Export",
+      "flow": "Import sheet → Style → Generate & review → Export",
       "input": "PNG sheet + TexturePacker/Aseprite JSON, .plist, Unity .meta (or grid detection)",
       "output": "Sheet with the same rects, atlas reused; Flame/Android/iOS"
     },
@@ -1137,7 +1137,7 @@
       "short": "Spine",
       "audience": "For artists · Spine 4.2",
       "desc": "Reskin Spine characters region by region, adjust the setup pose to fit and preview with spine-player.",
-      "flow": "Import skeleton → Regions & skins → Style → Generate → Rigging → Review → Export",
+      "flow": "Import skeleton → Style → Generate & review → Export",
       "input": ".json / .skel 4.2 + .atlas + page PNG",
       "output": "Page PNG with matching regions, .atlas unchanged"
     }
@@ -1285,7 +1285,8 @@
       "styleOpen": "Not locked",
       "work": "{{approved}}/{{total}} strips approved",
       "exported": "Exported {{count}} sheets",
-      "notExported": "Not exported"
+      "notExported": "Not exported",
+      "importDirs": "{{sheets}} sheets · {{anims}} anims × {{dirs}} directions"
     },
     "lock": {
       "noSheet": "Add at least 1 sheet first",
@@ -1306,7 +1307,9 @@
       "noDirs": "No animation has a direction yet — assign directions below so each one is generated correctly.",
       "openEditor": "Edit grid & directions",
       "closeEditor": "Collapse",
-      "next": "Next: Style"
+      "next": "Next: Style",
+      "dirMismatch": "Sheet has {{have}} directions · project is set to {{n}} — change the direction set?",
+      "setDirs": "Use {{n}} directions"
     },
     "work": {
       "flowAuto": "Generate the lock strip ({{name}}) first → approve → the remaining directions generate automatically.",
@@ -1322,7 +1325,9 @@
       "genRunning": "Generating…",
       "needLock": "Approve the lock strip first",
       "lockRunning": "The lock strip is generating — approve it once done",
-      "genAllLockFirst": "Generates the lock strip first — once approved, the remaining strips follow (or press Generate all again)"
+      "genAllLockFirst": "Generates the lock strip first — once approved, the remaining strips follow (or press Generate all again)",
+      "lockReview": "Approve the lock strip to generate the remaining directions automatically.",
+      "lockReviewManual": "Approve the lock strip, then press “Generate all” for the remaining directions."
     },
     "settings": {
       "title": "Character setup",
@@ -1462,7 +1467,8 @@
         "fit": "Fitting frames",
         "qa": "QA",
         "save": "Saving"
-      }
+      },
+      "activePaused": "{{count}} waiting · paused"
     },
     "review": {
       "tab": "View",
@@ -1555,7 +1561,7 @@
     },
     "create": {
       "title": "New sheet from a character image",
-      "desc": "From one character image, AI draws every direction × animation on a square grid. The blank sheet is created now; drawing happens in the Generate step.",
+      "desc": "From one character image, AI draws every direction × animation on a square grid. The blank sheet is created now; drawing happens in the Generate & review step.",
       "open": "New sheet",
       "badge": "New",
       "character": "Character",
@@ -1582,7 +1588,7 @@
       "summary": "{{rows}} rows × {{cols}} columns · {{w}}×{{h}} px · about {{gens}} generations",
       "mirrorNote": "{{count}} mirrored strips are free",
       "create": "Create sheet",
-      "created": "Created {{name}} — go to Style, then Generate",
+      "created": "Created {{name}} — go to Style, then Generate & review",
       "failed": "Could not create the sheet",
       "dirsChip": "{{count}} directions",
       "reskinChip": "Reskin",
@@ -1593,7 +1599,7 @@
       "feat_dirs": "4 / 6 / 8 directions, right-facing mirrored from left-facing",
       "feat_anims": "idle + walk by default; add run, attack, hurt, die or your own",
       "feat_out": "Exports grid PNG + TexturePacker JSON + Flame / Android / iOS sample code",
-      "gridNote": "The sheet is still empty — AI draws the cells in the Generate step. The grid is laid out by animation × direction.",
+      "gridNote": "The sheet is still empty — AI draws the cells in the Generate & review step. The grid is laid out by animation × direction.",
       "colAnim": "Animation",
       "errNoCharacter": "Cannot read the character image — pick it again.",
       "errNoAnims": "Pick at least 1 animation."
@@ -1645,7 +1651,7 @@
       "desc": "{{n}}-direction set — click to view that direction's animation",
       "none": "Sheet is not split by direction",
       "missing": "{{dir}} — no animation yet",
-      "coverage": "{{have}}/{{n}} directions covered"
+      "coverage": "Sheet has {{have}} directions · project set to {{n}}"
     },
     "playground": {
       "label": "Walk test",
@@ -1709,7 +1715,7 @@
     "steps": {
       "import": "Import",
       "style": "Style",
-      "gen": "Generate & Review",
+      "gen": "Generate & review",
       "export": "Export"
     },
     "intro": {
@@ -1865,8 +1871,8 @@
       "page": "Page",
       "replaced": "Regions replaced",
       "kept": "Kept original",
-      "rigNew": "{{count}} rigging edits → writes a new {{name}} (original kept as .original).",
-      "rigCopy": "No rigging edits → {{name}} copied unchanged.",
+      "rigNew": "{{count}} position edits → writes a new {{name}} (original kept as .original).",
+      "rigCopy": "No position edits → {{name}} copied unchanged.",
       "atlasCopy": "The .atlas file is copied unchanged.",
       "none": "No approved regions yet.",
       "run": "Export",

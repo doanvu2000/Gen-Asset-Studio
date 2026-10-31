@@ -267,25 +267,25 @@ function Body({ v, onClose }: { v: SpriteProjectView; onClose: () => void }): Re
                   </div>
                 </div>
               ))}
-              <div className="nsd-add">
-                <input
-                  className="inp"
-                  value={customName}
-                  maxLength={30}
-                  placeholder={t('spriteProject.create.customPh')}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      addCustom()
-                    }
-                  }}
-                />
-                <button type="button" className="btn sm" disabled={!customName.trim()} onClick={addCustom}>
-                  <Icon name="plus" size={12} />
-                  {t('spriteProject.create.addAnim')}
-                </button>
-              </div>
+            </div>
+            <div className="nsd-add">
+              <input
+                className="inp"
+                value={customName}
+                maxLength={30}
+                placeholder={t('spriteProject.create.customPh')}
+                onChange={(e) => setCustomName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addCustom()
+                  }
+                }}
+              />
+              <button type="button" className="btn sm" disabled={!customName.trim()} onClick={addCustom}>
+                <Icon name="plus" size={12} />
+                {t('spriteProject.create.addAnim')}
+              </button>
             </div>
           </div>
         </div>

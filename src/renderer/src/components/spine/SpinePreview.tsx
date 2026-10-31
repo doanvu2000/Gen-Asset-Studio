@@ -48,7 +48,7 @@ interface Props {
   showBones?: boolean
   highlightSlots?: string[]
   background?: SpineBg
-  height?: number
+  height?: number | string
   label?: string
   onReady?: (info: SpineInfo) => void
   onError?: (msg: string) => void

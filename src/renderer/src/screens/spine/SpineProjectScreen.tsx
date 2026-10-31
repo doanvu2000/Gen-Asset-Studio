@@ -24,6 +24,7 @@ function StepBar({ v }: { v: SpineProjectView }): ReactElement {
   const used = v.regions.filter((r) => r.used)
   const pool = used.length ? used : v.regions
   const rigN = rigEditCount(v)
+  const allApproved = pool.length > 0 && pool.every((r) => r.decision === 'approved')
   const subs = [
     v.loaded ? `${v.skeletonName ?? ''} · ${t('spineProject.sub.regions', { count: v.regions.length })}` : t('spineProject.sub.none'),
     v.style.locked ? t('spineProject.sub.styleLocked') : t('spineProject.sub.styleOpen'),
@@ -41,7 +42,7 @@ function StepBar({ v }: { v: SpineProjectView }): ReactElement {
         const lock = spineStepLock(v, n)
         const locked = !!lock
         const cur = step === n
-        const done = n < step && !locked
+        const done = n < step && !locked && (key !== 'gen' || allApproved)
         const cls = ['stp', cur && 'cur', done && !cur && 'done', locked && 'locked'].filter(Boolean).join(' ')
         return (
           <div className="stp-wrap" key={key}>
@@ -74,16 +75,18 @@ function StepBar({ v }: { v: SpineProjectView }): ReactElement {
 
 function Intro({ step, n }: { step: SpineStepKey; n: number }): ReactElement {
   const { t } = useTranslation()
+  const compact = step === 'gen'
+  const text = t(`spineProject.intro.${step}`)
   return (
-    <div className="step-intro k-spine">
+    <div className={compact ? 'step-intro k-spine compact' : 'step-intro k-spine'}>
       <span className="si-ic">
-        <Icon name={STEP_ICON[step]} size={16} />
+        <Icon name={STEP_ICON[step]} size={compact ? 13 : 16} />
       </span>
       <div className="si-t">
         <b>
           {t('intro.stepOf', { n, total: SPINE_STEPS.length })} · {t(`spineProject.steps.${step}`)}
         </b>
-        <span>{t(`spineProject.intro.${step}`)}</span>
+        <span title={compact ? text : undefined}>{text}</span>
       </div>
     </div>
   )

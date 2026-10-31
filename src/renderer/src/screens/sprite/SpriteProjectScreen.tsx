@@ -35,10 +35,12 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
   const step = useSprite((s) => s.step)
   const setStep = useSprite((s) => s.setStep)
-  const anims = v.sheets.reduce((n, s) => n + s.anims.length, 0)
+  const anims = v.sheets.reduce((n, s) => n + new Set(s.anims.map((a) => animRow(a.name))).size, 0)
+  const dirs = new Set(v.sheets.flatMap((s) => s.anims.map((a) => a.dir).filter(Boolean))).size
   const gens = genTargets(v)
+  const allApproved = gens.length > 0 && gens.every((s) => s.decision === 'approved')
   const subs = [
-    t('spriteProject.sub.import', { sheets: v.sheets.length, anims }),
+    dirs ? t('spriteProject.sub.importDirs', { sheets: v.sheets.length, anims, dirs }) : t('spriteProject.sub.import', { sheets: v.sheets.length, anims }),
     v.style.locked ? t('spriteProject.sub.styleLocked') : t('spriteProject.sub.styleOpen'),
     t('spriteProject.sub.work', { approved: gens.filter((s) => s.decision === 'approved').length, total: gens.length }),
     v.export.lastAt > 0 ? t('spriteProject.sub.exported', { count: v.export.lastSheets }) : t('spriteProject.sub.notExported')
@@ -50,7 +52,7 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
         const reason = lockReason(v, n)
         const locked = !!reason
         const cur = step === n
-        const done = n < step && !locked
+        const done = n < step && !locked && (key !== 'work' || allApproved)
         const cls = ['stp', cur && 'cur', done && !cur && 'done', locked && 'locked'].filter(Boolean).join(' ')
         return (
           <div className="stp-wrap" key={key}>
@@ -89,16 +91,18 @@ function introKey(step: StepKey, v: SpriteProjectView): StepKey | 'exportNew' | 
 
 function Intro({ step, n, v }: { step: StepKey; n: number; v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
+  const compact = step === 'work'
+  const text = t(`spriteProject.intro.${introKey(step, v)}`)
   return (
-    <div className="step-intro k-sprite">
+    <div className={compact ? 'step-intro k-sprite compact' : 'step-intro k-sprite'}>
       <span className="si-ic">
-        <Icon name={STEP_ICON[step]} size={16} />
+        <Icon name={STEP_ICON[step]} size={compact ? 13 : 16} />
       </span>
       <div className="si-t">
         <b>
           {t('intro.stepOf', { n, total: STEPS.length })} · {t(`spriteProject.steps.${step}`)}
         </b>
-        <span>{t(`spriteProject.intro.${introKey(step, v)}`)}</span>
+        <span title={compact ? text : undefined}>{text}</span>
       </div>
     </div>
   )
@@ -275,6 +279,7 @@ function SheetCard({ s, index, on, onOpen }: { s: SheetView; index: number; on: 
 function SheetSummary({ v, sheet, open, onToggle }: { v: SpriteProjectView; sheet: SheetView; open: boolean; onToggle: () => void }): ReactElement {
   const { t } = useTranslation()
   const setStep = useSprite((s) => s.setStep)
+  const setSettings = useSprite((s) => s.setSettings)
   const [pick, setPick] = useState<string | null>(null)
   const rows = [...new Set(sheet.anims.map((a) => animRow(a.name)))]
   const present = new Set(sheet.anims.map((a) => a.dir))
@@ -286,6 +291,17 @@ function SheetSummary({ v, sheet, open, onToggle }: { v: SpriteProjectView; shee
   const [pos] = useClock(strip?.frameCount ?? 1, anim?.fps ?? 8, true)
   const real = sheet.frames.length - sheet.empty.length
   const hint = needsGridEdit(sheet, v.settings) ? (sheet.format === 'grid' ? 'noAtlas' : 'noDirs') : null
+  const have = dirs.filter((d): d is Direction => !!d)
+  const fit = ([4, 6] as const).find((n) => have.length === n && have.every((d) => DIRECTIONS[n].includes(d)))
+  const st = v.settings
+  const suggest =
+    fit && st.dirSet !== 0 && st.dirSet !== fit && v.sheets.every((s) => s.id === sheet.id || (s.origin !== 'new' && s.anims.every((a) => !a.dir || DIRECTIONS[fit].includes(a.dir))))
+      ? fit
+      : null
+  const applyDirs = (n: 4 | 6): void => {
+    const preset = st.rowPreset === 'custom' ? 'flame' : st.rowPreset
+    void setSettings({ dirSet: n, rowPreset: preset, rowOrder: ROW_PRESETS[preset][n] })
+  }
   return (
     <div className="sp-new-sum sp-sum">
       <div className="sp-new-char ck">
@@ -322,40 +338,53 @@ function SheetSummary({ v, sheet, open, onToggle }: { v: SpriteProjectView; shee
             <span>{t(`spriteProject.import.${hint}`)}</span>
           </div>
         )}
+        {suggest && (
+          <div className="note">
+            <Icon name="help" size={14} />
+            <span className="note-t">{t('spriteProject.import.dirMismatch', { have: have.length, n: st.dirSet })}</span>
+            <button type="button" className="btn sm" onClick={() => applyDirs(suggest)}>
+              {t('spriteProject.import.setDirs', { n: suggest })}
+            </button>
+          </div>
+        )}
         {rows.length > 0 && (
-          <table className="sp-new-tbl">
-            <thead>
-              <tr>
-                <th>{t('spriteProject.create.colAnim')}</th>
-                {dirs.map((d) => (
-                  <th key={d ?? '-'}>{d ? t(`spriteProject.dir.${d}`) : '—'}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((n) => (
-                <tr key={n}>
-                  <td>
-                    <b>{n}</b>
-                  </td>
-                  {dirs.map((d) => {
-                    const a = sheet.anims.find((x) => animRow(x.name) === n && x.dir === d)
-                    return (
-                      <td key={d ?? '-'}>
-                        {a ? (
-                          <button type="button" className={anim?.id === a.id ? 'sp-cell on' : 'sp-cell'} onClick={() => setPick(a.id)} title={a.name}>
-                            {t('spriteProject.create.frames', { count: a.frames.length })}
-                          </button>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    )
-                  })}
+          <div className="sp-new-tbl-wrap">
+            <table className="sp-new-tbl">
+              <thead>
+                <tr>
+                  <th>{t('spriteProject.create.colAnim')}</th>
+                  {dirs.map((d) => (
+                    <th key={d ?? '-'} title={d ? t(`spriteProject.dir.${d}`) : t('spriteProject.gen.noDir')}>
+                      {d ?? '—'}
+                    </th>
+                  ))}
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((n) => (
+                  <tr key={n}>
+                    <td>
+                      <b>{n}</b>
+                    </td>
+                    {dirs.map((d) => {
+                      const a = sheet.anims.find((x) => animRow(x.name) === n && x.dir === d)
+                      return (
+                        <td key={d ?? '-'}>
+                          {a ? (
+                            <button type="button" className={anim?.id === a.id ? 'sp-cell on' : 'sp-cell'} onClick={() => setPick(a.id)} title={a.name}>
+                              {t('spriteProject.create.frames', { count: a.frames.length })}
+                            </button>
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         <div className="actions">
           <button type="button" className="btn" aria-expanded={open} onClick={onToggle}>

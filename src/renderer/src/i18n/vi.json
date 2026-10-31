@@ -1128,7 +1128,7 @@
       "short": "Sprite",
       "audience": "Cho artist · animation",
       "desc": "Nhân vật nhiều hướng (4/6/8) và khung hình animation. Đọc atlas, chỉnh lưới, xem anim chạy thử ngay.",
-      "flow": "Nhập sheet → Lưới & hướng → Style → Gen theo hướng → Duyệt → Xuất",
+      "flow": "Nhập sheet → Style → Gen & duyệt → Xuất",
       "input": "Sheet PNG + TexturePacker/Aseprite JSON, .plist, Unity .meta (hoặc dò lưới)",
       "output": "Sheet cùng rect, file atlas dùng lại; Flame/Android/iOS"
     },
@@ -1137,7 +1137,7 @@
       "short": "Spine",
       "audience": "Cho artist · Spine 4.2",
       "desc": "Reskin nhân vật Spine theo từng region, chỉnh setup pose cho khớp và xem chạy bằng spine-player.",
-      "flow": "Nhập skeleton → Region & skin → Style → Gen → Rigging → Duyệt → Xuất",
+      "flow": "Nhập skeleton → Style → Gen & duyệt → Xuất",
       "input": ".json / .skel 4.2 + .atlas + page PNG",
       "output": "Page PNG đúng region, .atlas giữ nguyên"
     }
@@ -1285,7 +1285,8 @@
       "styleOpen": "Chưa chốt",
       "work": "{{approved}}/{{total}} dải đã duyệt",
       "exported": "Đã xuất {{count}} sheet",
-      "notExported": "Chưa xuất"
+      "notExported": "Chưa xuất",
+      "importDirs": "{{sheets}} sheet · {{anims}} anim × {{dirs}} hướng"
     },
     "lock": {
       "noSheet": "Thêm ít nhất 1 sheet trước",
@@ -1306,7 +1307,9 @@
       "noDirs": "Chưa animation nào được gán hướng — gán hướng bên dưới để gen đúng từng hướng.",
       "openEditor": "Chỉnh lưới & hướng",
       "closeEditor": "Thu gọn",
-      "next": "Tiếp: Style"
+      "next": "Tiếp: Style",
+      "dirMismatch": "Sheet có {{have}} hướng · project đặt {{n}} — đổi bộ hướng?",
+      "setDirs": "Đặt bộ hướng {{n}}"
     },
     "work": {
       "flowAuto": "Gen dải khoá ({{name}}) trước → duyệt → các hướng còn lại tự gen.",
@@ -1322,7 +1325,9 @@
       "genRunning": "Đang gen…",
       "needLock": "Duyệt dải khoá trước",
       "lockRunning": "Dải khoá đang gen — chờ xong rồi duyệt",
-      "genAllLockFirst": "Gen dải khoá trước — duyệt xong các dải còn lại tự gen (hoặc bấm lại Gen tất cả)"
+      "genAllLockFirst": "Gen dải khoá trước — duyệt xong các dải còn lại tự gen (hoặc bấm lại Gen tất cả)",
+      "lockReview": "Duyệt dải khoá để tự gen các hướng còn lại.",
+      "lockReviewManual": "Duyệt dải khoá rồi bấm “Gen tất cả” cho các hướng còn lại."
     },
     "settings": {
       "title": "Thiết lập nhân vật",
@@ -1462,7 +1467,8 @@
         "fit": "Căn frame",
         "qa": "QA",
         "save": "Lưu"
-      }
+      },
+      "activePaused": "{{count}} đang chờ · đã tạm dừng"
     },
     "review": {
       "tab": "Chế độ xem",
@@ -1555,7 +1561,7 @@
     },
     "create": {
       "title": "Tạo sheet mới từ ảnh nhân vật",
-      "desc": "Từ 1 ảnh nhân vật, AI vẽ đủ các hướng × animation trên lưới ô vuông. Sheet trống được tạo ngay, gen ở bước Gen.",
+      "desc": "Từ 1 ảnh nhân vật, AI vẽ đủ các hướng × animation trên lưới ô vuông. Sheet trống được tạo ngay, AI vẽ ở bước Gen & duyệt.",
       "open": "Tạo sheet mới",
       "badge": "Tạo mới",
       "character": "Nhân vật",
@@ -1582,7 +1588,7 @@
       "summary": "{{rows}} hàng × {{cols}} cột · {{w}}×{{h}} px · ước tính {{gens}} lượt gen",
       "mirrorNote": "{{count}} dải lật gương không tốn lượt",
       "create": "Tạo sheet",
-      "created": "Đã tạo {{name}} — sang bước Style rồi Gen",
+      "created": "Đã tạo {{name}} — sang bước Style rồi Gen & duyệt",
       "failed": "Không tạo được sheet",
       "dirsChip": "{{count}} hướng",
       "reskinChip": "Reskin",
@@ -1593,7 +1599,7 @@
       "feat_dirs": "4 / 6 / 8 hướng, hướng phải lật gương từ hướng trái",
       "feat_anims": "idle + walk mặc định; thêm run, attack, hurt, die hoặc animation tự đặt",
       "feat_out": "Xuất PNG lưới + TexturePacker JSON + code mẫu Flame / Android / iOS",
-      "gridNote": "Sheet đang trống — các ô được AI vẽ ở bước Gen. Lưới đã đặt sẵn theo animation × hướng.",
+      "gridNote": "Sheet đang trống — các ô được AI vẽ ở bước Gen & duyệt. Lưới đã đặt sẵn theo animation × hướng.",
       "colAnim": "Animation",
       "errNoCharacter": "Không đọc được ảnh nhân vật — chọn lại ảnh.",
       "errNoAnims": "Chọn ít nhất 1 animation."
@@ -1645,7 +1651,7 @@
       "desc": "Bộ {{n}} hướng — bấm để xem animation của hướng đó",
       "none": "Sheet không chia theo hướng",
       "missing": "{{dir}} — chưa có animation",
-      "coverage": "Mới có {{have}}/{{n}} hướng"
+      "coverage": "Sheet có {{have}} hướng · project đặt {{n}}"
     },
     "playground": {
       "label": "Đi thử nhân vật",
@@ -1709,7 +1715,7 @@
     "steps": {
       "import": "Nhập",
       "style": "Style",
-      "gen": "Gen & Duyệt",
+      "gen": "Gen & duyệt",
       "export": "Xuất"
     },
     "intro": {
@@ -1865,8 +1871,8 @@
       "page": "Page",
       "replaced": "Region thay",
       "kept": "Giữ gốc",
-      "rigNew": "Có {{count}} chỉnh rigging → ghi {{name}} mới (giữ bản gốc .original).",
-      "rigCopy": "Không chỉnh rigging → {{name}} chép nguyên.",
+      "rigNew": "Có {{count}} chỉnh vị trí → ghi {{name}} mới (giữ bản gốc .original).",
+      "rigCopy": "Không chỉnh vị trí → {{name}} chép nguyên.",
       "atlasCopy": "File .atlas chép nguyên, không đổi.",
       "none": "Chưa có region nào được duyệt.",
       "run": "Xuất",

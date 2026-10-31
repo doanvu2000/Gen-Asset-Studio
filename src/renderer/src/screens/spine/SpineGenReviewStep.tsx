@@ -5,6 +5,7 @@ import type { QueueJob } from '@shared/queue'
 import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
+import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { applyRig, origRigFromData, parseOrigRig, RigEditor } from '@renderer/components/spine/RigEditor'
@@ -305,6 +306,7 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
   const rigN = rigEditCount(v)
   const rigReady = !!v.skeleton && generated.length > 0
   const exportLock = spineStepLock(v, 4)
+  const progress = t('spineProject.gen.progress', { done: approved, total: used.length || v.regions.length })
 
   const origRig = useMemo(() => (orig && orig.format !== 'binary' ? parseOrigRig(orig.json) : origRigFromData(origPlayer?.skeleton?.data)), [orig, origPlayer])
   useEffect(() => {
@@ -364,37 +366,22 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
             {t('spineProject.review.approveQa', { count: qaOk.length })}
           </button>
         )}
-        <div className="grow" />
-        {active.length > 0 && (
-          <>
-            <span className="chip c-blue">
-              <span className="spin sm" />
-              {t('spriteProject.gen.active', { count: active.length })}
-            </span>
-            <button type="button" className="btn sm" onClick={() => void (paused ? window.gas.queue.resume() : window.gas.queue.pause())}>
-              <Icon name={paused ? 'play' : 'pause'} size={13} />
-              {paused ? t('spriteProject.gen.resume') : t('spriteProject.gen.pause')}
-            </button>
-            <button type="button" className="btn ghost sm danger" onClick={() => void window.gas.queue.cancelAll(v.dir)}>
-              <Icon name="x" size={13} />
-              {t('spriteProject.gen.cancel')}
-            </button>
-          </>
-        )}
-        <span className="muted">{t('spineProject.gen.progress', { done: approved, total: used.length || v.regions.length })}</span>
-        <button
-          type="button"
-          className="btn primary sm"
-          aria-disabled={exportLock ? true : undefined}
-          title={exportLock ? t(`spineProject.lock.${exportLock}`) : undefined}
-          onClick={() => {
-            if (exportLock) toast(t(`spineProject.lock.${exportLock}`), 'info')
-            else void flushRig().then(() => setStep(4))
-          }}
-        >
-          {t('spineProject.gen.toExport')}
-          <Icon name="right" size={13} />
-        </button>
+        <div className="tb-end">
+          <span className="muted tb-prog" title={progress}>
+            {progress}
+          </span>
+          <QueueControls count={active.length} paused={paused} dir={v.dir} />
+          <button
+            type="button"
+            className="btn primary sm"
+            disabled={!!exportLock}
+            title={exportLock ? t(`spineProject.lock.${exportLock}`) : undefined}
+            onClick={() => void flushRig().then(() => setStep(4))}
+          >
+            {t('spineProject.gen.toExport')}
+            <Icon name="right" size={13} />
+          </button>
+        </div>
       </div>
       <div className="sgr-body">
         <div className="sgr-list">
@@ -433,7 +420,7 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
               {rigN > 0 && <span className="sgr-badge">{rigN}</span>}
             </button>
           </div>
-          <SpineCompare viewer={viewer} orig={orig} next={next} highlightSlots={rigOpen ? rigSlots : cur?.slots} height={260} onNewPlayer={setPlayer} onOrigPlayer={setOrigPlayer} />
+          <SpineCompare viewer={viewer} orig={orig} next={next} highlightSlots={rigOpen ? rigSlots : cur?.slots} height={rigOpen ? 'clamp(120px, 20vh, 260px)' : 'clamp(160px, 30vh, 260px)'} onNewPlayer={setPlayer} onOrigPlayer={setOrigPlayer} />
           {rigOpen && v.skeleton ? (
             <>
               <div className="tip">

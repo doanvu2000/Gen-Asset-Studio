@@ -527,11 +527,6 @@
   flex-direction: column;
 }
 
-.sgr-wrap > .toolbar {
-  flex-wrap: wrap;
-  row-gap: 6px;
-}
-
 .sgr-body {
   flex: 1;
   min-height: 0;
@@ -597,9 +592,15 @@
 }
 
 .sgr-side.rig-on > .rig {
-  min-height: 240px;
+  min-height: 180px;
   margin: 0 -16px -14px;
   border-top: 1px solid var(--sep2);
+}
+
+@media (max-height: 860px) {
+  .sgr-side.rig-on > .tip {
+    display: none;
+  }
 }
 
 .sgr-side-head {
