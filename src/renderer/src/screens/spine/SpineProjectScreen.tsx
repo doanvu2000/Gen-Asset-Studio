@@ -6,51 +6,40 @@ import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
+import { rigEditCount, SPINE_STEPS, spineStepLock, type SpineStepKey } from '@renderer/lib/spine'
 import { viewTransition } from '@renderer/lib/motion'
 import { importErrorText, useSpine } from '@renderer/store/spine'
 import { useWs } from '@renderer/store/workspace'
 import { samePath, useQueue } from '@renderer/store/queue'
 import { SpineStyleStep } from './SpineStyleStep'
-import { SpineGenStep } from './SpineGenStep'
-import { SpineRigStep } from './SpineRigStep'
-import { SpineReviewStep } from './SpineReviewStep'
+import { SpineGenReviewStep } from './SpineGenReviewStep'
 import { SpineExportStep } from './SpineExportStep'
 
-const STEPS = ['import', 'regions', 'style', 'gen', 'rig', 'review', 'export'] as const
-type StepKey = (typeof STEPS)[number]
-const STEP_ICON: Record<StepKey, IconName> = { import: 'upload', regions: 'grid', style: 'palette', gen: 'sparkles', rig: 'link', review: 'eye', export: 'download' }
-
-function canStep(v: SpineProjectView, n: number): boolean {
-  if (n === 1) return true
-  if (n === 2 || n === 3) return v.loaded
-  if (n === 4) return v.loaded && v.style.locked
-  if (n === 5 || n === 6) return v.loaded && v.regions.some((r) => r.versions.length > 0)
-  return v.loaded && v.regions.some((r) => r.decision === 'approved')
-}
-
-type LockKey = 'import' | 'style' | 'gen' | 'review'
-const LOCK_KEY: Record<number, LockKey> = { 2: 'import', 3: 'import', 4: 'style', 5: 'gen', 6: 'gen', 7: 'review' }
+const STEP_ICON: Record<SpineStepKey, IconName> = { import: 'upload', style: 'palette', gen: 'sparkles', export: 'download' }
 
 function StepBar({ v }: { v: SpineProjectView }): ReactElement {
   const { t } = useTranslation()
   const step = useSpine((s) => s.step)
   const setStep = useSpine((s) => s.setStep)
   const used = v.regions.filter((r) => r.used)
-  const rigN = Object.keys(v.rig.bones).length + Object.keys(v.rig.attachments).length
+  const pool = used.length ? used : v.regions
+  const rigN = rigEditCount(v)
   const subs = [
-    v.loaded ? (v.skeletonName ?? '') : t('spineProject.sub.none'),
-    t('spineProject.sub.regions', { count: v.regions.length }),
+    v.loaded ? `${v.skeletonName ?? ''} · ${t('spineProject.sub.regions', { count: v.regions.length })}` : t('spineProject.sub.none'),
     v.style.locked ? t('spineProject.sub.styleLocked') : t('spineProject.sub.styleOpen'),
-    t('spineProject.sub.gen', { done: used.filter((r) => r.versions.length > 0).length, total: used.length }),
-    rigN ? t('spineProject.sub.rig', { count: rigN }) : t('spineProject.sub.rigNone'),
-    t('spineProject.sub.review', { count: v.regions.filter((r) => r.decision === 'approved').length }),
+    t('spineProject.sub.genReview', {
+      gen: pool.filter((r) => r.versions.length > 0).length,
+      approved: pool.filter((r) => r.decision === 'approved').length,
+      total: pool.length
+    }) + (rigN ? ` · ${t('spineProject.sub.rig', { count: rigN })}` : ''),
     v.export.lastAt > 0 ? t('spineProject.sub.exported', { count: v.export.lastPages }) : t('spineProject.sub.notExported')
   ]
   return (
     <div className="steps" role="tablist">
-      {STEPS.map((key, i) => {
+      {SPINE_STEPS.map((key, i) => {
         const n = i + 1
-        const locked = !canStep(v, n)
+        const lock = spineStepLock(v, n)
+        const locked = !!lock
         const cur = step === n
         const done = n < step && !locked
         const cls = ['stp', cur && 'cur', done && !cur && 'done', locked && 'locked'].filter(Boolean).join(' ')
@@ -67,13 +56,13 @@ function StepBar({ v }: { v: SpineProjectView }): ReactElement {
               role="tab"
               aria-selected={cur}
               aria-disabled={locked || undefined}
-              title={locked ? t(`spineProject.lock.${LOCK_KEY[n] ?? 'import'}`) : undefined}
+              title={lock ? t(`spineProject.lock.${lock}`) : undefined}
               onClick={() => !locked && setStep(n)}
             >
               <span className="num">{done && !cur ? <Icon name="check" size={13} /> : locked ? <Icon name="lock" size={12} /> : n}</span>
               <span>
                 <b>{t(`spineProject.steps.${key}`)}</b>
-                <small>{subs[i]}</small>
+                <small>{lock ? t(`spineProject.lock.${lock}`) : subs[i]}</small>
               </span>
             </button>
           </div>
@@ -83,7 +72,7 @@ function StepBar({ v }: { v: SpineProjectView }): ReactElement {
   )
 }
 
-function Intro({ step, n }: { step: StepKey; n: number }): ReactElement {
+function Intro({ step, n }: { step: SpineStepKey; n: number }): ReactElement {
   const { t } = useTranslation()
   return (
     <div className="step-intro k-spine">
@@ -92,7 +81,7 @@ function Intro({ step, n }: { step: StepKey; n: number }): ReactElement {
       </span>
       <div className="si-t">
         <b>
-          {t('intro.stepOf', { n, total: STEPS.length })} · {t(`spineProject.steps.${step}`)}
+          {t('intro.stepOf', { n, total: SPINE_STEPS.length })} · {t(`spineProject.steps.${step}`)}
         </b>
         <span>{t(`spineProject.intro.${step}`)}</span>
       </div>
@@ -124,17 +113,175 @@ function useDrop(onPaths: (paths: string[]) => void): { over: boolean; bind: Rec
   }
 }
 
-function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
+function RegionCard({ r, on, onPick }: { r: SpineRegionView; on: boolean; onPick: () => void }): ReactElement {
+  const { t } = useTranslation()
+  const trimmed = r.origW !== r.w || r.origH !== r.h
+  return (
+    <button type="button" className={['spr-reg', on && 'on', !r.used && 'unused'].filter(Boolean).join(' ')} onClick={onPick}>
+      <span className="spr-reg-img ck">{r.sourceUrl ? <img src={r.sourceUrl} alt="" draggable={false} /> : <Icon name="alert" size={18} />}</span>
+      <span className="spr-reg-b">
+        <b title={r.name}>{r.name}</b>
+        <small className="mono">
+          {r.w}×{r.h}
+          {trimmed ? ` / ${r.origW}×${r.origH}` : ''}
+        </small>
+        <span className="spr-reg-chips">
+          {r.degrees === 90 && <span className="chip c-gray">{t('spineProject.regions.rotated')}</span>}
+          {trimmed && <span className="chip c-gray">{t('spineProject.regions.trimmed')}</span>}
+          {r.kinds.includes('mesh') && <span className="chip c-purple">mesh</span>}
+          {!r.used && <span className="chip c-orange">{t('spineProject.regions.unused')}</span>}
+        </span>
+      </span>
+    </button>
+  )
+}
+
+function SkeletonBar({ v, err }: { v: SpineProjectView; err: ReactElement | null }): ReactElement {
   const { t } = useTranslation()
   const busy = useSpine((s) => s.busy)
   const importFrom = useSpine((s) => s.importFrom)
   const clear = useSpine((s) => s.clear)
-  const setStep = useSpine((s) => s.setStep)
-  const importError = useSpine((s) => s.importError)
-  const orig = useSpine((s) => s.orig)
-  const viewer = useViewer()
-  const { over, bind } = useDrop((paths) => void importFrom(paths))
   const sk = v.skeleton
+  return (
+    <section className="spi-bar">
+      <div className="spi-head">
+        <span className="kbadge k-spine">
+          <Icon name="layers" size={11} />
+          Spine {sk?.version ?? ''}
+        </span>
+        <b title={v.skeletonPath ?? ''}>{v.skeletonName}</b>
+        {v.skeletonFormat && <span className="chip c-gray">{t(`spineProject.import.format.${v.skeletonFormat}`)}</span>}
+        {v.status !== 'ok' && <span className={v.status === 'missing' ? 'chip c-red' : 'chip c-orange'}>{t(`spineProject.status.${v.status}`)}</span>}
+        <span className="muted spi-counts">
+          {t('spineProject.import.countsVal', {
+            regions: v.regions.length,
+            bones: sk?.bones.length ?? 0,
+            slots: sk?.slots.length ?? 0,
+            skins: sk?.skins.length ?? 0,
+            anims: sk?.animations.length ?? 0
+          })}
+        </span>
+        <div className="grow" />
+        <button type="button" className="btn sm" disabled={busy} onClick={() => void importFrom(null)}>
+          {busy ? <span className="spin" /> : <Icon name="refresh" size={13} />}
+          {t('spineProject.import.reimport')}
+        </button>
+        <button type="button" className="btn ghost sm danger" disabled={busy} onClick={() => void clear()}>
+          <Icon name="trash" size={13} />
+          {t('spineProject.import.clear')}
+        </button>
+      </div>
+      <details className="spi-more">
+        <summary>{t('spineProject.import.details')}</summary>
+        <dl className="kv">
+          <dt>{t('spineProject.import.skeleton')}</dt>
+          <dd className="mono ellipsis" title={v.skeletonPath ?? ''}>
+            {v.skeletonPath}
+          </dd>
+          <dt>{t('spineProject.import.atlas')}</dt>
+          <dd className="mono ellipsis" title={v.atlasPath ?? ''}>
+            {v.atlasPath}
+          </dd>
+          <dt>{t('spineProject.import.pages')}</dt>
+          <dd>{v.pages.map((p) => `${p.name} (${p.w}×${p.h})`).join(', ')}</dd>
+        </dl>
+      </details>
+      {v.error && (
+        <div className="note warn">
+          <Icon name="alert" size={14} />
+          <span>{v.error}</span>
+        </div>
+      )}
+      {err}
+    </section>
+  )
+}
+
+function Regions({ v }: { v: SpineProjectView }): ReactElement {
+  const { t } = useTranslation()
+  const orig = useSpine((s) => s.orig)
+  const setStep = useSpine((s) => s.setStep)
+  const viewer = useViewer()
+  const [skin, setSkin] = useState('all')
+  const [pick, setPick] = useState<string | null>(null)
+  const skins = v.skeleton?.skins ?? []
+  const list = useMemo(() => v.regions.filter((r) => skin === 'all' || r.skins.includes(skin)), [v.regions, skin])
+  const cur = v.regions.find((r) => r.key === pick) ?? null
+  const pages = useMemo(() => [...new Set(list.map((r) => r.page))], [list])
+  const { info: vInfo, setSkin: vSetSkin } = viewer
+  useEffect(() => {
+    if (skin !== 'all' && vInfo?.skins.includes(skin)) vSetSkin(skin)
+  }, [skin, vInfo, vSetSkin])
+  return (
+    <>
+      <div className="toolbar">
+        <span className="muted">{t('spineProject.regions.count', { count: list.length, total: v.regions.length })}</span>
+        {skins.length > 1 && (
+          <select className="inp sm" value={skin} onChange={(e) => setSkin(e.target.value)} aria-label={t('spineProject.regions.skins')}>
+            <option value="all">{t('spineProject.regions.allSkins')}</option>
+            {skins.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        )}
+        <div className="grow" />
+        <button type="button" className="btn primary sm" onClick={() => setStep(2)}>
+          {t('spineProject.regions.next')}
+          <Icon name="right" size={13} />
+        </button>
+      </div>
+      <div className="spr-regions">
+        <div className="spr-reg-scroll">
+          {pages.map((p) => (
+            <section key={p}>
+              <h4>
+                <Icon name="image" size={13} />
+                {p}
+              </h4>
+              <div className="spr-reg-grid">
+                {list
+                  .filter((r) => r.page === p)
+                  .map((r) => (
+                    <RegionCard key={r.key} r={r} on={r.key === pick} onPick={() => setPick(r.key === pick ? null : r.key)} />
+                  ))}
+              </div>
+            </section>
+          ))}
+        </div>
+        <aside className="spr-reg-side">
+          <SpineCompare viewer={viewer} orig={orig} next={null} single="orig" height={340} highlightSlots={cur?.slots} />
+          {cur ? (
+            <div className="spr-reg-info">
+              <b>{cur.name}</b>
+              <dl className="kv">
+                <dt>{t('spineProject.regions.page')}</dt>
+                <dd>
+                  {cur.page} · {cur.x},{cur.y}
+                </dd>
+                <dt>{t('spineProject.regions.slots')}</dt>
+                <dd>{cur.slots.join(', ') || '—'}</dd>
+                <dt>{t('spineProject.regions.skins')}</dt>
+                <dd>{cur.skins.join(', ') || '—'}</dd>
+              </dl>
+              <small className="muted">{t('spineProject.regions.hl')}</small>
+            </div>
+          ) : (
+            <p className="muted spr-reg-info">{t('spineProject.regions.pickHint')}</p>
+          )}
+        </aside>
+      </div>
+    </>
+  )
+}
+
+function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
+  const { t } = useTranslation()
+  const busy = useSpine((s) => s.busy)
+  const importFrom = useSpine((s) => s.importFrom)
+  const importError = useSpine((s) => s.importError)
+  const { over, bind } = useDrop((paths) => void importFrom(paths))
 
   const err = importError ? (
     <div className="note err">
@@ -142,6 +289,13 @@ function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
       <span>{importErrorText(importError)}</span>
     </div>
   ) : null
+
+  const drop = over && (
+    <div className="sp-drop spine">
+      <Icon name="upload" size={34} />
+      <b>{t('spineProject.import.dropTitle')}</b>
+    </div>
+  )
 
   if (!v.loaded) {
     return (
@@ -167,186 +321,16 @@ function ImportStep({ v }: { v: SpineProjectView }): ReactElement {
           </div>
           <small className="muted">{t('spineProject.import.dropHint')}</small>
         </div>
-        {over && (
-          <div className="sp-drop spine">
-            <Icon name="upload" size={34} />
-            <b>{t('spineProject.import.dropTitle')}</b>
-          </div>
-        )}
+        {drop}
       </div>
     )
   }
 
   return (
-    <div className={over ? 'spi-wrap over' : 'spi-wrap'} {...bind}>
-      <div className="spi-loaded">
-        <section className="spi-card">
-          <div className="spi-head">
-            <span className="kbadge k-spine">
-              <Icon name="layers" size={11} />
-              Spine {sk?.version ?? ''}
-            </span>
-            <b>{v.skeletonName}</b>
-            {v.skeletonFormat && <span className="chip c-gray">{t(`spineProject.import.format.${v.skeletonFormat}`)}</span>}
-            {v.status !== 'ok' && <span className={v.status === 'missing' ? 'chip c-red' : 'chip c-orange'}>{t(`spineProject.status.${v.status}`)}</span>}
-          </div>
-          <dl className="kv">
-            <dt>{t('spineProject.import.skeleton')}</dt>
-            <dd className="mono ellipsis" title={v.skeletonPath ?? ''}>
-              {v.skeletonPath}
-            </dd>
-            <dt>{t('spineProject.import.atlas')}</dt>
-            <dd className="mono ellipsis" title={v.atlasPath ?? ''}>
-              {v.atlasPath}
-            </dd>
-            <dt>{t('spineProject.import.pages')}</dt>
-            <dd>{v.pages.map((p) => `${p.name} (${p.w}×${p.h})`).join(', ')}</dd>
-            <dt>{t('spineProject.import.counts')}</dt>
-            <dd>
-              {t('spineProject.import.countsVal', {
-                regions: v.regions.length,
-                bones: sk?.bones.length ?? 0,
-                slots: sk?.slots.length ?? 0,
-                skins: sk?.skins.length ?? 0,
-                anims: sk?.animations.length ?? 0
-              })}
-            </dd>
-          </dl>
-          {v.error && (
-            <div className="note warn">
-              <Icon name="alert" size={14} />
-              <span>{v.error}</span>
-            </div>
-          )}
-          {err}
-          <div className="spi-acts">
-            <button type="button" className="btn" disabled={busy} onClick={() => void importFrom(null)}>
-              <Icon name="refresh" size={14} />
-              {t('spineProject.import.reimport')}
-            </button>
-            <button type="button" className="btn ghost danger" onClick={() => void clear()}>
-              <Icon name="trash" size={14} />
-              {t('spineProject.import.clear')}
-            </button>
-            <div className="grow" />
-            <button type="button" className="btn primary" onClick={() => setStep(2)}>
-              {t('spineProject.import.next')}
-              <Icon name="right" size={14} />
-            </button>
-          </div>
-        </section>
-        <section className="spi-pv">
-          <SpineCompare viewer={viewer} orig={orig} next={null} single="orig" height={380} />
-        </section>
-      </div>
-      {over && (
-        <div className="sp-drop spine">
-          <Icon name="upload" size={34} />
-          <b>{t('spineProject.import.dropTitle')}</b>
-        </div>
-      )}
-    </div>
-  )
-}
-
-function RegionCard({ r, on, onPick }: { r: SpineRegionView; on: boolean; onPick: () => void }): ReactElement {
-  const { t } = useTranslation()
-  const trimmed = r.origW !== r.w || r.origH !== r.h
-  return (
-    <button type="button" className={['spr-reg', on && 'on', !r.used && 'unused'].filter(Boolean).join(' ')} onClick={onPick}>
-      <span className="spr-reg-img ck">{r.sourceUrl ? <img src={r.sourceUrl} alt="" draggable={false} /> : <Icon name="alert" size={18} />}</span>
-      <span className="spr-reg-b">
-        <b title={r.name}>{r.name}</b>
-        <small className="mono">
-          {r.w}×{r.h}
-          {trimmed ? ` / ${r.origW}×${r.origH}` : ''}
-        </small>
-        <span className="spr-reg-chips">
-          {r.degrees === 90 && <span className="chip c-gray">{t('spineProject.regions.rotated')}</span>}
-          {trimmed && <span className="chip c-gray">{t('spineProject.regions.trimmed')}</span>}
-          {r.kinds.includes('mesh') && <span className="chip c-purple">mesh</span>}
-          {!r.used && <span className="chip c-orange">{t('spineProject.regions.unused')}</span>}
-        </span>
-      </span>
-    </button>
-  )
-}
-
-function RegionsStep({ v }: { v: SpineProjectView }): ReactElement {
-  const { t } = useTranslation()
-  const orig = useSpine((s) => s.orig)
-  const setStep = useSpine((s) => s.setStep)
-  const viewer = useViewer()
-  const [skin, setSkin] = useState('all')
-  const [pick, setPick] = useState<string | null>(null)
-  const skins = v.skeleton?.skins ?? []
-  const list = v.regions.filter((r) => skin === 'all' || r.skins.includes(skin))
-  const cur = v.regions.find((r) => r.key === pick) ?? null
-  const pages = useMemo(() => [...new Set(list.map((r) => r.page))], [list])
-  const { info: vInfo, setSkin: vSetSkin } = viewer
-  useEffect(() => {
-    if (skin !== 'all' && vInfo?.skins.includes(skin)) vSetSkin(skin)
-  }, [skin, vInfo, vSetSkin])
-  return (
-    <div className="spr-regions">
-      <div className="spr-reg-main">
-        <div className="toolbar">
-          <span className="muted">{t('spineProject.regions.count', { count: list.length, total: v.regions.length })}</span>
-          {skins.length > 1 && (
-            <select className="inp sm" value={skin} onChange={(e) => setSkin(e.target.value)}>
-              <option value="all">{t('spineProject.regions.allSkins')}</option>
-              {skins.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-          )}
-          <div className="grow" />
-          <button type="button" className="btn primary sm" onClick={() => setStep(3)}>
-            {t('spineProject.regions.next')}
-            <Icon name="right" size={13} />
-          </button>
-        </div>
-        <div className="spr-reg-scroll">
-          {pages.map((p) => (
-            <section key={p}>
-              <h4>
-                <Icon name="image" size={13} />
-                {p}
-              </h4>
-              <div className="spr-reg-grid">
-                {list
-                  .filter((r) => r.page === p)
-                  .map((r) => (
-                    <RegionCard key={r.key} r={r} on={r.key === pick} onPick={() => setPick(r.key === pick ? null : r.key)} />
-                  ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      </div>
-      <aside className="spr-reg-side">
-        <SpineCompare viewer={viewer} orig={orig} next={null} single="orig" height={340} highlightSlots={cur?.slots} />
-        {cur ? (
-          <div className="spr-reg-info">
-            <b>{cur.name}</b>
-            <dl className="kv">
-              <dt>{t('spineProject.regions.page')}</dt>
-              <dd>
-                {cur.page} · {cur.x},{cur.y}
-              </dd>
-              <dt>{t('spineProject.regions.slots')}</dt>
-              <dd>{cur.slots.join(', ') || '—'}</dd>
-              <dt>{t('spineProject.regions.skins')}</dt>
-              <dd>{cur.skins.join(', ') || '—'}</dd>
-            </dl>
-            <small className="muted">{t('spineProject.regions.hl')}</small>
-          </div>
-        ) : (
-          <p className="muted spr-reg-info">{t('spineProject.regions.pickHint')}</p>
-        )}
-      </aside>
+    <div className={over ? 'spi-wrap loaded over' : 'spi-wrap loaded'} {...bind}>
+      <SkeletonBar v={v} err={err} />
+      <Regions key={`${v.skeletonPath ?? ''}:${v.regions.length}`} v={v} />
+      {drop}
     </div>
   )
 }
@@ -402,7 +386,7 @@ export function SpineProjectScreen({ project }: { project: ProjectView }): React
     )
   }
 
-  const key = STEPS[step - 1]
+  const key = SPINE_STEPS[Math.min(Math.max(step, 1), SPINE_STEPS.length) - 1]
   return (
     <>
       <StepBar v={view} />
@@ -423,21 +407,7 @@ export function SpineProjectScreen({ project }: { project: ProjectView }): React
             transition={viewTransition}
           >
             <Intro step={key} n={step} />
-            {key === 'import' ? (
-              <ImportStep v={view} />
-            ) : key === 'regions' ? (
-              <RegionsStep v={view} />
-            ) : key === 'style' ? (
-              <SpineStyleStep v={view} />
-            ) : key === 'gen' ? (
-              <SpineGenStep v={view} />
-            ) : key === 'rig' ? (
-              <SpineRigStep v={view} />
-            ) : key === 'review' ? (
-              <SpineReviewStep v={view} />
-            ) : (
-              <SpineExportStep v={view} />
-            )}
+            {key === 'import' ? <ImportStep v={view} /> : key === 'style' ? <SpineStyleStep v={view} /> : key === 'gen' ? <SpineGenReviewStep v={view} /> : <SpineExportStep v={view} />}
           </motion.div>
         </AnimatePresence>
       </div>

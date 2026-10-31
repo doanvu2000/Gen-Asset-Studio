@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { SpineAssets, SpineImportResult, SpineProjectView, SpineRegionPatch, SpineRig } from '@shared/spine'
 import type { SpriteStyle } from '@shared/sprite'
 import i18n from '@renderer/i18n'
+import { firstOpenSpineStep } from '@renderer/lib/spine'
 import { toast } from './toast'
 
 interface SpineStore {
@@ -73,7 +74,7 @@ export const useSpine = create<SpineStore>()((set, get) => ({
     set({ rel, loading: !same, ...(same ? {} : { view: null, step: 1, orig: null, next: null, nextSig: '', importError: null }) })
     const view = await window.gas.spine.open(rel)
     if (get().rel !== rel) return
-    set({ view, loading: false })
+    set({ view, loading: false, ...(!same && view ? { step: firstOpenSpineStep(view), stepDir: 1 as const } : {}) })
     if (view?.loaded) void get().loadAssets()
   },
   reset: () => {

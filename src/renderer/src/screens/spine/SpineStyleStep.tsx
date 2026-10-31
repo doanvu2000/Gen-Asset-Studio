@@ -72,7 +72,7 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
     const ok = await setStyle({ promptEn: prompt, notes, locked: true })
     if (!ok) return
     toast(t('spineProject.style.lockedToast'))
-    setTimeout(() => setStep(4), 600)
+    setTimeout(() => setStep(3), 600)
   }
 
   return (
@@ -230,7 +230,7 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
                 <Icon name="unlock" size={14} />
                 {t('spriteProject.style.unlock')}
               </button>
-              <button type="button" className="btn primary" onClick={() => setStep(4)}>
+              <button type="button" className="btn primary" onClick={() => setStep(3)}>
                 {t('spriteProject.style.next')}
                 <Icon name="right" size={14} />
               </button>

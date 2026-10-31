@@ -157,16 +157,20 @@ interface Props {
   player: SpinePlayer | null
   onChange: (rig: SpineRig) => void
   onSelectSlots?: (slots: string[]) => void
+  focusBone?: string | null
 }
 
-export function RigEditor({ skeleton, origJson, origPlayer, rig, player, onChange, onSelectSlots }: Props): ReactElement {
+export function RigEditor({ skeleton, origJson, origPlayer, rig, player, onChange, onSelectSlots, focusBone }: Props): ReactElement {
   const { t } = useTranslation()
   const orig = useMemo(() => (origJson ? parseOrigRig(origJson) : origRigFromData(origPlayer?.skeleton?.data)), [origJson, origPlayer])
-  const [bone, setBone] = useState<string>(skeleton.bones[0]?.name ?? '')
+  const [bone, setBone] = useState<string>(focusBone ?? skeleton.bones[0]?.name ?? '')
   const past = useRef<SpineRig[]>([])
   const future = useRef<SpineRig[]>([])
   const [, force] = useState(0)
 
+  useEffect(() => {
+    if (focusBone && skeleton.bones.some((b) => b.name === focusBone)) setBone(focusBone)
+  }, [focusBone, skeleton.bones])
   useEffect(() => {
     applyRig(player, orig, rig)
   }, [player, orig, rig])
