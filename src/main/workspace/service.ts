@@ -4,7 +4,7 @@ import { watch, type FSWatcher } from 'chokidar'
 import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
-import { basename, dirname, join, resolve, sep } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
 import type { StyleGroup } from '@shared/style'
 import { READY_KINDS, type ProjectKind } from '@shared/sprite'
@@ -38,6 +38,20 @@ import { assetSegments } from './project'
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
 const MAX_DEPTH = 10
+
+function isCoverPath(tail: string[], isFile?: boolean, isDir?: boolean): boolean {
+  const [kind, a, b] = tail
+  const dir =
+    tail.length === 0 ||
+    (tail.length === 1 && (kind === 'sprite' || kind === 'spine')) ||
+    (tail.length === 2 && kind === 'spine')
+  const file =
+    (tail.length === 2 && kind === 'sprite' && /^cover-.+\.png$/i.test(a)) ||
+    (tail.length === 3 && kind === 'spine' && b === 'board.png')
+  if (isFile) return file
+  if (isDir) return dir
+  return dir || file
+}
 
 async function spineRegionCount(data: ProjectFile | null): Promise<number> {
   const atlas = data?.spine && typeof data.spine === 'object' ? (data.spine as Record<string, unknown>).atlas : null
@@ -241,6 +255,11 @@ export class WorkspaceService extends EventEmitter {
       depth: MAX_DEPTH,
       ignored: (p, stats) => {
         if (pathKey(p) === pathKey(root)) return false
+        const segs = relative(root, p).split(/[\\/]/)
+        const dotAt = segs.findIndex((s) => s.startsWith('.'))
+        if (dotAt >= 0 && segs[dotAt] === '.cache') {
+          return !isCoverPath(segs.slice(dotAt + 1), stats?.isFile(), stats?.isDirectory())
+        }
         const base = basename(p)
         if (base.startsWith('.')) return true
         if (stats?.isFile() && base !== PROJECT_FILE) return true
