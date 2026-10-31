@@ -42,6 +42,8 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Sprite: màn Gen không tự cập nhật khi ảnh đầu tiên gen xong
 - Duyệt Sprite/Spine: quyết định duyệt gắn với phiên bản — có bản gen mới thì phải duyệt lại
 - Thẻ Workspace Sprite luôn ghi "Chưa gen": nay đếm đúng dải đã gen / đã duyệt / đã xuất
+- Thẻ Workspace Sprite: ảnh bìa đổi theo frame mới (bản đã duyệt hoặc mới nhất), tự cập nhật không cần mở lại
+- Bước Style: nút chọn mẫu không còn đè ảnh preview; Reskin chia mục Mẫu UI / Mẫu nhân vật
 - Thẻ Workspace Spine lấy đúng ảnh của bộ file đang dùng sau khi nhập lại
 - Spine: ảnh thẻ Workspace đổi theo region mới; nút "Mở thư mục" bước Xuất không còn full width
 - Sprite: câu giới thiệu bước Xuất đúng cho sheet tạo mới; ô mô tả dialog Tạo sheet mới cao hơn, dòng thêm animation không bị cắt
