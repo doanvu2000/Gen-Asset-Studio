@@ -13,6 +13,7 @@ import { FixService } from './setup/fix'
 import { WorkspaceService } from './workspace/service'
 import { projectKindOf, readProject, writeProject } from './workspace/project'
 import { registerSpriteIpc, SpriteService } from './sprite/service'
+import { registerSpineIpc, SpineService } from './spine/service'
 import { handleFileScheme, registerFileScheme } from './workspace/protocol'
 import { registerStyleIpc, StyleService } from './style'
 import { userTemplatesDir } from './style/templates'
@@ -478,6 +479,18 @@ if (!app.requestSingleInstanceLock()) {
       new SpriteService({
         ...workspace.spriteDeps(),
         log: logger.scoped('sprite'),
+        readProject,
+        writeProject,
+        enqueue: () => (queue ? (specs) => (queue as JobQueue).enqueue(specs) : null),
+        template: (id) => style.templates.get(id)
+      })
+    )
+    registerSpineIpc(
+      ipcMain,
+      () => mainWindow,
+      new SpineService({
+        ...workspace.spriteDeps(),
+        log: logger.scoped('spine'),
         readProject,
         writeProject,
         enqueue: () => (queue ? (specs) => (queue as JobQueue).enqueue(specs) : null),

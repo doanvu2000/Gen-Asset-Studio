@@ -10,6 +10,7 @@ import type { RawImage } from '../pipeline/types'
 import { blitClip, flipFrame, joinFrames, loadSheet, savePng, splitFrames, uprightFrame } from './strip'
 
 export interface StripReviewEntry {
+  version?: number
   decision: StripDecision | null
   selected: number
 }
@@ -33,6 +34,11 @@ export interface StripDef {
 }
 
 const MIRROR: Partial<Record<Direction, Direction>> = { E: 'W', NE: 'NW', SE: 'SW' }
+
+export function decisionAt<T>(e: { decision: T | null; version?: number } | undefined, selected: number): T | null {
+  if (!e || !selected) return null
+  return !e.version || e.version === selected ? e.decision : null
+}
 
 export function stripKey(sheetId: string, animId: string): string {
   return `${sheetId}:${animId}`

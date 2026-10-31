@@ -12,6 +12,7 @@ import { GenStep } from './GenStep'
 import { ReviewStep } from './ReviewStep'
 import { ExportStep } from './ExportStep'
 import { SpriteProjectScreen } from './sprite/SpriteProjectScreen'
+import { SpineProjectScreen } from './spine/SpineProjectScreen'
 import { useApp } from '@renderer/store/app'
 import { relTime } from '@renderer/lib/format'
 import { useNow } from '@renderer/lib/useNow'
@@ -142,23 +143,7 @@ export function ProjectScreen(): ReactElement {
   }
 
   if (project.kind === 'sprite') return <SpriteProjectScreen project={project} />
-  if (project.kind === 'spine') {
-    return (
-      <div className="proj-state">
-        <div className="empty">
-          <Icon name="layers" size={34} />
-          <h3>{t('kinds.spine.name')} · {t('kinds.soon')}</h3>
-          <p>{t('dialogs.newProject.hint_spine')}</p>
-          <div className="actions">
-            <button type="button" className="btn" onClick={closeProject}>
-              <Icon name="left" size={14} />
-              {t('project.backToAll')}
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  if (project.kind === 'spine') return <SpineProjectScreen project={project} />
 
   const key = STEPS[step - 1]
   return (

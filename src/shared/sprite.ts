@@ -1,6 +1,6 @@
 export type ProjectKind = 'reskin' | 'sprite' | 'spine'
 export const PROJECT_KINDS: readonly ProjectKind[] = ['reskin', 'sprite', 'spine']
-export const READY_KINDS: readonly ProjectKind[] = ['reskin', 'sprite']
+export const READY_KINDS: readonly ProjectKind[] = ['reskin', 'sprite', 'spine']
 
 export type AtlasFormat = 'tp-hash' | 'tp-array' | 'aseprite' | 'plist' | 'unity' | 'grid'
 

@@ -486,7 +486,7 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
   useEffect(() => () => reset(), [reset])
   const refresh = useSprite((s) => s.refresh)
   const snap = useQueue((s) => s.snap)
-  const finished = useRef('')
+  const finished = useRef<string | null>(null)
   useEffect(() => {
     if (!snap || !view) return
     const sig = snap.jobs
@@ -494,7 +494,7 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
       .map((j) => `${j.id}:${j.status}:${j.finishedAt ?? 0}`)
       .join('|')
     if (sig === finished.current) return
-    const first = finished.current === ''
+    const first = finished.current === null
     finished.current = sig
     if (!first) void refresh()
   }, [snap, view, refresh])

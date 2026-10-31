@@ -23,9 +23,11 @@
     "test:sprite": "tsx --tsconfig tsconfig.node.json scripts/sprite-test.ts",
     "dist:portable": "npm run build && electron-builder --win portable",
     "test:sprite-gen": "tsx --tsconfig tsconfig.node.json scripts/sprite-s2-test.ts",
-    "test:sprite-new": "tsx --tsconfig tsconfig.node.json scripts/sprite-s3-test.ts"
+    "test:sprite-new": "tsx --tsconfig tsconfig.node.json scripts/sprite-s3-test.ts",
+    "test:spine": "tsx --tsconfig tsconfig.node.json scripts/spine-test.ts"
   },
   "dependencies": {
+    "@esotericsoftware/spine-player": "4.2.120",
     "chokidar": "^4.0.3",
     "electron-updater": "^6.8.11",
     "i18next": "^26.5.11",

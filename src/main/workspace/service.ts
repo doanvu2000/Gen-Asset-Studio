@@ -7,6 +7,7 @@ import { basename, dirname, join, resolve, sep } from 'node:path'
 import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
 import type { StyleGroup } from '@shared/style'
 import { READY_KINDS, type ProjectKind } from '@shared/sprite'
+import { parseSpineAtlas } from '../spine/atlas'
 import {
   addCollected,
   buildView,
@@ -34,6 +35,47 @@ import { assetSegments } from './project'
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
 const MAX_DEPTH = 10
+
+async function spineRegionCount(data: ProjectFile | null): Promise<number> {
+  const atlas = data?.spine && typeof data.spine === 'object' ? (data.spine as Record<string, unknown>).atlas : null
+  const p = atlas && typeof atlas === 'object' ? (atlas as Record<string, unknown>).path : null
+  if (typeof p !== 'string' || !existsSync(p)) return 0
+  try {
+    return parseSpineAtlas(await fs.readFile(p, 'utf8')).regions.length
+  } catch {
+    return 0
+  }
+}
+
+async function spineProgress(dir: string, data: ProjectFile | null): Promise<{ thumb: string | null; generated: boolean; approved: number; exportedAt: number }> {
+  const spine = data?.spine && typeof data.spine === 'object' ? (data.spine as Record<string, unknown>) : {}
+  const review = spine.review && typeof spine.review === 'object' ? Object.values(spine.review as Record<string, { decision?: unknown }>) : []
+  const last = spine.lastExport && typeof spine.lastExport === 'object' ? (spine.lastExport as Record<string, unknown>) : null
+  let thumb: string | null = null
+  try {
+    for (const sig of await fs.readdir(join(dir, '.cache', 'spine'))) {
+      const b = join(dir, '.cache', 'spine', sig, 'board.png')
+      if (existsSync(b)) {
+        thumb = fileUrl(b, sig)
+        break
+      }
+    }
+  } catch {
+    thumb = null
+  }
+  let generated = false
+  try {
+    generated = (await fs.readdir(join(dir, 'versions', 'spine'))).length > 0
+  } catch {
+    generated = false
+  }
+  return {
+    thumb,
+    generated,
+    approved: review.filter((r) => r && r.decision === 'approved').length,
+    exportedAt: typeof last?.at === 'number' ? last.at : 0
+  }
+}
 
 function spriteSheetsOf(data: ProjectFile | null): Array<{ hash: string }> {
   const sprite = data?.sprite
@@ -229,10 +271,18 @@ export class WorkspaceService extends EventEmitter {
       const t = thumbPath(dir, hash)
       if (existsSync(t)) thumbs.push(fileUrl(t, hash))
     }
-    const count = kind === 'sprite' ? sheets.length : (data?.inputs.length ?? 0)
+    const count = kind === 'sprite' ? sheets.length : kind === 'spine' ? await spineRegionCount(data) : (data?.inputs.length ?? 0)
     const review = data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))) : []
-    const approved = review.filter((r) => r.decision === 'approved').length
+    let approved = review.filter((r) => r.decision === 'approved').length
     const exp = sanitizeExport(data?.export)
+    let reviewing = review.length > 0
+    if (kind === 'spine') {
+      const sp = await spineProgress(dir, data)
+      if (sp.thumb) thumbs.push(sp.thumb)
+      approved = sp.approved
+      reviewing = sp.generated
+      exp.lastAt = sp.exportedAt || exp.lastAt
+    }
     return {
       rel,
       name: basename(dir),
@@ -243,7 +293,7 @@ export class WorkspaceService extends EventEmitter {
       approved,
       exported: exp.lastAssets,
       exportedAt: exp.lastAt,
-      status: !count ? 'new' : exp.lastAt ? 'exported' : review.length ? 'review' : 'draft',
+      status: !count ? 'new' : exp.lastAt ? 'exported' : reviewing ? 'review' : 'draft',
       updatedAt: Math.max(Date.parse(data?.updatedAt ?? '') || 0, Math.round(mtime)),
       thumbs,
       sample: !!(data && (data as Record<string, unknown>).sample)

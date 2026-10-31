@@ -208,7 +208,8 @@
         "exported": "Exported"
       },
       "exportedTip": "Exported {{count}} images · {{time}}",
-      "sheets": "{{count}} sheets"
+      "sheets": "{{count}} sheets",
+      "regions": "{{count}} regions"
     },
     "kindAll": "All"
   },
@@ -1137,7 +1138,7 @@
       "audience": "For artists · Spine 4.2",
       "desc": "Reskin Spine characters region by region, adjust the setup pose to fit and preview with spine-player.",
       "flow": "Import skeleton → Regions & skins → Style → Generate → Rigging → Review → Export",
-      "input": ".json/.skel 4.2 + .atlas + page PNG",
+      "input": ".json 4.2 + .atlas + page PNG",
       "output": "Page PNG with matching regions, .atlas unchanged"
     }
   },
@@ -1679,6 +1680,172 @@
       "pane": "View mode",
       "player": "Frames",
       "walk": "Walk test"
+    }
+  },
+  "spineProject": {
+    "steps": {
+      "import": "Skeleton",
+      "regions": "Regions & skins",
+      "style": "Style",
+      "gen": "Generate",
+      "rig": "Rigging",
+      "review": "Review",
+      "export": "Export"
+    },
+    "intro": {
+      "import": "Import a Spine 4.2 skeleton (.json) with its .atlas and page images — drop the folder or pick the files. Source files are never copied or overwritten.",
+      "regions": "Browse every atlas region: size, rotation/trim, and the slots and skins using it. Click a region to highlight it on the character.",
+      "style": "Pick one style for the whole character: a built-in template, or describe it + reference images. Lock it to start generating.",
+      "gen": "Each region is regenerated like a single image at its exact size; the original pages are attached so all parts stay one character.",
+      "rig": "New regions may not fit perfectly: adjust the setup pose (bones, attachment position/rotation/scale) and watch Original | New play right away.",
+      "review": "Review region by region: compare Original | New, watch the new character animate, regenerate with a note if needed.",
+      "export": "Export page PNGs with the same names and W×H, regions at the exact coordinates; the .atlas is unchanged; a new skeleton .json only when rigging changed."
+    },
+    "sub": {
+      "none": "Not imported",
+      "regions": "{{count}} regions",
+      "styleLocked": "Locked",
+      "styleOpen": "Not locked",
+      "gen": "{{done}}/{{total}} generated",
+      "rig": "{{count}} edits",
+      "rigNone": "No edits",
+      "review": "{{count}} approved",
+      "exported": "Exported {{count}} pages",
+      "notExported": "Not exported"
+    },
+    "lock": {
+      "import": "Import a skeleton first",
+      "style": "Lock a style first",
+      "gen": "Generate at least 1 region first",
+      "review": "Approve at least 1 region first"
+    },
+    "status": {
+      "ok": "OK",
+      "missing": "Missing file",
+      "changed": "Source changed",
+      "none": "Not imported"
+    },
+    "import": {
+      "title": "Import a Spine skeleton",
+      "desc": "Drop the .json + .atlas + page images (or the folder containing them) here.",
+      "reading": "Reading skeleton…",
+      "fmt_json": "Skeleton JSON (.json) exported from Spine",
+      "fmt_atlas": "Texture atlas (.atlas) + page PNGs in the same folder",
+      "fmt_png": "Rotated and trimmed (offsets) regions are kept exact",
+      "fmt_ver": "Spine 4.2 (other versions are reported clearly)",
+      "fmt_skel": "Binary .skel is not supported yet — export JSON from the Spine Editor",
+      "pick": "Choose files…",
+      "dropHint": "Tip: pick all 3 files at once, or just the .json — the app finds the .atlas next to it.",
+      "dropTitle": "Drop skeleton, atlas and pages here",
+      "skeleton": "Skeleton",
+      "atlas": "Atlas",
+      "pages": "Pages",
+      "counts": "Contains",
+      "countsVal": "{{regions}} regions · {{bones}} bones · {{slots}} slots · {{skins}} skins · {{anims}} animations",
+      "reimport": "Re-import",
+      "clear": "Remove skeleton",
+      "next": "Next: Regions & skins",
+      "err": {
+        "skel": "Binary .skel files are not supported yet — export JSON from the Spine Editor.",
+        "version": "This skeleton is Spine {{detail}} — only Spine 4.2 is supported. Open it in Spine 4.2 and export again.",
+        "noAtlas": "No .atlas file found — add the matching .atlas or pick it too.",
+        "noPage": "Atlas page image not found ({{detail}}) — keep it next to the .atlas file.",
+        "parse": "Could not read the skeleton/atlas ({{detail}}).",
+        "noSkeleton": "No skeleton .json selected."
+      }
+    },
+    "preview": {
+      "orig": "Original",
+      "new": "New",
+      "error": "Could not display the skeleton",
+      "animation": "Animation",
+      "setupPose": "Setup pose",
+      "skin": "Skin",
+      "scrub": "Time",
+      "speed": "Speed",
+      "bones": "Bones",
+      "bg": "Background",
+      "bgCk": "Checker",
+      "bgLight": "Light",
+      "bgDark": "Dark"
+    },
+    "regions": {
+      "count": "{{count}}/{{total}} regions",
+      "allSkins": "All skins",
+      "rotated": "Rotated 90°",
+      "trimmed": "Trimmed",
+      "unused": "Unused",
+      "next": "Next: Style",
+      "page": "Page",
+      "slots": "Slots",
+      "skins": "Skins",
+      "hl": "Purple parts on the character are the slots using this region.",
+      "pickHint": "Click a region to see where it sits on the character."
+    },
+    "style": {
+      "oneStyle": "One style for every region of the character",
+      "tip": "Each region is generated on its own but always with the original pages attached, so all parts stay one character.",
+      "lockedToast": "Style locked"
+    },
+    "gen": {
+      "scope": "Scope",
+      "scopeTodo": "Not generated",
+      "scopeAll": "All used regions",
+      "scopePicked": "Selected ({{count}})",
+      "go": "Generate {{count}} regions",
+      "estimate": "≈ {{count}} generations",
+      "progress": "{{done}}/{{total}} regions generated",
+      "toRig": "Next: Rigging"
+    },
+    "rig": {
+      "bones": "Bones",
+      "undo": "Undo",
+      "redo": "Redo",
+      "count": "{{count}} items edited",
+      "resetAll": "Reset all",
+      "reset": "Reset",
+      "base": "Original value",
+      "meshNote": "Mesh — vertex/weight editing comes later.",
+      "noAtt": "This bone has no attachments.",
+      "tip": "Setup pose edits apply to New right away. A new skeleton .json (plus the original as a backup) is written on export only when something changed.",
+      "next": "Next: Review",
+      "f": {
+        "x": "X",
+        "y": "Y",
+        "rotation": "Rotation",
+        "scaleX": "Scale X",
+        "scaleY": "Scale Y"
+      }
+    },
+    "review": {
+      "regenPh": "e.g. keep the arm direction, thicker outline, no extra accessories…",
+      "approveQa": "Approve {{count}} regions passing QA"
+    },
+    "export": {
+      "desc": "Page PNGs keep their names and W×H; approved regions are written at their exact coordinates (rotation/trim included), others stay original. Source files are never written; existing files in the output folder are backed up to _backup.",
+      "last": "Last time: {{pages}} pages · {{regions}} regions · {{time}}",
+      "pages": "Pages to export",
+      "page": "Page",
+      "replaced": "Regions replaced",
+      "kept": "Kept original",
+      "rigNew": "{{count}} rigging edits → writes a new {{name}} (original kept as .original.json).",
+      "rigCopy": "No rigging edits → {{name}} copied unchanged.",
+      "atlasCopy": "The .atlas file is copied unchanged.",
+      "none": "No approved regions yet.",
+      "run": "Export",
+      "done": "Exported {{count}} pages",
+      "failed": "Export failed",
+      "resultOk": "Export finished",
+      "resLine": "{{regions}} replaced · {{kept}} kept",
+      "jsonNew": "new skeleton",
+      "jsonCopy": "copied"
+    },
+    "toast": {
+      "imported": "Imported {{name}}",
+      "saveFailed": "Could not save changes",
+      "styleFirst": "Lock a style before generating",
+      "nothingQueued": "No regions need generating",
+      "queued": "Queued {{count}} regions"
     }
   }
 }

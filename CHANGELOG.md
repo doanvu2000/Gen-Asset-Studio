@@ -5,7 +5,7 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 ## Chưa phát hành
 
 ### Add
-- **3 loại project tách riêng**, chọn khi tạo: **Reskin ảnh** (cho BA), **Sprite sheet** và **Spine** (cho artist — Spine sắp có); màn tạo project ghi rõ dành cho ai, các bước, đầu vào/đầu ra
+- **3 loại project tách riêng**, chọn khi tạo: **Reskin ảnh** (cho BA), **Sprite sheet** và **Spine** (cho artist); màn tạo project ghi rõ dành cho ai, các bước, đầu vào/đầu ra
 - Workspace: badge loại trên thẻ project, lọc theo loại, icon theo loại ở cây thư mục
 - **Project Sprite sheet** (bản đầu): nhập sheet kèm TexturePacker JSON (hash/array, trimmed, rotated), Aseprite JSON (frame tag → animation), Cocos .plist, Unity .png.meta; không có atlas thì tự dò lưới
 - Bước **Lưới & hướng**: xem cả sheet + lưới chỉnh tay (kéo hoặc nhập số), bảng animation (tên, hướng, FPS, kiểu lặp, tự đặt lại), player (chạy/dừng, từng frame, onion skin, đường căn, nền caro/tối/sáng, zoom pixel), la bàn 4/6/8 hướng, **Đi thử** bằng phím mũi tên/WASD trên nền lưới top-down/isometric/side
@@ -16,6 +16,12 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Xuất sheet cùng tên, cùng W×H, đè đúng rect (kể cả frame xoay/trim của TexturePacker), frame chưa duyệt giữ gốc, file atlas chép theo không đổi, file trùng sao lưu vào `_backup`
 - **Tạo sprite sheet mới từ 1 ảnh nhân vật**: chọn bộ hướng 4/6/8 (hoặc không hướng), góc nhìn, cỡ ô 64/128/256, animation idle + walk mặc định, tick thêm run/attack/hurt/die hoặc tự đặt (2–8 frame); AI vẽ từng dải hướng × animation theo lưới, tự đặt chân cùng đường đất; dùng chung ảnh khoá nhân vật + lật gương
 - Xuất sheet tạo mới kèm **TexturePacker JSON** (có `animations` theo `<anim>_<hướng>`) và file `-snippets.md` có code mẫu **Flutter Flame · Android Kotlin · iOS SpriteKit**; màn Xuất có tab code + nút Chép
+- **Project Spine** (Spine 4.2): nhập skeleton `.json` — app tự tìm `.atlas` + ảnh page cạnh nó; đọc region xoay (rotate) và trim (offsets), cả định dạng atlas cũ; báo rõ khi khác 4.2 hoặc là `.skel` nhị phân
+- Xem nhân vật chạy animation bằng **spine-player** ngay trong app (chọn anim, skin, tốc độ, tua, hiện xương, nền caro/tối/sáng); bấm một region để tô sáng phần đó trên nhân vật
+- **Gen từng region** theo style chung, kèm bảng ghép mọi phần của nhân vật để các phần cùng một nhân vật; giữ đúng kích thước region
+- Bước **Rigging**: chỉnh setup pose (bone + attachment: vị trí, xoay, scale) và xem Gốc | Mới chạy cạnh nhau
+- Duyệt theo region với nhân vật mới chạy anim; xuất page PNG cùng tên, cùng W×H, region đúng toạ độ (kể cả xoay), `.atlas` chép nguyên; có chỉnh rigging thì ghi skeleton `.json` mới kèm bản gốc `.original.json`; không cho xuất đè vào thư mục nguồn, file trùng sao lưu vào `_backup`
+- Thẻ project Spine ở Workspace hiện ảnh các phần, số region, trạng thái gen/duyệt/xuất
 - **Cài đặt › Lưu trữ**: xem app đang chiếm bao nhiêu dung lượng, nằm ở đâu (Codex, ảnh gốc Codex, lịch sử phiên, file tạm, log, bộ cài cập nhật, workspace, thư mục cài) và mỗi ổ còn trống bao nhiêu
 - **Chuyển dữ liệu sang ổ khác** (vd `D:\GenAssetStudio`): chọn ổ hoặc thư mục, app chép, kiểm tra rồi tự khởi động lại, không phải đăng nhập lại, bản cũ tự xoá; chuyển về chỗ mặc định được
 - Chọn nơi lưu dữ liệu ngay ở màn **Chuẩn bị môi trường** lần đầu
@@ -26,6 +32,10 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 
 ### Remove
 - Loại ảnh "Sprite sheet" (đang khoá) trong project Reskin — thay bằng loại project Sprite sheet riêng
+
+### Fixbug
+- Sprite: màn Gen không tự cập nhật khi ảnh đầu tiên gen xong
+- Duyệt Sprite/Spine: quyết định duyệt gắn với phiên bản — có bản gen mới thì phải duyệt lại
 
 ### Update
 - File tạm gửi Codex chuyển từ `%TEMP%` vào thư mục dữ liệu app

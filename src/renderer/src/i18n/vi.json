@@ -208,7 +208,8 @@
         "exported": "Đã xuất"
       },
       "exportedTip": "Đã xuất {{count}} ảnh · {{time}}",
-      "sheets": "{{count}} sheet"
+      "sheets": "{{count}} sheet",
+      "regions": "{{count}} region"
     },
     "kindAll": "Tất cả"
   },
@@ -1137,7 +1138,7 @@
       "audience": "Cho artist · Spine 4.2",
       "desc": "Reskin nhân vật Spine theo từng region, chỉnh setup pose cho khớp và xem chạy bằng spine-player.",
       "flow": "Nhập skeleton → Region & skin → Style → Gen → Rigging → Duyệt → Xuất",
-      "input": ".json/.skel 4.2 + .atlas + page PNG",
+      "input": ".json 4.2 + .atlas + page PNG",
       "output": "Page PNG đúng region, .atlas giữ nguyên"
     }
   },
@@ -1679,6 +1680,172 @@
       "pane": "Chế độ xem",
       "player": "Xem frame",
       "walk": "Đi thử"
+    }
+  },
+  "spineProject": {
+    "steps": {
+      "import": "Skeleton",
+      "regions": "Region & skin",
+      "style": "Style",
+      "gen": "Gen region",
+      "rig": "Rigging",
+      "review": "Duyệt",
+      "export": "Xuất"
+    },
+    "intro": {
+      "import": "Nhập skeleton Spine 4.2 (.json) cùng file .atlas và ảnh page — kéo thả cả folder hoặc chọn file. File gốc không bị sao chép hay ghi đè.",
+      "regions": "Xem từng region trong atlas: kích thước, xoay/trim, slot và skin dùng nó. Bấm region để tô sáng phần đó trên nhân vật.",
+      "style": "Chọn 1 style cho cả nhân vật: mẫu có sẵn, hoặc tự mô tả + ảnh tham chiếu. Chốt xong mới gen được.",
+      "gen": "Gen lại từng region như ảnh lẻ — giữ đúng kích thước region; cả page gốc được gửi kèm để các phần cùng một nhân vật.",
+      "rig": "Region mới có thể lệch dáng: chỉnh setup pose (bone, vị trí/xoay/scale của attachment) và xem Gốc | Mới chạy anim ngay.",
+      "review": "Duyệt từng region: so Gốc | Mới, xem nhân vật mới chạy anim, gen lại kèm ghi chú nếu cần.",
+      "export": "Xuất page PNG cùng tên, cùng W×H, region đúng toạ độ; .atlas giữ nguyên; skeleton .json mới chỉ khi có chỉnh rigging."
+    },
+    "sub": {
+      "none": "Chưa nhập",
+      "regions": "{{count}} region",
+      "styleLocked": "Đã chốt",
+      "styleOpen": "Chưa chốt",
+      "gen": "{{done}}/{{total}} đã gen",
+      "rig": "{{count}} chỉnh sửa",
+      "rigNone": "Chưa chỉnh",
+      "review": "{{count}} đã duyệt",
+      "exported": "Đã xuất {{count}} page",
+      "notExported": "Chưa xuất"
+    },
+    "lock": {
+      "import": "Nhập skeleton trước",
+      "style": "Chốt style trước",
+      "gen": "Gen ít nhất 1 region trước",
+      "review": "Duyệt ít nhất 1 region trước"
+    },
+    "status": {
+      "ok": "OK",
+      "missing": "Thiếu file",
+      "changed": "Gốc đã đổi",
+      "none": "Chưa nhập"
+    },
+    "import": {
+      "title": "Nhập skeleton Spine",
+      "desc": "Kéo thả file .json + .atlas + ảnh page (hoặc cả folder chứa chúng) vào đây.",
+      "reading": "Đang đọc skeleton…",
+      "fmt_json": "Skeleton JSON (.json) xuất từ Spine",
+      "fmt_atlas": "Texture atlas (.atlas) + ảnh page PNG cùng folder",
+      "fmt_png": "Region xoay (rotate) và trim (offsets) đều được giữ đúng",
+      "fmt_ver": "Phiên bản Spine 4.2 (khác 4.2 sẽ báo rõ)",
+      "fmt_skel": "Chưa hỗ trợ .skel nhị phân — xuất JSON từ Spine Editor",
+      "pick": "Chọn file…",
+      "dropHint": "Mẹo: chọn cả 3 file cùng lúc, hoặc chỉ file .json — app tự tìm .atlas cạnh nó.",
+      "dropTitle": "Thả skeleton, atlas và page vào đây",
+      "skeleton": "Skeleton",
+      "atlas": "Atlas",
+      "pages": "Page",
+      "counts": "Gồm",
+      "countsVal": "{{regions}} region · {{bones}} bone · {{slots}} slot · {{skins}} skin · {{anims}} animation",
+      "reimport": "Nhập lại",
+      "clear": "Gỡ skeleton",
+      "next": "Tiếp: Region & skin",
+      "err": {
+        "skel": "File .skel nhị phân chưa được hỗ trợ — trong Spine Editor hãy xuất dạng JSON.",
+        "version": "Skeleton là Spine {{detail}} — bản này chỉ hỗ trợ Spine 4.2. Mở bằng Spine 4.2 rồi xuất lại.",
+        "noAtlas": "Không tìm thấy file .atlas — thêm file .atlas cùng tên hoặc chọn kèm.",
+        "noPage": "Không tìm thấy ảnh page của atlas ({{detail}}) — để ảnh cạnh file .atlas.",
+        "parse": "Không đọc được skeleton/atlas ({{detail}}).",
+        "noSkeleton": "Chưa chọn file skeleton .json."
+      }
+    },
+    "preview": {
+      "orig": "Gốc",
+      "new": "Mới",
+      "error": "Không hiển thị được skeleton",
+      "animation": "Animation",
+      "setupPose": "Setup pose",
+      "skin": "Skin",
+      "scrub": "Thời gian",
+      "speed": "Tốc độ",
+      "bones": "Xương",
+      "bg": "Nền",
+      "bgCk": "Caro",
+      "bgLight": "Sáng",
+      "bgDark": "Tối"
+    },
+    "regions": {
+      "count": "{{count}}/{{total}} region",
+      "allSkins": "Mọi skin",
+      "rotated": "Xoay 90°",
+      "trimmed": "Trim",
+      "unused": "Không dùng",
+      "next": "Tiếp: Style",
+      "page": "Page",
+      "slots": "Slot",
+      "skins": "Skin",
+      "hl": "Phần tô tím trên nhân vật là slot dùng region này.",
+      "pickHint": "Bấm một region để xem nó nằm ở đâu trên nhân vật."
+    },
+    "style": {
+      "oneStyle": "Một style dùng cho mọi region của nhân vật",
+      "tip": "Mỗi region được gen riêng nhưng luôn kèm ảnh page gốc để các phần cùng một nhân vật.",
+      "lockedToast": "Đã chốt style"
+    },
+    "gen": {
+      "scope": "Phạm vi",
+      "scopeTodo": "Chưa gen",
+      "scopeAll": "Tất cả region dùng",
+      "scopePicked": "Đang chọn ({{count}})",
+      "go": "Gen {{count}} region",
+      "estimate": "≈ {{count}} lượt gen",
+      "progress": "{{done}}/{{total}} region đã gen",
+      "toRig": "Tiếp: Rigging"
+    },
+    "rig": {
+      "bones": "Bone",
+      "undo": "Hoàn tác",
+      "redo": "Làm lại",
+      "count": "{{count}} mục đã chỉnh",
+      "resetAll": "Đặt lại tất cả",
+      "reset": "Đặt lại",
+      "base": "Giá trị gốc",
+      "meshNote": "Mesh — chỉnh đỉnh/trọng số ở bản sau.",
+      "noAtt": "Bone này không có attachment.",
+      "tip": "Sửa setup pose áp ngay lên bản Mới. Chỉ khi có chỉnh sửa, lúc xuất mới ghi skeleton .json mới (kèm bản gốc để sao lưu).",
+      "next": "Tiếp: Duyệt",
+      "f": {
+        "x": "X",
+        "y": "Y",
+        "rotation": "Xoay",
+        "scaleX": "Scale X",
+        "scaleY": "Scale Y"
+      }
+    },
+    "review": {
+      "regenPh": "VD: giữ đúng hướng tay, viền đậm hơn, đừng thêm phụ kiện…",
+      "approveQa": "Duyệt {{count}} region đạt QA"
+    },
+    "export": {
+      "desc": "Page PNG xuất cùng tên, cùng W×H; region đã duyệt được ghi đè đúng toạ độ (kể cả xoay/trim), region khác giữ nguyên gốc. Sheet gốc không bao giờ bị ghi; file trùng ở thư mục xuất được sao lưu vào _backup.",
+      "last": "Lần trước: {{pages}} page · {{regions}} region · {{time}}",
+      "pages": "Page sẽ xuất",
+      "page": "Page",
+      "replaced": "Region thay",
+      "kept": "Giữ gốc",
+      "rigNew": "Có {{count}} chỉnh rigging → ghi {{name}} mới (kèm bản gốc .original.json).",
+      "rigCopy": "Không chỉnh rigging → {{name}} chép nguyên.",
+      "atlasCopy": "File .atlas chép nguyên, không đổi.",
+      "none": "Chưa có region nào được duyệt.",
+      "run": "Xuất",
+      "done": "Đã xuất {{count}} page",
+      "failed": "Xuất thất bại",
+      "resultOk": "Xuất xong",
+      "resLine": "{{regions}} region thay · {{kept}} giữ gốc",
+      "jsonNew": "skeleton mới",
+      "jsonCopy": "chép nguyên"
+    },
+    "toast": {
+      "imported": "Đã nhập {{name}}",
+      "saveFailed": "Không lưu được thay đổi",
+      "styleFirst": "Chốt style trước khi gen",
+      "nothingQueued": "Không có region nào cần gen",
+      "queued": "Đã đưa {{count}} region vào hàng đợi"
     }
   }
 }

@@ -40,7 +40,7 @@ import {
 } from '@shared/sprite'
 import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
-import { autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, stripVersions, versionPath, type ExportPiece, type StripDef, type StripReviewEntry } from './strips'
+import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, stripVersions, versionPath, type ExportPiece, type StripDef, type StripReviewEntry } from './strips'
 import { savePng } from './strip'
 import { atlasJson, buildSnippets, snippetsMarkdown } from './snippets'
 import { ensureThumb, pathKey, type ProjectFile } from '../workspace/project'
@@ -266,7 +266,7 @@ function sanitizeReview(raw: unknown): Record<string, StripReviewEntry> {
   for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !v || typeof v !== 'object') continue
     const e = v as Record<string, unknown>
-    out[k] = { decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null, selected: int(e.selected, 0, 0, 100000) }
+    out[k] = { decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null, selected: int(e.selected, 0, 0, 100000), version: int(e.version, 0, 0, 100000) }
   }
   return out
 }
@@ -467,7 +467,7 @@ export class SpriteService {
       versions,
       selected,
       url: selected ? fileUrl(versionPath(dir, d.assetRel, selected), `${selected}`) : null,
-      decision: selected ? (entry?.decision ?? null) : null,
+      decision: decisionAt(entry, selected),
       qa: meta?.qa ?? null,
       created: d.sheet.origin === 'new',
       refUrl: d.sheet.origin === 'new' ? this.characterUrl(dir, d.sheet as SheetRecord) : null
@@ -657,15 +657,19 @@ export class SpriteService {
   review(rel: string, patch: Record<string, SpriteStripPatch>): Promise<SpriteProjectView | null> {
     return this.mutateView(
       rel,
-      ({ sprite }) => {
+      async ({ dir, sprite }) => {
+        const defs = this.defs(sprite)
         for (const [k, v] of Object.entries(patch && typeof patch === 'object' ? patch : {})) {
           if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !v || typeof v !== 'object') continue
           const cur = sprite.review[k] ?? { decision: null, selected: 0 }
+          const def = defs.find((d) => d.key === k)
+          const versions = def ? await listStripVersions(dir, def.assetRel) : []
           if (v.decision !== undefined) cur.decision = v.decision === 'approved' || v.decision === 'rejected' ? v.decision : null
           if (v.selected !== undefined) {
             cur.selected = int(v.selected, 0, 0, 100000)
             if (v.decision === undefined) cur.decision = null
           }
+          cur.version = cur.selected && versions.includes(cur.selected) ? cur.selected : (versions[versions.length - 1] ?? 0)
           sprite.review[k] = cur
         }
       },
@@ -701,11 +705,11 @@ export class SpriteService {
       const lockKey = this.lockOf(sprite, defs)
       const lockDef = defs.find((d) => d.key === lockKey)
       let lockImages: string[] = []
-      if (lockDef && sprite.review[lockDef.key]?.decision === 'approved') {
+      if (lockDef) {
         const versions = await listStripVersions(dir, lockDef.assetRel)
         const sel = sprite.review[lockDef.key]?.selected
         const v = sel && versions.includes(sel) ? sel : versions[versions.length - 1]
-        if (v) lockImages = [versionPath(dir, lockDef.assetRel, v)]
+        if (v && decisionAt(sprite.review[lockDef.key], v) === 'approved') lockImages = [versionPath(dir, lockDef.assetRel, v)]
       }
       let styleImages: string[] = []
       let prompt = sprite.style.promptEn
@@ -777,10 +781,9 @@ export class SpriteService {
         const byKey = new Map(defs.map((d) => [d.key, d]))
         const pickVersion = async (d: StripDef): Promise<string | null> => {
           const e = sprite.review[d.key]
-          if (e?.decision !== 'approved') return null
           const versions = await listStripVersions(dir, d.assetRel)
-          const v = e.selected && versions.includes(e.selected) ? e.selected : versions[versions.length - 1]
-          return v ? versionPath(dir, d.assetRel, v) : null
+          const v = e?.selected && versions.includes(e.selected) ? e.selected : versions[versions.length - 1]
+          return v && decisionAt(e, v) === 'approved' ? versionPath(dir, d.assetRel, v) : null
         }
         const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
         let backupDir: string | null = null

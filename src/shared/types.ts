@@ -1,5 +1,6 @@
 import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, WorkspaceSnapshot } from './workspace'
 import type { ProjectKind, SpriteApi, SpriteGenApi } from './sprite'
+import type { SpineApi } from './spine'
 import type { StyleApi, StyleGroup } from './style'
 import type { QueueApi } from './queue'
 import type { ReviewApi } from './review'
@@ -315,6 +316,7 @@ export interface GasApi {
   storage: StorageApi
   sprite: SpriteApi
   spriteGen: SpriteGenApi
+  spine: SpineApi
   files: {
     pathFor: (file: File) => string
   }

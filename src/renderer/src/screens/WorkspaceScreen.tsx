@@ -58,7 +58,7 @@ function Card({ p, index, onMenu }: { p: ProjectSummary; index: number; onMenu: 
         </div>
         <div className="card-meta">{p.parentRel ? p.parentRel.split('/').join(' / ') : t('workspace.root')}</div>
         <div className="card-row">
-          <span>{p.kind === 'sprite' ? t('workspace.card.sheets', { count: p.imageCount }) : t('workspace.card.images', { count: p.imageCount })}</span>
+          <span>{p.kind === 'sprite' ? t('workspace.card.sheets', { count: p.imageCount }) : p.kind === 'spine' ? t('workspace.card.regions', { count: p.imageCount }) : t('workspace.card.images', { count: p.imageCount })}</span>
           {p.kind === 'reskin' && <span>{t('workspace.card.groups', { count: p.groupCount })}</span>}
         </div>
         <div className="bar green" title={t('workspace.card.approved', { a: p.approved, n: p.imageCount })}>
