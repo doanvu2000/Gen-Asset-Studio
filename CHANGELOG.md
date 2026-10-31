@@ -46,9 +46,14 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Bước Style: nút chọn mẫu không còn đè ảnh preview; Reskin chia mục Mẫu UI / Mẫu nhân vật
 - Thẻ Workspace Spine lấy đúng ảnh của bộ file đang dùng sau khi nhập lại
 - Spine: ảnh thẻ Workspace đổi theo region mới; nút "Mở thư mục" bước Xuất không còn full width
+- Sprite/Spine: thanh công cụ ở màn 1366 không còn đẩy nút Tiếp ra ngoài; nút ở màn Nhập có khoảng cách
 - Sprite: câu giới thiệu bước Xuất đúng cho sheet tạo mới; ô mô tả dialog Tạo sheet mới cao hơn, dòng thêm animation không bị cắt
 
 ### Update
+- **Flow Sprite rút còn 4 bước**: Nhập → Style → Gen & duyệt → Xuất (lưới & hướng gộp vào bước Nhập); duyệt xong dải khoá nhân vật thì tự xếp gen các dải còn lại
+- **Flow Spine rút còn 4 bước**: Nhập → Style → Gen & duyệt → Xuất; chỉnh vị trí (rig) thành panel trong bước duyệt
+- Mở project tự nhảy tới bước chưa xong; bước bị khoá ghi rõ lý do
+- Ảnh mẫu style Chibi vẽ lại
 - File tạm gửi Codex chuyển từ `%TEMP%` vào thư mục dữ liệu app
 - Hộp chọn workspace gợi ý ổ dữ liệu thay vì Documents khi đã chuyển dữ liệu sang ổ khác
 

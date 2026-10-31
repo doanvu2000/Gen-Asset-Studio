@@ -40,3 +40,10 @@ Ngoài phạm vi (giữ lại sau): mẫu style riêng cho nhân vật (tốn l�
 - WP-6: mẫu style nhân vật (4 mẫu + preview gen Codex, phân loại ui/character, Sprite/Spine ưu tiên mẫu nhân vật). Phạm vi: resources/style-templates, src/main/style/templates.ts, src/shared/style.ts, scripts/gen-template-previews.mjs, Sprite/SpineStyleStep, i18n.
 - WP-7: QA overflow cho dải mirror. Phạm vi: src/main/sprite/*, scripts/sprite-*-test.ts.
 - WP-8: thẻ Workspace Sprite "Chưa gen" + spineProgress chọn dir sig mới nhất. Phạm vi: src/main/workspace/service.ts (+ test).
+
+## Đợt 4 (2026-11-01, chủ nhân duyệt "ok làm đi") — tinh gọn flow, commit từng phần
+- Sprite 6 → 4: ① Nhập (sheet + lưới; tự bỏ qua lưới khi có atlas/sheet tạo mới) · ② Style · ③ Gen & Duyệt (gộp, thẻ duyệt hiện ngay khi dải xong) · ④ Xuất.
+- Spine 7 → 4: ① Nhập (skeleton + region/skin cùng màn) · ② Style · ③ Gen & Duyệt (Rigging thành công cụ "Chỉnh vị trí" trong màn duyệt) · ④ Xuất.
+- Tự nối Sprite: duyệt dải khoá S → tự xếp gen các hướng còn lại chưa có bản (setting `autoChain`, mặc định bật).
+- Mở project → nhảy tới bước đầu tiên chưa xong. Bước hiện không lưu vào project (store, mặc định 1) → không cần migrate.
+- WP-11 backend autoChain (src/main/sprite/service.ts, src/shared/sprite.ts, test s2) · WP-12 UI Sprite (screens/sprite, store/sprite, css, i18n spriteProject.*) · WP-13 UI Spine (screens/spine, components/spine, store/spine, css, i18n spineProject.*). Song song; i18n sửa bằng Edit cục bộ theo namespace riêng.
