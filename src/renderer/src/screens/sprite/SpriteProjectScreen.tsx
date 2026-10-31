@@ -83,7 +83,13 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
   )
 }
 
-function Intro({ step, n }: { step: StepKey; n: number }): ReactElement {
+function introKey(step: StepKey, v: SpriteProjectView): StepKey | 'exportNew' | 'exportMixed' {
+  if (step !== 'export') return step
+  const fresh = v.sheets.filter((sh) => sh.origin === 'new').length
+  return !fresh ? 'export' : fresh === v.sheets.length ? 'exportNew' : 'exportMixed'
+}
+
+function Intro({ step, n, v }: { step: StepKey; n: number; v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
   return (
     <div className="step-intro k-sprite">
@@ -94,7 +100,7 @@ function Intro({ step, n }: { step: StepKey; n: number }): ReactElement {
         <b>
           {t('intro.stepOf', { n, total: STEPS.length })} · {t(`spriteProject.steps.${step}`)}
         </b>
-        <span>{t(`spriteProject.intro.${step}`)}</span>
+        <span>{t(`spriteProject.intro.${introKey(step, v)}`)}</span>
       </div>
     </div>
   )
@@ -541,7 +547,7 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
             exit="exit"
             transition={viewTransition}
           >
-            <Intro step={key} n={step} />
+            <Intro step={key} n={step} v={view} />
             {key === 'sheets' ? (
               <SheetsStep v={view} />
             ) : key === 'grid' ? (

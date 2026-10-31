@@ -1303,7 +1303,9 @@
       "style": "Chọn 1 style cho cả nhân vật: mẫu có sẵn, hoặc tự mô tả + ảnh tham chiếu. Chốt xong mới gen được.",
       "gen": "Gen dải khoá trước (thường là hướng S), duyệt nó để làm ảnh khoá nhân vật — các hướng sau bám theo đó cho đồng nhất. Hướng phải được lật gương từ hướng trái, không tốn lượt gen.",
       "review": "So Gốc | Mới chạy đồng bộ từng frame, xem QA lệch anchor / chiều cao, duyệt hoặc gen lại kèm ghi chú. Tab Lưới tổng cho xem mọi hướng chạy cùng lúc.",
-      "export": "Xuất sheet cùng tên, cùng W×H; chỉ frame của dải đã duyệt bị thay, frame khác giữ nguyên gốc. File atlas chép theo, không đổi."
+      "export": "Xuất sheet cùng tên, cùng W×H; chỉ frame của dải đã duyệt bị thay, frame khác giữ nguyên gốc. File atlas chép theo, không đổi.",
+      "exportNew": "Xuất sheet tạo mới: PNG + file .json TexturePacker (array) và -snippets.md có code nạp sẵn cho Flame / Kotlin / SpriteKit. Chỉ frame của dải đã duyệt được ghép vào.",
+      "exportMixed": "Sheet nhập: xuất cùng tên, cùng W×H, chỉ thay frame của dải đã duyệt, file atlas chép theo không đổi. Sheet tạo mới: xuất PNG + .json TexturePacker và -snippets.md."
     },
     "settings": {
       "title": "Thiết lập nhân vật",
@@ -1501,7 +1503,20 @@
       "ovHint": "Mọi hướng chạy cùng lúc — bắt lệch giữa các hướng",
       "origOnly": "chưa gen",
       "compassHint": "Bấm la bàn hoặc phím mũi tên để đổi hướng",
-      "noDirs": "Chưa có animation nào gán hướng"
+      "noDirs": "Chưa có animation nào gán hướng",
+      "sheet": "Sheet",
+      "try": "Đi thử",
+      "tryNoNew": "Chưa có dải nào gen — đang chạy bằng sheet gốc",
+      "tryFail": "Không ghép được sheet bằng frame mới — đang chạy bằng sheet gốc",
+      "qaHint": {
+        "overflow": "Gen lại kèm ghi chú thu nhỏ nhân vật, hoặc dùng sheet không trim",
+        "static": "Gen lại kèm ghi chú tăng biên độ chuyển động"
+      },
+      "qaNote": {
+        "overflow": "Thu nhỏ nhân vật cho vừa khung, không để tay/chân/vũ khí tràn ra ngoài",
+        "static": "Tăng biên độ chuyển động: mỗi frame phải khác rõ tư thế tay, chân, thân"
+      },
+      "qaFill": "Điền ghi chú"
     },
     "export": {
       "outDir": "Thư mục xuất",

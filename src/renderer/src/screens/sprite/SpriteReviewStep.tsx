@@ -1,11 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import { DIRECTIONS, type Direction, type SpriteProjectView, type StripVersion, type StripView } from '@shared/sprite'
+import { DIRECTIONS, type Direction, type SpriteProjectView, type StripQaCheck, type StripVersion, type StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
 import { DirCompass } from '@renderer/components/sprite/DirCompass'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
+import { SpritePlayground } from '@renderer/components/sprite/SpritePlayground'
 import { relTime } from '@renderer/lib/format'
 import { jobOf, qaFail, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
 import { useApp } from '@renderer/store/app'
@@ -14,6 +15,27 @@ import { useSprite } from '@renderer/store/sprite'
 
 type Filter = 'all' | 'pending' | 'approved' | 'rejected' | 'qa'
 type Mode = 'side' | 'onion'
+type TrySrc = 'orig' | 'new'
+
+type HintId = Extract<StripQaCheck['id'], 'overflow' | 'static'>
+
+function isHinted(id: StripQaCheck['id']): id is HintId {
+  return id === 'overflow' || id === 'static'
+}
+
+function QaHint({ id, onFill }: { id: HintId; onFill?: (note: string) => void }): ReactElement {
+  const { t } = useTranslation()
+  return (
+    <div className="spr-qa-hint">
+      <span>{t(`spriteProject.review.qaHint.${id}`)}</span>
+      {onFill && (
+        <button type="button" className="btn ghost sm" onClick={() => onFill(t(`spriteProject.review.qaNote.${id}`))}>
+          {t('spriteProject.review.qaFill')}
+        </button>
+      )}
+    </div>
+  )
+}
 
 function fpsOf(v: SpriteProjectView, s: StripView): number {
   const anim = v.sheets.find((x) => x.id === s.sheetId)?.anims.find((a) => a.id === s.animId)
@@ -132,6 +154,11 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
     setPos(frames[0])
   }
 
+  const fillNote = (text: string): void => {
+    setNote((cur) => (cur.includes(text) ? cur : cur.trim() ? `${cur.trim()}; ${text}` : text))
+    setRegen(true)
+  }
+
   const newPv = src.url ? (
     <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} zoom={zoom} flipX={mirror} guides />
   ) : (
@@ -222,6 +249,7 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
                   <small>{c.message}</small>
                   {c.frames.length > 0 && <em>{c.frames.map((f) => f + 1).join(', ')}</em>}
                 </button>
+                {c.status !== 'pass' && isHinted(c.id) && <QaHint id={c.id} onFill={mirror ? undefined : fillNote} />}
               </li>
             ))}
           </ul>
@@ -303,22 +331,74 @@ function Detail({ v, s, onNext, onClose }: { v: SpriteProjectView; s: StripView;
   )
 }
 
+function usePreviewSheet(rel: string, sheetId: string, sig: string, on: boolean): { url: string | null; loading: boolean; failed: boolean } {
+  const [res, setRes] = useState<{ key: string; sheetId: string; url: string | null } | null>(null)
+  const done = useRef('')
+  const key = `${sheetId}|${sig}`
+  useEffect(() => {
+    if (!on || !sheetId || !sig || done.current === key) return
+    let live = true
+    setRes((r) => (r && !r.url ? null : r))
+    void window.gas.spriteGen.previewSheet(rel, sheetId).then((url) => {
+      if (!live) return
+      done.current = url ? key : ''
+      setRes({ key, sheetId, url })
+    })
+    return () => {
+      live = false
+    }
+  }, [rel, sheetId, sig, key, on])
+  return {
+    url: res && res.sheetId === sheetId ? res.url : null,
+    loading: on && !!sig && res?.key !== key,
+    failed: res?.key === key && !res.url
+  }
+}
+
 function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactElement {
   const { t } = useTranslation()
-  const names = useMemo(() => [...new Set(v.strips.filter((s) => s.dir).map((s) => s.anim))], [v.strips])
-  const [anim, setAnim] = useState(names[0] ?? '')
+  const sheets = useMemo(() => v.sheets.filter((sh) => v.strips.some((s) => s.sheetId === sh.id && s.dir)), [v.sheets, v.strips])
+  const [sheetSel, setSheetSel] = useState(sheets[0]?.id ?? '')
+  const sheet = sheets.find((sh) => sh.id === sheetSel) ?? sheets[0] ?? null
+  const strips = useMemo(() => (sheet ? v.strips.filter((s) => s.sheetId === sheet.id) : []), [v.strips, sheet])
+  const names = useMemo(() => [...new Set(strips.filter((s) => s.dir).map((s) => s.anim))], [strips])
+  const [animSel, setAnim] = useState(names[0] ?? '')
+  const anim = names.includes(animSel) ? animSel : (names[0] ?? '')
   const [dir, setDir] = useState<Direction | null>(null)
-  const set = v.strips.filter((s) => s.anim === anim && s.dir)
-  const dirSet = v.settings.dirSet || 8
-  const order = DIRECTIONS[dirSet === 4 || dirSet === 6 ? dirSet : 8]
+  const [trySrc, setTrySrc] = useState<TrySrc>('new')
+  const sig = strips
+    .filter((s) => !s.mirrorOf && s.versions.length)
+    .map((s) => `${s.key}:${s.versions.length}:${s.selected}:${s.decision ?? ''}`)
+    .join('|')
+  const preview = usePreviewSheet(v.rel, sheet?.id ?? '', sig, trySrc === 'new')
+
+  useEffect(() => {
+    if (preview.failed) setTrySrc('orig')
+  }, [preview.failed])
+
+  const set = strips.filter((s) => s.anim === anim && s.dir)
   const byDir = new Map(set.map((s) => [s.dir as Direction, s]))
-  const cur = dir ? byDir.get(dir) : set[0]
-  const available = set.map((s) => s.dir as Direction)
-  if (!names.length) return <div className="proj-state muted">{t('spriteProject.review.noDirs')}</div>
+  const dirSet = v.settings.dirSet || 8
+  const order = [...new Set([...DIRECTIONS[dirSet === 4 || dirSet === 6 ? dirSet : 8], ...DIRECTIONS[8]])].filter((d) => byDir.has(d))
+  const cur = (dir && byDir.get(dir)) || set[0]
+  if (!sheet || !names.length) return <div className="proj-state muted">{t('spriteProject.review.noDirs')}</div>
+  const playUrl = trySrc === 'new' && sig && preview.url ? preview.url : sheet.url
   return (
     <div className="spr-ov">
       <div className="spr-ov-l">
         <div className="sps-row">
+          {sheets.length > 1 && (
+            <>
+              <span className="muted">{t('spriteProject.review.sheet')}</span>
+              <select className="inp sm" value={sheet.id} onChange={(e) => setSheetSel(e.target.value)}>
+                {sheets.map((sh) => (
+                  <option key={sh.id} value={sh.id}>
+                    {sh.name}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
           <span className="muted">{t('spriteProject.review.anim')}</span>
           <select className="inp sm" value={anim} onChange={(e) => setAnim(e.target.value)}>
             {names.map((n) => (
@@ -331,25 +411,51 @@ function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactEleme
         </div>
         <div className="spr-ov-grid">
           {order.map((d) => {
-            const s = byDir.get(d)
-            const src = s ? sourceOf(v, s) : null
+            const s = byDir.get(d) as StripView
+            const src = sourceOf(v, s)
             return (
-              <button key={d} type="button" className={cur && s && cur.key === s.key ? 'spr-ov-c on' : 'spr-ov-c'} disabled={!s} onClick={() => setDir(d)}>
+              <button key={d} type="button" className={cur && cur.key === s.key ? 'spr-ov-c on' : 'spr-ov-c'} onClick={() => setDir(d)}>
                 <span className="ck">
-                  {s && src?.url ? (
+                  {src.url ? (
                     <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} size={110} flipX={!!s.mirrorOf} />
-                  ) : s ? (
+                  ) : (
                     <OrigPreview strip={s} pos={pos % Math.max(1, s.frameCount)} size={110} className="dim" />
-                  ) : null}
+                  )}
                 </span>
                 <small>
                   {d}
-                  {s && !src?.url ? ` · ${t('spriteProject.review.origOnly')}` : ''}
+                  {!src.url ? ` · ${t('spriteProject.review.origOnly')}` : ''}
                 </small>
               </button>
             )
           })}
         </div>
+        <section className="spr-ov-try">
+          <div className="sps-row">
+            <b>{t('spriteProject.review.try')}</b>
+            {sig ? (
+              <Segmented<TrySrc>
+                value={trySrc}
+                ariaLabel={t('spriteProject.review.try')}
+                onChange={setTrySrc}
+                options={[
+                  { value: 'orig', label: t('spriteProject.gen.orig') },
+                  { value: 'new', label: t('spriteProject.gen.new') }
+                ]}
+              />
+            ) : (
+              <span className="muted">{t('spriteProject.review.tryNoNew')}</span>
+            )}
+            {trySrc === 'new' && preview.loading && <span className="spin sm" />}
+          </div>
+          {preview.failed && (
+            <div className="note warn">
+              <Icon name="alert" size={14} />
+              <span>{t('spriteProject.review.tryFail')}</span>
+            </div>
+          )}
+          <SpritePlayground url={playUrl} frames={sheet.frames} anims={sheet.anims} dirSet={v.settings.dirSet} view={v.settings.view} height={280} />
+        </section>
       </div>
       <div className="spr-ov-r">
         <div className="spr-ov-big ck">
@@ -364,7 +470,7 @@ function Overview({ v, pos }: { v: SpriteProjectView; pos: number }): ReactEleme
             })()
           ) : null}
         </div>
-        <DirCompass dirSet={v.settings.dirSet} available={available} value={(cur?.dir as Direction | undefined) ?? null} onChange={setDir} size={140} />
+        <DirCompass dirSet={v.settings.dirSet} available={order} value={(cur?.dir as Direction | undefined) ?? null} onChange={setDir} size={140} />
         <small className="muted">{t('spriteProject.review.compassHint')}</small>
       </div>
     </div>

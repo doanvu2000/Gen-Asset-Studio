@@ -194,7 +194,7 @@ function Body({ v, onClose }: { v: SpriteProjectView; onClose: () => void }): Re
           <small className="muted">{t('spriteProject.create.charHint')}</small>
           <label className="fld">
             <span>{t('spriteProject.create.describe')}</span>
-            <textarea className="inp" rows={3} value={desc} maxLength={600} placeholder={t('spriteProject.create.describePh')} onChange={(e) => setDesc(e.target.value)} />
+            <textarea className="inp" rows={5} value={desc} maxLength={600} placeholder={t('spriteProject.create.describePh')} onChange={(e) => setDesc(e.target.value)} />
           </label>
         </div>
         <div className="nsd-right">

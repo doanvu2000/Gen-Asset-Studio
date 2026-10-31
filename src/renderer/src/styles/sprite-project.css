@@ -827,7 +827,7 @@
   gap: 3px;
 }
 
-.spr-qa button {
+.spr-qa li > button {
   width: 100%;
   border: 0;
   background: var(--gray-bg);
@@ -866,6 +866,32 @@
   font-style: normal;
   font-size: 11px;
   color: var(--orange);
+}
+
+.spr-qa-hint {
+  margin-top: 2px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: var(--orange-bg);
+  color: var(--orange);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spr-qa li.fail .spr-qa-hint {
+  background: var(--red-bg);
+  color: var(--red);
+}
+
+.spr-qa-hint span {
+  flex: 1;
+  min-width: 0;
+}
+
+.spr-qa-hint .btn {
+  flex: none;
 }
 
 .spr-vers {
@@ -979,6 +1005,17 @@
   border-radius: 12px;
   display: grid;
   place-items: center;
+}
+
+.spr-ov-try {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.spr-ov-try b {
+  font-size: 12px;
 }
 
 .spx-wrap {
@@ -1273,6 +1310,15 @@
 .nsd-left .fld,
 .nsd-right .fld {
   margin: 0;
+}
+
+.nsd-left textarea {
+  resize: vertical;
+  font: inherit;
+  padding: 8px 10px;
+  height: auto;
+  min-height: 96px;
+  line-height: 1.45;
 }
 
 .nsd-char {
