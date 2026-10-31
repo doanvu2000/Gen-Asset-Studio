@@ -482,6 +482,7 @@ if (!app.requestSingleInstanceLock()) {
         readProject,
         writeProject,
         enqueue: () => (queue ? (specs) => (queue as JobQueue).enqueue(specs) : null),
+        pending: () => (queue ? queue.snapshot().jobs : []),
         template: (id) => style.templates.get(id)
       })
     )

@@ -181,6 +181,7 @@ const api: GasApi = {
     addRefs: (rel: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.addRefs, rel),
     setLock: (rel: string, key: string | null) => ipcRenderer.invoke(SPRITE_GEN_IPC.setLock, rel, key),
     enqueue: (rel: string, keys: string[], note?: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.enqueue, rel, keys, note),
+    enqueueAll: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.enqueueAll, rel, sheetId),
     review: (rel: string, patch: Record<string, SpriteStripPatch>) => ipcRenderer.invoke(SPRITE_GEN_IPC.review, rel, patch),
     versions: (rel: string, key: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.versions, rel, key),
     exportRun: (rel: string, outDir: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.exportRun, rel, outDir),

@@ -90,6 +90,7 @@ export interface SpriteDeps {
   readProject: (dir: string) => Promise<ProjectFile>
   writeProject: (dir: string, data: ProjectFile) => Promise<void>
   enqueue?: () => ((specs: JobSpec[]) => string[]) | null
+  pending?: () => Array<{ projectPath: string; assetRelPath: string; status: string }>
   template?: (id: string) => Promise<StyleTemplate | null>
 }
 
@@ -100,6 +101,7 @@ const LOOPS: readonly LoopMode[] = ['loop', 'pingpong', 'once']
 const VIEWS: readonly ViewAngle[] = ['topdown', 'iso', 'side']
 const PRESETS: readonly RowPreset[] = ['flame', 'rpgmaker', 'custom']
 const MAX_FRAMES = 4096
+const PENDING: readonly string[] = ['queued', 'running', 'processing', 'paused']
 
 function num(v: unknown, d = 0): number {
   return typeof v === 'number' && Number.isFinite(v) ? v : d
@@ -135,7 +137,8 @@ export function sanitizeSettings(raw: unknown, base: SpriteSettings = DEFAULT_SP
     rowOrder: [...rowOrder],
     view: VIEWS.includes(r.view as ViewAngle) ? (r.view as ViewAngle) : base.view,
     mirror: typeof r.mirror === 'boolean' ? r.mirror : base.mirror,
-    cell: r.cell === 64 || r.cell === 128 || r.cell === 256 ? r.cell : base.cell
+    cell: r.cell === 64 || r.cell === 128 || r.cell === 256 ? r.cell : base.cell,
+    autoChain: typeof r.autoChain === 'boolean' ? r.autoChain : base.autoChain
   }
 }
 
@@ -730,11 +733,15 @@ export class SpriteService {
     )
   }
 
-  review(rel: string, patch: Record<string, SpriteStripPatch>): Promise<SpriteProjectView | null> {
-    return this.mutateView(
+  async review(rel: string, patch: Record<string, SpriteStripPatch>): Promise<SpriteProjectView | null> {
+    let chain: JobSpec[] = []
+    const view = await this.mutateView(
       rel,
       async ({ dir, sprite }) => {
         const defs = this.defs(sprite)
+        const lockKey = this.lockOf(sprite, defs)
+        const before = lockKey ? sprite.review[lockKey] : undefined
+        const wasApproved = decisionAt(before, before?.version ?? 0) === 'approved' ? (before?.version ?? 0) : 0
         for (const [k, v] of Object.entries(patch && typeof patch === 'object' ? patch : {})) {
           if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !v || typeof v !== 'object') continue
           const cur = sprite.review[k] ?? { decision: null, selected: 0 }
@@ -748,9 +755,42 @@ export class SpriteService {
           cur.version = cur.selected && versions.includes(cur.selected) ? cur.selected : (versions[versions.length - 1] ?? 0)
           sprite.review[k] = cur
         }
+        const after = lockKey ? sprite.review[lockKey] : undefined
+        const approvedNow = !!lockKey && !!patch && typeof patch === 'object' && lockKey in patch &&decisionAt(after, after?.version ?? 0) === 'approved' && after?.version !== wasApproved
+        if (!approvedNow || !sprite.settings.autoChain || !sprite.style.locked || !this.deps.enqueue?.()) return
+        const lockDef = defs.find((d) => d.key === lockKey)
+        if (!lockDef) return
+        try {
+          const keys = await this.missingKeys(dir, defs.filter((d) => d.sheet.id === lockDef.sheet.id && d.key !== lockKey))
+          chain = await this.buildSpecs(dir, sprite, defs, keys)
+        } catch (e) {
+          this.deps.log(`sprite ${rel}: auto chain failed: ${(e as Error).message}`)
+        }
       },
       'review'
     )
+    if (!view || !chain.length) return view
+    const push = this.deps.enqueue?.()
+    if (!push) return view
+    try {
+      push(chain)
+      this.deps.log(`sprite ${rel}: auto chained ${chain.length} strip(s)`)
+      return { ...view, chained: chain.length }
+    } catch (e) {
+      this.deps.log(`sprite ${rel}: auto chain failed: ${(e as Error).message}`)
+      return view
+    }
+  }
+
+  private async missingKeys(dir: string, defs: StripDef[]): Promise<string[]> {
+    const pending = new Set((this.deps.pending?.() ?? []).filter((j) => PENDING.includes(j.status) && pathKey(j.projectPath) === pathKey(dir)).map((j) => j.assetRelPath.replace(/\\/g, '/')))
+    const out: string[] = []
+    for (const d of defs) {
+      if (d.mirrorOf || pending.has(d.assetRel)) continue
+      if ((await listStripVersions(dir, d.assetRel)).length) continue
+      out.push(d.key)
+    }
+    return out
   }
 
   versions(rel: string, key: string): Promise<StripVersion[]> {
@@ -777,59 +817,85 @@ export class SpriteService {
       if (!push) return 0
       const { dir, sprite } = await this.load(rel)
       if (!sprite.style.locked) return -1
-      const defs = this.defs(sprite)
-      const lockKey = this.lockOf(sprite, defs)
-      const lockDef = defs.find((d) => d.key === lockKey)
-      let lockImages: string[] = []
-      if (lockDef) {
-        const versions = await listStripVersions(dir, lockDef.assetRel)
-        const sel = sprite.review[lockDef.key]?.selected
-        const v = sel && versions.includes(sel) ? sel : versions[versions.length - 1]
-        if (v && decisionAt(sprite.review[lockDef.key], v) === 'approved') lockImages = [versionPath(dir, lockDef.assetRel, v)]
-      }
-      let styleImages: string[] = []
-      let prompt = sprite.style.promptEn
-      if (sprite.style.templateId && this.deps.template) {
-        const tpl = await this.deps.template(sprite.style.templateId).catch(() => null)
-        const preview = tpl ? (tpl.previewSmPath ?? tpl.previewPath) : null
-        if (preview) styleImages = [preview]
-        if (!prompt.trim() && tpl) prompt = tpl.promptEn
-      }
-      const refImages = sprite.style.refImages.map((r) => join(dir, r)).filter((p) => existsSync(p))
-      const notes = [sprite.style.notes.trim(), (note ?? '').trim()].filter(Boolean).join('\n')
-      const specs: JobSpec[] = []
-      for (const key of keys) {
-        const d = defs.find((x) => x.key === key)
-        if (!d || d.mirrorOf) continue
-        specs.push({
-          projectPath: dir,
-          assetRelPath: d.assetRel,
-          sourcePath: d.sheet.path,
-          groupId: 'sprite',
-          stylePrompt: prompt,
-          styleImages,
-          refImages,
-          note: notes || undefined,
-          sprite: {
-            sheetId: d.sheet.id,
-            animId: d.anim.id,
-            anim: d.anim.name,
-            dir: d.anim.dir,
-            view: sprite.settings.view,
-            frames: d.frames,
-            lockImages: d.key === lockKey ? [] : lockImages,
-            mirrors: defs.filter((x) => x.mirrorOf === d.key).map((x) => ({ dir: x.anim.dir, frames: x.anim.frames.map((i) => x.sheet.frames[i] ?? null) })),
-            ...(d.sheet.origin === 'new' && this.characterPath(dir, d.sheet as SheetRecord)
-              ? { create: { character: this.characterPath(dir, d.sheet as SheetRecord) as string, description: (d.sheet as SheetRecord).description, cell: (d.sheet as SheetRecord).cell } }
-              : {})
-          }
-        })
-      }
+      const specs = await this.buildSpecs(dir, sprite, this.defs(sprite), keys, note)
       if (!specs.length) return 0
       push(specs)
       this.deps.log(`sprite ${rel}: enqueued ${specs.length} strip(s)`)
       return specs.length
     })
+  }
+
+  enqueueAll(rel: string, sheetId: string): Promise<number> {
+    return this.deps.run(async () => {
+      const push = this.deps.enqueue?.()
+      if (!push) return 0
+      const { dir, sprite } = await this.load(rel)
+      if (!sprite.style.locked) return -1
+      const defs = this.defs(sprite)
+      const lockDef = defs.find((d) => d.key === this.lockOf(sprite, defs))
+      const sheetDefs = defs.filter((d) => d.sheet.id === sheetId)
+      let keys: string[] = []
+      if (!lockDef) keys = await this.missingKeys(dir, sheetDefs)
+      else if (!(await listStripVersions(dir, lockDef.assetRel)).length) keys = await this.missingKeys(dir, [lockDef])
+      else if ((await this.lockImage(dir, sprite, lockDef)).length) keys = await this.missingKeys(dir, sheetDefs)
+      const specs = await this.buildSpecs(dir, sprite, defs, keys)
+      if (!specs.length) return 0
+      push(specs)
+      this.deps.log(`sprite ${rel}: enqueued all ${specs.length} strip(s) of ${sheetId}`)
+      return specs.length
+    })
+  }
+
+  private async lockImage(dir: string, sprite: SpriteData, lockDef: StripDef): Promise<string[]> {
+    const versions = await listStripVersions(dir, lockDef.assetRel)
+    const sel = sprite.review[lockDef.key]?.selected
+    const v = sel && versions.includes(sel) ? sel : versions[versions.length - 1]
+    return v && decisionAt(sprite.review[lockDef.key], v) === 'approved' ? [versionPath(dir, lockDef.assetRel, v)] : []
+  }
+
+  private async buildSpecs(dir: string, sprite: SpriteData, defs: StripDef[], keys: string[], note?: string): Promise<JobSpec[]> {
+    const lockKey = this.lockOf(sprite, defs)
+    const lockDef = defs.find((d) => d.key === lockKey)
+    const lockImages = lockDef ? await this.lockImage(dir, sprite, lockDef) : []
+    let styleImages: string[] = []
+    let prompt = sprite.style.promptEn
+    if (sprite.style.templateId && this.deps.template) {
+      const tpl = await this.deps.template(sprite.style.templateId).catch(() => null)
+      const preview = tpl ? (tpl.previewSmPath ?? tpl.previewPath) : null
+      if (preview) styleImages = [preview]
+      if (!prompt.trim() && tpl) prompt = tpl.promptEn
+    }
+    const refImages = sprite.style.refImages.map((r) => join(dir, r)).filter((p) => existsSync(p))
+    const notes = [sprite.style.notes.trim(), (note ?? '').trim()].filter(Boolean).join('\n')
+    const specs: JobSpec[] = []
+    for (const key of keys) {
+      const d = defs.find((x) => x.key === key)
+      if (!d || d.mirrorOf) continue
+      specs.push({
+        projectPath: dir,
+        assetRelPath: d.assetRel,
+        sourcePath: d.sheet.path,
+        groupId: 'sprite',
+        stylePrompt: prompt,
+        styleImages,
+        refImages,
+        note: notes || undefined,
+        sprite: {
+          sheetId: d.sheet.id,
+          animId: d.anim.id,
+          anim: d.anim.name,
+          dir: d.anim.dir,
+          view: sprite.settings.view,
+          frames: d.frames,
+          lockImages: d.key === lockKey ? [] : lockImages,
+          mirrors: defs.filter((x) => x.mirrorOf === d.key).map((x) => ({ dir: x.anim.dir, frames: x.anim.frames.map((i) => x.sheet.frames[i] ?? null) })),
+          ...(d.sheet.origin === 'new' && this.characterPath(dir, d.sheet as SheetRecord)
+            ? { create: { character: this.characterPath(dir, d.sheet as SheetRecord) as string, description: (d.sheet as SheetRecord).description, cell: (d.sheet as SheetRecord).cell } }
+            : {})
+        }
+      })
+    }
+    return specs
   }
 
   async pickExportDir(rel: string, win: BrowserWindow | null): Promise<string | null> {
@@ -1211,6 +1277,7 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_GEN_IPC.addRefs, (_e, rel: unknown) => service.addRefs(s(rel), getWindow()))
   ipcMain.handle(SPRITE_GEN_IPC.setLock, (_e, rel: unknown, key: unknown) => service.setLock(s(rel), typeof key === 'string' ? key : null))
   ipcMain.handle(SPRITE_GEN_IPC.enqueue, (_e, rel: unknown, keys: unknown, note: unknown) => service.enqueue(s(rel), ss(keys), typeof note === 'string' ? note : undefined))
+  ipcMain.handle(SPRITE_GEN_IPC.enqueueAll, (_e, rel: unknown, sheetId: unknown) => service.enqueueAll(s(rel), s(sheetId)))
   ipcMain.handle(SPRITE_GEN_IPC.review, (_e, rel: unknown, patch: unknown) => service.review(s(rel), o<Record<string, SpriteStripPatch>>(patch)))
   ipcMain.handle(SPRITE_GEN_IPC.versions, (_e, rel: unknown, key: unknown) => service.versions(s(rel), s(key)))
   ipcMain.handle(SPRITE_GEN_IPC.exportRun, (_e, rel: unknown, outDir: unknown) => service.exportRun(s(rel), s(outDir)))

@@ -87,20 +87,26 @@ async function main(): Promise<void> {
   check(r.view?.strips.find((s) => s.key === r.view?.lockKey)?.anim === 'idle', `lock is idle S (${r.view?.lockKey})`)
 
   await svc.setStyle('Hero New', { promptEn: 'candy', locked: true })
-  const keys = strips.filter((s) => !s.mirrorOf).map((s) => s.key)
-  check((await svc.enqueue('Hero New', keys)) === 6, '6 strips enqueued')
-  check(queued.every((q) => !!q.sprite?.create && existsSync(q.sprite.create.character) && q.sprite.create.cell === 128), 'create spec on jobs')
-  while (queued.length) {
-    const spec = queued.shift() as JobSpec
-    const job = { ...spec, id: 'x', attempt: 1, status: 'running', step: 'waiting', progress: '', error: null, result: null, createdAt: 0, startedAt: 0, finishedAt: null, notBefore: null } as QueueJob
-    const res = await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
-    const m = await sharp(res.versionPath).metadata()
-    const n = spec.sprite?.frames.length ?? 0
-    const st = res.qa.checks.find((c) => c.id === 'static')
-    check(st?.status === 'warn' && res.qa.pass && !res.qa.checks.some((c) => c.id === 'overflow'), `fake copies the guide into every cell -> static warn ${st?.value}%, qa still pass`)
-    check(m.width === n * 128 && m.height === 128, `${spec.assetRelPath} v${res.version} ${m.width}x${m.height}, qa missing=${res.qa.checks.find((c) => c.id === 'missing')?.value}`)
+  const lockKey = r.view?.lockKey as string
+  const runQueued = async (): Promise<void> => {
+    while (queued.length) {
+      const spec = queued.shift() as JobSpec
+      const job = { ...spec, id: 'x', attempt: 1, status: 'running', step: 'waiting', progress: '', error: null, result: null, createdAt: 0, startedAt: 0, finishedAt: null, notBefore: null } as QueueJob
+      const res = await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
+      const m = await sharp(res.versionPath).metadata()
+      const n = spec.sprite?.frames.length ?? 0
+      const st = res.qa.checks.find((c) => c.id === 'static')
+      check(st?.status === 'warn' && res.qa.pass && !res.qa.checks.some((c) => c.id === 'overflow'), `fake copies the guide into every cell -> static warn ${st?.value}%, qa still pass`)
+      check(m.width === n * 128 && m.height === 128, `${spec.assetRelPath} v${res.version} ${m.width}x${m.height}, qa missing=${res.qa.checks.find((c) => c.id === 'missing')?.value}`)
+    }
   }
-  let view = await svc.open('Hero New')
+  check((await svc.enqueueAll('Hero New', r.sheetId as string)) === 1 && queued[0].assetRelPath === strips.find((s) => s.key === lockKey)?.assetRel, 'enqueueAll on new sheet queues lock strip first')
+  await runQueued()
+  let view = await svc.review('Hero New', { [lockKey]: { decision: 'approved' } })
+  check(view?.chained === 5 && queued.length === 5, `approve lock auto-chains the other 5 strips (${view?.chained})`)
+  check(queued.every((q) => !!q.sprite?.create && existsSync(q.sprite.create.character) && q.sprite.create.cell === 128 && q.sprite.lockImages.length === 1), 'create spec + lock image on chained jobs')
+  await runQueued()
+  view = await svc.open('Hero New')
   const patch: Record<string, { decision: 'approved' }> = {}
   for (const s of view?.strips ?? []) if (!s.mirrorOf) patch[s.key] = { decision: 'approved' }
   view = await svc.review('Hero New', patch)

@@ -153,6 +153,7 @@ async function main(): Promise<void> {
       queued.push(...specs)
       return specs.map((_, i) => `j${i}`)
     },
+    pending: () => queued.map((q) => ({ projectPath: q.projectPath, assetRelPath: q.assetRelPath, status: 'queued' })),
     template: async () => null
   })
   const add = await svc.addPaths('Hero', [join(samples, 'hero_8dir_grid.png'), join(samples, 'hero_4dir_tp.json')])
@@ -173,8 +174,13 @@ async function main(): Promise<void> {
   const tpMeta = await sharp(join(samples, 'hero_4dir_tp.png')).metadata()
   check(pv0.w === tpMeta.width && pv0.h === tpMeta.height, `preview before gen = original size ${pv0.w}x${pv0.h}`)
   check((await svc.previewSheet('Hero', 'nope')) === null, 'preview unknown sheet -> null')
-  const n = await svc.enqueue('Hero', [lock as string])
-  check(n === 1 && queued[0].sprite?.lockImages.length === 0, 'lock strip enqueued without lock image')
+  check(view?.settings.autoChain === true, 'autoChain on by default')
+  const lockSheet = view?.strips.find((s) => s.key === lock)?.sheetId as string
+  const otherSheet = lockSheet === tpId ? gridId : tpId
+  const lockAsset = view?.strips.find((s) => s.key === lock)?.assetRel
+  const n = await svc.enqueueAll('Hero', lockSheet)
+  check(n === 1 && queued[0].assetRelPath === lockAsset && queued[0].sprite?.lockImages.length === 0, 'enqueueAll: lock strip first, without lock image')
+  check((await svc.enqueueAll('Hero', lockSheet)) === 0 && (await svc.enqueueAll('Hero', otherSheet)) === 0 && queued.length === 1, 'enqueueAll: pending lock not enqueued twice')
 
   const runAll = async (): Promise<void> => {
     while (queued.length) {
@@ -192,26 +198,50 @@ async function main(): Promise<void> {
   await flushSpriteCovers(proj)
   check(!existsSync(sheetCoverPath(proj, tpId)) && !existsSync(sheetCoverPath(proj, gridId)), 'no cover before any strip is generated')
   await runAll()
-  const lockSheet = view?.strips.find((s) => s.key === lock)?.sheetId as string
   const lockCover = sheetCoverPath(proj, lockSheet)
-  const otherCover = sheetCoverPath(proj, lockSheet === tpId ? gridId : tpId)
+  const otherCover = sheetCoverPath(proj, otherSheet)
   const cm = existsSync(lockCover) ? await sharp(lockCover).metadata() : null
   check(!!cm && Math.max(cm.width ?? 0, cm.height ?? 0) <= 512 && !existsSync(otherCover), `strip job writes cover of its sheet only, long side <= 512 (${cm?.width}x${cm?.height})`)
   const lockMtime = existsSync(lockCover) ? statSync(lockCover).mtimeMs : 0
-  view = await svc.review('Hero', { [lock as string]: { decision: 'approved' } })
+  check((await svc.enqueueAll('Hero', lockSheet)) === 0 && !queued.length, 'enqueueAll: nothing while lock is not approved')
+  const lockKey = lock as string
+  view = await svc.review('Hero', { [lockKey]: { decision: 'rejected' } })
+  check(!view?.chained && !queued.length, 'reject lock does not chain')
+  view = await svc.setSettings('Hero', { autoChain: false })
+  check(view?.settings.autoChain === false, 'autoChain can be turned off')
+  view = await svc.review('Hero', { [lockKey]: { decision: 'approved' } })
+  check(!view?.chained && !queued.length, 'autoChain off: approve lock does not chain')
+  await svc.review('Hero', { [lockKey]: { decision: null } })
+  await svc.setSettings('Hero', { autoChain: true })
+  await svc.setStyle('Hero', { locked: false })
+  view = await svc.review('Hero', { [lockKey]: { decision: 'approved' } })
+  check(!view?.chained && !queued.length, 'style unlocked: approve lock does not chain')
+  await svc.review('Hero', { [lockKey]: { decision: null } })
+  await svc.setStyle('Hero', { locked: true })
+  view = await svc.review('Hero', { [lockKey]: { decision: 'approved' } })
   await flushSpriteCovers(proj)
   check(statSync(lockCover).mtimeMs === lockMtime, 'approving the shown version keeps cover untouched')
+  const ownOf = (sheet: string): string[] => (view?.strips ?? []).filter((s) => s.sheetId === sheet && s.key !== lock && !s.mirrorOf).map((s) => s.assetRel)
+  const chainedRels = queued.map((q) => q.assetRelPath)
+  check(view?.chained === ownOf(lockSheet).length && chainedRels.sort().join() === ownOf(lockSheet).sort().join(), `approve lock auto-chains rest of its sheet, no mirrors (${view?.chained})`)
+  check(queued.every((q) => q.sprite?.lockImages.length === 1), 'auto-chained strips carry lock image')
+  view = await svc.review('Hero', { [lockKey]: { decision: 'approved' } })
+  check(!view?.chained && queued.length === chainedRels.length, 'approving lock again does not enqueue duplicates')
   const rest = (view?.strips ?? []).filter((s) => s.key !== lock && !s.mirrorOf).map((s) => s.key)
-  const m = await svc.enqueue('Hero', rest)
-  check(m === rest.length && queued.every((q) => q.sprite?.lockImages.length === 1), `rest enqueued with lock image (${m})`)
+  const m = await svc.enqueueAll('Hero', otherSheet)
+  check(m === ownOf(otherSheet).length &&queued.length === rest.length && queued.every((q) => q.sprite?.lockImages.length === 1), `enqueueAll other sheet with lock image (${m})`)
+  check((await svc.enqueueAll('Hero', otherSheet)) === 0 && (await svc.enqueueAll('Hero', lockSheet)) === 0, 'enqueueAll skips pending strips')
   const withMirror = queued.filter((q) => q.sprite?.mirrors?.length).map((q) => `${q.sprite?.dir}->${q.sprite?.mirrors?.map((x) => x.dir).join('')}`)
   check(withMirror.sort().join() === 'NW->NE,SW->SE,W->E,W->E', `mirror rects passed with source spec (${withMirror.join()})`)
   await runAll()
+  check((await svc.enqueueAll('Hero', lockSheet)) === 0 && (await svc.enqueueAll('Hero', otherSheet)) === 0, 'enqueueAll skips strips that already have a version')
   view = await svc.open('Hero')
   const patch: Record<string, { decision: 'approved' }> = {}
   for (const s of view?.strips ?? []) if (!s.mirrorOf) patch[s.key] = { decision: 'approved' }
+  view = await svc.review('Hero', { [lockKey]: { decision: null } })
   view = await svc.review('Hero', patch)
   check(view?.strips.every((s) => s.decision === 'approved'), 'all strips approved (mirrors follow source)')
+  check(!view?.chained && !queued.length, 're-approving lock when every strip has a version chains nothing')
   const pvLatest = await dataUrlSize(await svc.previewSheet('Hero', gridId))
   const gridMeta = await sharp(join(samples, 'hero_8dir_grid.png')).metadata()
   check(pvLatest.w === gridMeta.width && pvLatest.h === gridMeta.height, `preview with latest (unapproved) versions ${pvLatest.w}x${pvLatest.h}`)

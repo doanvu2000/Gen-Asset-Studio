@@ -91,6 +91,7 @@ export interface SpriteSettings {
   view: ViewAngle
   mirror: boolean
   cell: 64 | 128 | 256
+  autoChain: boolean
 }
 
 export const DEFAULT_SPRITE_SETTINGS: SpriteSettings = {
@@ -99,7 +100,8 @@ export const DEFAULT_SPRITE_SETTINGS: SpriteSettings = {
   rowOrder: DIRECTIONS[8],
   view: 'topdown',
   mirror: true,
-  cell: 128
+  cell: 128,
+  autoChain: true
 }
 
 export type SheetStatus = 'ok' | 'missing' | 'changed'
@@ -185,6 +187,7 @@ export interface SpriteProjectView {
   lockKey: string | null
   export: SpriteExportState
   updatedAt: number
+  chained?: number
 }
 
 export type SpriteSkipReason = 'notPng' | 'unreadable' | 'duplicate' | 'noImage' | 'badAtlas'
@@ -331,6 +334,7 @@ export const SPRITE_GEN_IPC = {
   addRefs: 'sprite:add-refs',
   setLock: 'sprite:set-lock',
   enqueue: 'sprite:enqueue',
+  enqueueAll: 'sprite:enqueue-all',
   review: 'sprite:review',
   versions: 'sprite:versions',
   exportRun: 'sprite:export-run',
@@ -347,6 +351,7 @@ export interface SpriteGenApi {
   addRefs: (rel: string) => Promise<SpriteProjectView | null>
   setLock: (rel: string, key: string | null) => Promise<SpriteProjectView | null>
   enqueue: (rel: string, keys: string[], note?: string) => Promise<number>
+  enqueueAll: (rel: string, sheetId: string) => Promise<number>
   review: (rel: string, patch: Record<string, SpriteStripPatch>) => Promise<SpriteProjectView | null>
   versions: (rel: string, key: string) => Promise<StripVersion[]>
   exportRun: (rel: string, outDir: string) => Promise<SpriteExportResult>
