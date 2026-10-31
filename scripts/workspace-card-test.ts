@@ -1,9 +1,12 @@
-import { existsSync, mkdirSync, readdirSync, rmSync, utimesSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync } from 'node:fs'
 import { createHash } from 'node:crypto'
 import { join, resolve } from 'node:path'
+import sharp from 'sharp'
 import { SpineService } from '../src/main/spine/service'
+import { flushSpriteCovers, SpriteService } from '../src/main/sprite/service'
+import { sheetCoverPath } from '../src/main/sprite/strips'
 import { WorkspaceService } from '../src/main/workspace/service'
-import { emptyProject, readProject, writeProject, type ProjectFile } from '../src/main/workspace/project'
+import { emptyProject, readProject, thumbPath, writeProject, type ProjectFile } from '../src/main/workspace/project'
 import type { ProjectSummary } from '../src/shared/workspace'
 
 const base = join(process.env['TEMP'] ?? '.', 'gas-card-test')
@@ -54,6 +57,80 @@ async function project(name: string, kind: 'sprite' | 'spine', extra: Record<str
 
 function decodeUrl(u: string): string {
   return Buffer.from(new URL(u).pathname.replace(/^\//, ''), 'base64url').toString('utf8')
+}
+
+async function solid(p: string, w: number, h: number, c: [number, number, number]): Promise<void> {
+  mkdirSync(join(p, '..'), { recursive: true })
+  await sharp({ create: { width: w, height: h, channels: 4, background: { r: c[0], g: c[1], b: c[2], alpha: 1 } } }).png().toFile(p)
+}
+
+async function pixel(p: string, x: number, y: number): Promise<number[]> {
+  const { data, info } = await sharp(p).raw().ensureAlpha().toBuffer({ resolveWithObject: true })
+  const i = (y * info.width + x) * 4
+  return [data[i], data[i + 1], data[i + 2], data[i + 3]]
+}
+
+async function coverChecks(settings: Record<string, unknown>): Promise<void> {
+  const rec = { ...sheet('c'), path: join(base, 'cover-src.png') }
+  await solid(rec.path as string, 256, 64, [128, 128, 128])
+  const dir = await project('S5-cover', 'sprite', { sprite: { settings, sheets: [rec] } })
+  const logs: string[] = []
+  const svc = new SpriteService({ projectDir: () => dir, run: (fn) => fn(), allow: () => undefined, log: (m) => logs.push(m), readProject, writeProject })
+  const cover = sheetCoverPath(dir, 'c')
+  const open = async (): Promise<void> => {
+    await svc.open('S5-cover')
+    await flushSpriteCovers(dir)
+  }
+  const review = async (patch: Parameters<SpriteService['review']>[1]): Promise<void> => {
+    await svc.review('S5-cover', patch)
+    await flushSpriteCovers(dir)
+  }
+  const ver = (anim: string, v: number): string => join(dir, 'versions', 'sprite', 'c', anim, `v${v}.png`)
+  const card = async (): Promise<string> => {
+    const ws = new WorkspaceService(() => undefined)
+    await ws.setRoot(join(base, 'ws'))
+    const t = ws.snapshot().projects.find((p) => p.name === 'S5-cover')?.thumbs[0] ?? ''
+    await ws.dispose()
+    return t
+  }
+
+  await open()
+  const before = await card()
+  check(!existsSync(cover) && !!before && decodeUrl(before) === thumbPath(dir, 'h-c'), `before gen → thumb is original sheet (${before ? decodeUrl(before) : 'none'})`)
+
+  await solid(ver('walk_s', 1), 128, 64, [255, 0, 0])
+  await open()
+  const after = await card()
+  check(existsSync(cover) && decodeUrl(after) === cover && /\?v=c-/.test(after), `after gen → thumb is cover, versioned (${after})`)
+  const px = await pixel(cover, 10, 10)
+  check(px[0] === 255 && px[1] === 0 && (await pixel(cover, 200, 10))[0] === 128, `cover has new frames, rest original (${px.join()})`)
+  const m1 = statSync(cover).mtimeMs
+  await new Promise((r) => setTimeout(r, 30))
+  await open()
+  check(statSync(cover).mtimeMs === m1 && (await card()) === after, 'same selection → cover not rewritten, same url')
+
+  await solid(ver('walk_s', 2), 128, 64, [0, 0, 255])
+  await open()
+  check((await pixel(cover, 10, 10))[2] === 255 && (await card()) !== after, 'new version → cover uses latest, url changes')
+  await review({ 'c:walk_s': { selected: 1, decision: 'approved' } })
+  check((await pixel(cover, 10, 10))[0] === 255, 'approved older version wins over latest')
+  await review({ 'c:walk_s': { selected: 2 } })
+  check((await pixel(cover, 10, 10))[2] === 255, 'approval cleared → latest again')
+
+  await solid(ver('walk_w', 1), 128, 64, [0, 255, 0])
+  await open()
+  check((await pixel(cover, 140, 10))[1] === 255, 'mirror source strip lands in sheet')
+
+  writeFileSync(cover, 'broken')
+  await open()
+  const meta = await sharp(cover).metadata().catch(() => null)
+  check(meta?.width === 256 && meta.height === 64, `corrupt cover rebuilt (${meta?.width}x${meta?.height})`)
+
+  rmSync(join(dir, 'versions'), { recursive: true, force: true })
+  await open()
+  const gone = await card()
+  check(!existsSync(cover) && decodeUrl(gone) === thumbPath(dir, 'h-c'), 'versions deleted → cover removed, original thumb back')
+  check(logs.every((l) => !/cover/.test(l)), `no cover errors logged (${logs.filter((l) => /cover/.test(l)).join(' | ')})`)
 }
 
 async function main(): Promise<void> {
@@ -128,6 +205,8 @@ async function main(): Promise<void> {
   check(!!realSig && thumbDir('P5-real')?.includes(realSig) === true, `sig matches SpineService cache dir (${realSig})`)
   check(by.get('P4-nocache')?.thumbs.length === 0, 'spine without .cache → no thumb')
   check(/\?v=/.test(by.get('P1-reimport')?.thumbs[0] ?? ''), 'spine thumb url versioned')
+
+  await coverChecks(settings)
 
   rmSync(base, { recursive: true, force: true })
   console.log(`\n${passed} passed, ${failed} failed`)

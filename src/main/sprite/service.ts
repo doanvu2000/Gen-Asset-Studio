@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, join, resolve } from 'node:path'
 import sharp from 'sharp'
@@ -40,10 +40,10 @@ import {
 } from '@shared/sprite'
 import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
-import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
+import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetCoverPath, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
 import { encodePng, savePng } from './strip'
 import { atlasJson, buildSnippets, snippetsMarkdown } from './snippets'
-import { ensureThumb, pathKey, type ProjectFile } from '../workspace/project'
+import { ensureThumb, pathKey, readProject, type ProjectFile } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
 import { atlasImageName, isAtlasFile, parseAtlas } from './atlas'
@@ -309,6 +309,81 @@ function writeSpriteData(data: ProjectFile, sprite: SpriteData): void {
   }
 }
 
+const COVER_MAX = 512
+const COVER_SHEETS = 4
+
+function previewPick(dir: string, sprite: SpriteData): (d: StripDef) => Promise<string | null> {
+  return async (d) => {
+    const versions = await listStripVersions(dir, d.assetRel)
+    if (!versions.length) return null
+    const e = sprite.review[d.key]
+    const approved = e?.decision === 'approved' ? e.version || e.selected : 0
+    const v = approved && versions.includes(approved) ? approved : versions[versions.length - 1]
+    return versionPath(dir, d.assetRel, v)
+  }
+}
+
+export async function writeSpriteCovers(dir: string, sprite: SpriteData, log: (message: string) => void): Promise<void> {
+  const defs = buildStripDefs(sprite.sheets, sprite.settings)
+  const pick = previewPick(dir, sprite)
+  for (const rec of sprite.sheets.filter((s) => existsSync(s.path)).slice(0, COVER_SHEETS)) {
+    const cover = sheetCoverPath(dir, rec.id)
+    const keyFile = cover.replace(/\.png$/, '.key')
+    try {
+      const pieces = await sheetPieces(defs, rec.id, pick)
+      if (!pieces.length) {
+        await fs.rm(cover, { force: true })
+        await fs.rm(keyFile, { force: true })
+        continue
+      }
+      const stamps = await Promise.all(pieces.map(async (p) => `${p.def.key}|${p.file}|${p.flip ? 1 : 0}|${(await fs.stat(p.file)).mtimeMs}`))
+      const key = createHash('sha1').update(JSON.stringify([rec.hash, rec.frames, stamps])).digest('hex')
+      if ((await fs.readFile(keyFile, 'utf8').catch(() => '')) === key && (await sharp(cover).metadata().then((m) => !!m.width).catch(() => false))) continue
+      const { image } = await composeSheet(rec.path, rec.frames, pieces)
+      await fs.mkdir(dirname(cover), { recursive: true })
+      const tmp = `${cover}.${randomBytes(4).toString('hex')}.tmp`
+      await sharp(Buffer.from(image.data), { raw: { width: image.width, height: image.height, channels: 4 } })
+        .resize({ width: COVER_MAX, height: COVER_MAX, fit: 'inside', withoutEnlargement: true })
+        .png()
+        .toFile(tmp)
+      await fs.rename(tmp, cover).catch(async (e) => {
+        await fs.rm(tmp, { force: true })
+        throw e
+      })
+      await fs.writeFile(keyFile, key, 'utf8')
+    } catch (e) {
+      log(`sprite cover ${rec.id} failed: ${(e as Error).message}`)
+    }
+  }
+}
+
+const coverQueue = new Map<string, { tail: Promise<void>; pending: Promise<void> | null }>()
+
+export function refreshSpriteCovers(dir: string, log: (message: string) => void): Promise<void> {
+  const k = pathKey(dir)
+  const q = coverQueue.get(k) ?? { tail: Promise.resolve(), pending: null }
+  coverQueue.set(k, q)
+  if (q.pending) return q.pending
+  const run = q.tail.then(async () => {
+    q.pending = null
+    try {
+      await writeSpriteCovers(dir, readSpriteData(await readProject(dir)), log)
+    } catch (e) {
+      log(`sprite cover refresh failed: ${(e as Error).message}`)
+    }
+  })
+  q.pending = run
+  q.tail = run
+  void run.then(() => {
+    if (coverQueue.get(k)?.tail === run) coverQueue.delete(k)
+  })
+  return run
+}
+
+export function flushSpriteCovers(dir: string): Promise<void> {
+  return coverQueue.get(pathKey(dir))?.tail ?? Promise.resolve()
+}
+
 async function readText(p: string): Promise<string> {
   return fs.readFile(p, 'utf8')
 }
@@ -417,6 +492,7 @@ export class SpriteService {
       st.decision = src.decision
       st.qa = src.qa
     }
+    void refreshSpriteCovers(dir, this.deps.log)
     return {
       rel,
       name: basename(dir),
@@ -848,15 +924,7 @@ export class SpriteService {
         const { dir, sprite } = await this.load(rel)
         const rec = sprite.sheets.find((x) => x.id === sheetId)
         if (!rec || !existsSync(rec.path)) return null
-        const pickVersion = async (d: StripDef): Promise<string | null> => {
-          const versions = await listStripVersions(dir, d.assetRel)
-          if (!versions.length) return null
-          const e = sprite.review[d.key]
-          const approved = e?.decision === 'approved' ? e.version || e.selected : 0
-          const v = approved && versions.includes(approved) ? approved : versions[versions.length - 1]
-          return versionPath(dir, d.assetRel, v)
-        }
-        const pieces = await sheetPieces(this.defs(sprite), rec.id, pickVersion)
+        const pieces = await sheetPieces(this.defs(sprite), rec.id, previewPick(dir, sprite))
         const { image } = await composeSheet(rec.path, rec.frames, pieces)
         return `data:image/png;base64,${Buffer.from(await encodePng(image)).toString('base64')}`
       } catch (e) {

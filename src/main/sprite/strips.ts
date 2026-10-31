@@ -102,6 +102,10 @@ export async function listStripVersions(projectDir: string, assetRel: string): P
     .sort((a, b) => a - b)
 }
 
+export function sheetCoverPath(projectDir: string, sheetId: string): string {
+  return join(projectDir, '.cache', 'sprite', `cover-${sheetId}.png`)
+}
+
 export function versionPath(projectDir: string, assetRel: string, v: number): string {
   return join(versionsDir(projectDir, assetRel), `v${v}.png`)
 }

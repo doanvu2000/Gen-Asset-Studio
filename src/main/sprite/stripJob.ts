@@ -6,6 +6,7 @@ import type { GeneratedImage } from '../codex/service'
 import { JobFailure, releaseVersion, reserveVersion, versionsDir, type GenContext } from '../queue/GenJob'
 import { decode, hexToRgb } from '../pipeline/image'
 import { buildNewStripPrompt, composeGuide, fitNewStrip } from './create'
+import { refreshSpriteCovers } from './service'
 import { buildStripPrompt, composeSource, fitStrip, isTrimmed, joinFrames, keyStrip, loadSheet, mirrorNeedsCheck, savePng, stripLayout, trimBox, uprightFrame } from './strip'
 
 const DEVELOPER_INSTRUCTIONS = [
@@ -191,6 +192,7 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
       timings: { ...timings, turnMs: turn.durationMs }
     }
     await fs.writeFile(metaPath, JSON.stringify(record, null, 2), 'utf8')
+    await refreshSpriteCovers(job.projectPath, ctx.log)
     return { version, versionPath, rawPath, metaPath, qa: stripQaSummary(fit.qa) }
   } finally {
     releaseVersion(dir, version)

@@ -1,9 +1,10 @@
-import { existsSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
 import type { JobSpec, QueueJob } from '../src/shared/queue'
 import type { TurnResult } from '../src/main/codex/service'
-import { SpriteService } from '../src/main/sprite/service'
+import { flushSpriteCovers, SpriteService } from '../src/main/sprite/service'
+import { sheetCoverPath } from '../src/main/sprite/strips'
 import { runStripJob } from '../src/main/sprite/stripJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { pickChroma } from '../src/main/pipeline/chroma'
@@ -188,8 +189,18 @@ async function main(): Promise<void> {
       check(r.qa.pass && fails.length === 0, `${spec.assetRelPath} v${r.version} qa clean ${fails.join(' ')}`)
     }
   }
+  await flushSpriteCovers(proj)
+  check(!existsSync(sheetCoverPath(proj, tpId)) && !existsSync(sheetCoverPath(proj, gridId)), 'no cover before any strip is generated')
   await runAll()
+  const lockSheet = view?.strips.find((s) => s.key === lock)?.sheetId as string
+  const lockCover = sheetCoverPath(proj, lockSheet)
+  const otherCover = sheetCoverPath(proj, lockSheet === tpId ? gridId : tpId)
+  const cm = existsSync(lockCover) ? await sharp(lockCover).metadata() : null
+  check(!!cm && Math.max(cm.width ?? 0, cm.height ?? 0) <= 512 && !existsSync(otherCover), `strip job writes cover of its sheet only, long side <= 512 (${cm?.width}x${cm?.height})`)
+  const lockMtime = existsSync(lockCover) ? statSync(lockCover).mtimeMs : 0
   view = await svc.review('Hero', { [lock as string]: { decision: 'approved' } })
+  await flushSpriteCovers(proj)
+  check(statSync(lockCover).mtimeMs === lockMtime, 'approving the shown version keeps cover untouched')
   const rest = (view?.strips ?? []).filter((s) => s.key !== lock && !s.mirrorOf).map((s) => s.key)
   const m = await svc.enqueue('Hero', rest)
   check(m === rest.length && queued.every((q) => q.sprite?.lockImages.length === 1), `rest enqueued with lock image (${m})`)
@@ -204,6 +215,8 @@ async function main(): Promise<void> {
   const pvLatest = await dataUrlSize(await svc.previewSheet('Hero', gridId))
   const gridMeta = await sharp(join(samples, 'hero_8dir_grid.png')).metadata()
   check(pvLatest.w === gridMeta.width && pvLatest.h === gridMeta.height, `preview with latest (unapproved) versions ${pvLatest.w}x${pvLatest.h}`)
+  await flushSpriteCovers(proj)
+  check([tpId, gridId].every((id) => existsSync(sheetCoverPath(proj, id))), 'every sheet with strips has a cover')
   const vers = await svc.versions('Hero', lock as string)
   check(vers.length === 1 && !!vers[0].qa, 'versions list with qa')
 

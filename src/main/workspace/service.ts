@@ -10,7 +10,7 @@ import type { StyleGroup } from '@shared/style'
 import { READY_KINDS, type ProjectKind } from '@shared/sprite'
 import { parseSpineAtlas } from '../spine/atlas'
 import { readSpriteData } from '../sprite/service'
-import { buildStripDefs, decisionAt, listStripVersions } from '../sprite/strips'
+import { buildStripDefs, decisionAt, listStripVersions, sheetCoverPath } from '../sprite/strips'
 import {
   addCollected,
   buildView,
@@ -129,12 +129,22 @@ async function spineProgress(dir: string, data: ProjectFile | null): Promise<{ t
   }
 }
 
-function spriteSheetsOf(data: ProjectFile | null): Array<{ hash: string }> {
+async function spriteCover(dir: string, sheetId: string): Promise<string | null> {
+  if (!sheetId) return null
+  const p = sheetCoverPath(dir, sheetId)
+  try {
+    return fileUrl(p, `${sheetId}-${(await fs.stat(p)).mtimeMs}`)
+  } catch {
+    return null
+  }
+}
+
+function spriteSheetsOf(data: ProjectFile | null): Array<{ id: string; hash: string }> {
   const sprite = data?.sprite
   if (!sprite || typeof sprite !== 'object') return []
   const sheets = (sprite as Record<string, unknown>).sheets
   if (!Array.isArray(sheets)) return []
-  return sheets.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object').map((x) => ({ hash: typeof x.hash === 'string' ? x.hash : '' }))
+  return sheets.filter((x): x is Record<string, unknown> => !!x && typeof x === 'object').map((x) => ({ id: typeof x.id === 'string' ? x.id : '', hash: typeof x.hash === 'string' ? x.hash : '' }))
 }
 
 class WsFail extends Error {
@@ -317,11 +327,12 @@ export class WorkspaceService extends EventEmitter {
     const kind = data?.kind ?? 'reskin'
     const sheets = kind === 'sprite' ? spriteSheetsOf(data) : []
     const thumbs: string[] = []
-    for (const hash of kind === 'sprite' ? sheets.map((s) => s.hash) : (data?.inputs ?? []).map((i) => i.hash)) {
+    for (const { id, hash } of kind === 'sprite' ? sheets : (data?.inputs ?? []).map((i) => ({ id: '', hash: i.hash }))) {
       if (thumbs.length >= 4) break
       if (!hash) continue
       const t = thumbPath(dir, hash)
-      if (existsSync(t)) thumbs.push(fileUrl(t, hash))
+      if (!existsSync(t)) continue
+      thumbs.push((kind === 'sprite' ? await spriteCover(dir, id) : null) ?? fileUrl(t, hash))
     }
     const count = kind === 'sprite' ? sheets.length : kind === 'spine' ? await spineRegionCount(data) : (data?.inputs.length ?? 0)
     const review = data ? Object.values(sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))) : []
