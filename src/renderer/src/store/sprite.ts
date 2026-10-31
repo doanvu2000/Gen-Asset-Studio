@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SheetPatch, SpriteAddResult, SpriteProjectView, SpriteSettings } from '@shared/sprite'
+import type { SheetPatch, SpriteAddResult, SpriteProjectView, SpriteSettings, SpriteStripPatch, SpriteStyle } from '@shared/sprite'
 import i18n from '@renderer/i18n'
 import { toast } from './toast'
 
@@ -21,6 +21,12 @@ interface SpriteStore {
   update: (id: string, patch: SheetPatch) => Promise<void>
   detect: (id: string) => Promise<void>
   setSettings: (patch: Partial<SpriteSettings>) => Promise<void>
+  refresh: () => Promise<void>
+  setStyle: (patch: Partial<SpriteStyle>) => Promise<boolean>
+  addRefs: () => Promise<void>
+  setLock: (key: string | null) => Promise<void>
+  enqueue: (keys: string[], note?: string) => Promise<number>
+  review: (patch: Record<string, SpriteStripPatch>) => Promise<void>
 }
 
 function names(list: SpriteAddResult['skipped']): string {
@@ -135,6 +141,63 @@ export const useSprite = create<SpriteStore>()((set, get) => ({
     if (!rel || !cur) return
     set({ view: { ...cur, settings: { ...cur.settings, ...patch } } })
     const view = await window.gas.sprite.setSettings(rel, patch)
+    if (view && get().rel === rel) set({ view })
+  },
+  refresh: async () => {
+    const rel = get().rel
+    if (!rel) return
+    const view = await window.gas.sprite.open(rel)
+    if (view && get().rel === rel) set({ view })
+  },
+  setStyle: async (patch) => {
+    const rel = get().rel
+    const cur = get().view
+    if (!rel || !cur) return false
+    set({ view: { ...cur, style: { ...cur.style, ...patch } } })
+    const view = await window.gas.spriteGen.setStyle(rel, patch)
+    if (!view) {
+      toast(i18n.t('spriteProject.toast.saveFailed'), 'err')
+      return false
+    }
+    if (get().rel === rel) set({ view })
+    return true
+  },
+  addRefs: async () => {
+    const rel = get().rel
+    if (!rel) return
+    const view = await window.gas.spriteGen.addRefs(rel)
+    if (view && get().rel === rel) set({ view })
+  },
+  setLock: async (key) => {
+    const rel = get().rel
+    if (!rel) return
+    const view = await window.gas.spriteGen.setLock(rel, key)
+    if (view && get().rel === rel) set({ view })
+  },
+  enqueue: async (keys, note) => {
+    const rel = get().rel
+    if (!rel || !keys.length) return 0
+    const n = await window.gas.spriteGen.enqueue(rel, keys, note)
+    if (n < 0) toast(i18n.t('spriteProject.toast.styleFirst'), 'warn')
+    else if (n === 0) toast(i18n.t('spriteProject.toast.nothingQueued'), 'info')
+    else toast(i18n.t('spriteProject.toast.queued', { count: n }))
+    return n
+  },
+  review: async (patch) => {
+    const rel = get().rel
+    const cur = get().view
+    if (!rel || !cur) return
+    set({
+      view: {
+        ...cur,
+        strips: cur.strips.map((st) => {
+          const p = patch[st.key]
+          if (!p) return st
+          return { ...st, ...(p.decision !== undefined ? { decision: p.decision } : {}), ...(p.selected ? { selected: p.selected } : {}) }
+        })
+      }
+    })
+    const view = await window.gas.spriteGen.review(rel, patch)
     if (view && get().rel === rel) set({ view })
   }
 }))

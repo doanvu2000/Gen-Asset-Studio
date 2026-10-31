@@ -83,3 +83,10 @@ Không hỗ trợ Spine 3.8/4.0/4.1 ở bản đầu: đọc header version, kh�
   - Quy ước FrameRect: x,y,w,h = rect trên sheet (rotated = xoay 90° CW khi pack, vẽ xoay -90°); srcX/srcY/srcW/srcH = khung gốc chưa trim; pivot 0..1 trên-trái.
   - Mẫu test: `resources/sprite-samples/` (`node scripts/make-sprite-samples.mjs`), `npm run test:sprite` 68/68.
 - Tiếp S2: gán hướng/preset + mirror, gen theo dải, ảnh khoá, anchor + QA, duyệt theo hướng, xuất đè đúng rect.
+- **S2 xong** (2026-10-31): Style (mẫu/tự tạo) → Gen theo dải (ảnh khoá S, mirror) → Duyệt (player đồng bộ, QA, version, Lưới tổng) → Xuất đè rect + chép atlas. Code: `src/main/sprite/{strip,stripJob,strips}.ts`, SpriteService (style/review/enqueue/export), `screens/sprite/Sprite{Style,Gen,Review,Export}Step.tsx`, `lib/sprite.ts`, `components/sprite/StripPreview.tsx`. Test: `npm run test:sprite-gen` 27/27; E2E thật trong app: TP 4 hướng, 3 lượt gen, QA sạch, xuất đúng.
+- Việc còn sau S2:
+  - Frame trimmed: nội dung AI to hơn rect trim bị cắt khi xuất → cần QA "tràn rect trim" (hoặc gợi ý dùng sheet không trim).
+  - Bóng dưới chân hay bị AI bỏ dù prompt đã dặn giữ.
+  - Lưới tổng chưa có Đi thử bằng frame mới (cần sheet tạm gộp dải mới).
+  - Lưới tổng hiện slot theo bộ hướng của project (8) kể cả khi sheet chỉ 4 hướng.
+- Tiếp: S3 Sprite tạo mới.

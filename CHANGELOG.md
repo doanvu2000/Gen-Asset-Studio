@@ -10,6 +10,10 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - **Project Sprite sheet** (bản đầu): nhập sheet kèm TexturePacker JSON (hash/array, trimmed, rotated), Aseprite JSON (frame tag → animation), Cocos .plist, Unity .png.meta; không có atlas thì tự dò lưới
 - Bước **Lưới & hướng**: xem cả sheet + lưới chỉnh tay (kéo hoặc nhập số), bảng animation (tên, hướng, FPS, kiểu lặp, tự đặt lại), player (chạy/dừng, từng frame, onion skin, đường căn, nền caro/tối/sáng, zoom pixel), la bàn 4/6/8 hướng, **Đi thử** bằng phím mũi tên/WASD trên nền lưới top-down/isometric/side
 - Thiết lập nhân vật theo project: bộ hướng 4/6/8, thứ tự hàng (Flame/RPG Maker), lật gương, góc nhìn, cỡ ô
+- **Reskin sprite sheet** (Style → Gen theo hướng → Duyệt → Xuất): 1 style cho cả nhân vật (mẫu có sẵn hoặc tự mô tả + ảnh tham chiếu); gen từng dải hướng × animation trong 1 lượt; **ảnh khoá nhân vật** (dải hướng S duyệt đầu tiên) đính vào mọi lượt sau để các hướng giống nhau; hướng phải lật gương từ hướng trái, không tốn lượt
+- Tự căn frame: tách nền, cùng tỉ lệ cho cả dải, giữ đường chân; QA lệch anchor, chênh chiều cao, thiếu frame, bị cắt, frame trùng
+- Duyệt bằng player Gốc | Mới chạy đồng bộ (cạnh nhau / chồng mờ), bấm lỗi QA nhảy tới frame, chọn phiên bản, gen lại kèm ghi chú, **Lưới tổng** xem mọi hướng chạy cùng lúc
+- Xuất sheet cùng tên, cùng W×H, đè đúng rect (kể cả frame xoay/trim của TexturePacker), frame chưa duyệt giữ gốc, file atlas chép theo không đổi, file trùng sao lưu vào `_backup`
 - **Cài đặt › Lưu trữ**: xem app đang chiếm bao nhiêu dung lượng, nằm ở đâu (Codex, ảnh gốc Codex, lịch sử phiên, file tạm, log, bộ cài cập nhật, workspace, thư mục cài) và mỗi ổ còn trống bao nhiêu
 - **Chuyển dữ liệu sang ổ khác** (vd `D:\GenAssetStudio`): chọn ổ hoặc thư mục, app chép, kiểm tra rồi tự khởi động lại, không phải đăng nhập lại, bản cũ tự xoá; chuyển về chỗ mặc định được
 - Chọn nơi lưu dữ liệu ngay ở màn **Chuẩn bị môi trường** lần đầu

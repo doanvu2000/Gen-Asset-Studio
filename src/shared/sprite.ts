@@ -131,6 +131,10 @@ export interface SpriteProjectView {
   kind: 'sprite'
   settings: SpriteSettings
   sheets: SheetView[]
+  style: SpriteStyle
+  strips: StripView[]
+  lockKey: string | null
+  export: SpriteExportState
   updatedAt: number
 }
 
@@ -173,4 +177,126 @@ export interface SpriteApi {
   updateSheet: (rel: string, sheetId: string, patch: SheetPatch) => Promise<SpriteProjectView | null>
   detectGrid: (rel: string, sheetId: string) => Promise<GridSpec | null>
   setSettings: (rel: string, patch: Partial<SpriteSettings>) => Promise<SpriteProjectView | null>
+}
+
+export interface SpriteJobSpec {
+  sheetId: string
+  animId: string
+  anim: string
+  dir: Direction | null
+  view: ViewAngle
+  frames: FrameRect[]
+  lockImages: string[]
+}
+
+export interface SpriteStyle {
+  promptEn: string
+  templateId: string | null
+  refImages: string[]
+  notes: string
+  locked: boolean
+  lockedAt: number
+}
+
+export const EMPTY_SPRITE_STYLE: SpriteStyle = { promptEn: '', templateId: null, refImages: [], notes: '', locked: false, lockedAt: 0 }
+
+export type StripDecision = 'approved' | 'rejected'
+
+export interface StripQaCheck {
+  id: 'anchor' | 'height' | 'clipped' | 'missing' | 'duplicate' | 'cut'
+  status: 'pass' | 'warn' | 'fail'
+  value: number
+  threshold: number
+  frames: number[]
+  message: string
+}
+
+export interface StripQa {
+  pass: boolean
+  checks: StripQaCheck[]
+}
+
+export interface FrameSize {
+  w: number
+  h: number
+}
+
+export interface StripVersion {
+  version: number
+  url: string
+  createdAt: number
+  note: string | null
+  qa: StripQa | null
+}
+
+export interface StripView {
+  key: string
+  assetRel: string
+  sheetId: string
+  sheetName: string
+  animId: string
+  anim: string
+  dir: Direction | null
+  frameCount: number
+  frameSizes: FrameSize[]
+  origUrl: string | null
+  mirrorOf: string | null
+  versions: number[]
+  selected: number
+  url: string | null
+  decision: StripDecision | null
+  qa: StripQa | null
+}
+
+export interface SpriteExportState {
+  outDir: string
+  lastAt: number
+  lastSheets: number
+  lastFrames: number
+}
+
+export interface SpriteStripPatch {
+  decision?: StripDecision | null
+  selected?: number | null
+}
+
+export interface SpriteExportResult {
+  ok: boolean
+  outDir: string
+  sheets: Array<{ name: string; file: string; frames: number; kept: number; atlas: string | null }>
+  backupDir: string | null
+  error: string | null
+}
+
+export const SPRITE_GEN_IPC = {
+  setStyle: 'sprite:set-style',
+  addRefs: 'sprite:add-refs',
+  setLock: 'sprite:set-lock',
+  enqueue: 'sprite:enqueue',
+  review: 'sprite:review',
+  versions: 'sprite:versions',
+  exportRun: 'sprite:export-run',
+  exportDir: 'sprite:export-dir',
+  reveal: 'sprite:reveal'
+} as const
+
+export interface SpriteGenApi {
+  setStyle: (rel: string, style: Partial<SpriteStyle>) => Promise<SpriteProjectView | null>
+  addRefs: (rel: string) => Promise<SpriteProjectView | null>
+  setLock: (rel: string, key: string | null) => Promise<SpriteProjectView | null>
+  enqueue: (rel: string, keys: string[], note?: string) => Promise<number>
+  review: (rel: string, patch: Record<string, SpriteStripPatch>) => Promise<SpriteProjectView | null>
+  versions: (rel: string, key: string) => Promise<StripVersion[]>
+  exportRun: (rel: string, outDir: string) => Promise<SpriteExportResult>
+  exportDir: (rel: string) => Promise<string | null>
+  reveal: (path: string) => Promise<void>
+}
+
+export function stripFrames(sizes: FrameSize[]): FrameRect[] {
+  let x = 0
+  return sizes.map((s, i) => {
+    const f: FrameRect = { name: `f${i}`, x, y: 0, w: s.w, h: s.h, rotated: false, trimmed: false, srcX: 0, srcY: 0, srcW: s.w, srcH: s.h, pivotX: 0.5, pivotY: 1 }
+    x += s.w
+    return f
+  })
 }

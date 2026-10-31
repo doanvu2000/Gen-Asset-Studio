@@ -7,6 +7,7 @@ import {
   DEFAULT_SPRITE_SETTINGS,
   DIRECTIONS,
   ROW_PRESETS,
+  SPRITE_GEN_IPC,
   SPRITE_IPC,
   type AtlasFormat,
   type Direction,
@@ -24,8 +25,17 @@ import {
   type SpriteProjectView,
   type SpriteSettings,
   type SpriteSkipped,
+  type SpriteExportResult,
+  type SpriteStripPatch,
+  type SpriteStyle,
+  type StripVersion,
+  type StripView,
   type ViewAngle
 } from '@shared/sprite'
+import type { JobSpec } from '@shared/queue'
+import type { StyleTemplate } from '@shared/style'
+import { autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, stripVersions, versionPath, type ExportPiece, type StripDef, type StripReviewEntry } from './strips'
+import { savePng } from './strip'
 import { ensureThumb, pathKey, type ProjectFile } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
@@ -54,6 +64,11 @@ export interface SheetRecord {
 export interface SpriteData {
   settings: SpriteSettings
   sheets: SheetRecord[]
+  style: SpriteStyle
+  review: Record<string, StripReviewEntry>
+  lockKey: string | null
+  exportDir: string
+  lastExport: { at: number; sheets: number; frames: number } | null
 }
 
 export interface SpriteDeps {
@@ -63,6 +78,8 @@ export interface SpriteDeps {
   log: (message: string) => void
   readProject: (dir: string) => Promise<ProjectFile>
   writeProject: (dir: string, data: ProjectFile) => Promise<void>
+  enqueue?: () => ((specs: JobSpec[]) => string[]) | null
+  template?: (id: string) => Promise<StyleTemplate | null>
 }
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp'])
@@ -210,6 +227,35 @@ function sanitizeSheet(raw: unknown): SheetRecord | null {
   }
 }
 
+function relRef(v: unknown): string | null {
+  if (typeof v !== 'string' || !v) return null
+  const c = v.replace(/\\/g, '/')
+  return c.split('/').some((p) => p === '..') || /^[a-z]:/i.test(c) || c.startsWith('/') ? null : c
+}
+
+function sanitizeStyle(raw: unknown): SpriteStyle {
+  const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  return {
+    promptEn: typeof r.promptEn === 'string' ? r.promptEn.slice(0, 6000) : '',
+    templateId: typeof r.templateId === 'string' && r.templateId ? r.templateId.slice(0, 120) : null,
+    refImages: (Array.isArray(r.refImages) ? r.refImages : []).map(relRef).filter((x): x is string => !!x).slice(0, 8),
+    notes: typeof r.notes === 'string' ? r.notes.slice(0, 4000) : '',
+    locked: r.locked === true,
+    lockedAt: num(r.lockedAt)
+  }
+}
+
+function sanitizeReview(raw: unknown): Record<string, StripReviewEntry> {
+  const out: Record<string, StripReviewEntry> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !v || typeof v !== 'object') continue
+    const e = v as Record<string, unknown>
+    out[k] = { decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null, selected: int(e.selected, 0, 0, 100000) }
+  }
+  return out
+}
+
 export function readSpriteData(data: ProjectFile): SpriteData {
   const raw = data.sprite && typeof data.sprite === 'object' ? (data.sprite as Record<string, unknown>) : {}
   const settings = sanitizeSettings(raw.settings)
@@ -224,11 +270,28 @@ export function readSpriteData(data: ProjectFile): SpriteData {
     while (sheets.some((x) => x.id === rec.id)) rec.id = newId()
     sheets.push(rec)
   }
-  return { settings, sheets }
+  const last = raw.lastExport && typeof raw.lastExport === 'object' ? (raw.lastExport as Record<string, unknown>) : null
+  return {
+    settings,
+    sheets,
+    style: sanitizeStyle(raw.style),
+    review: sanitizeReview(raw.review),
+    lockKey: typeof raw.lockKey === 'string' && raw.lockKey ? raw.lockKey : null,
+    exportDir: typeof raw.exportDir === 'string' ? raw.exportDir.slice(0, 1024) : '',
+    lastExport: last ? { at: num(last.at), sheets: num(last.sheets), frames: num(last.frames) } : null
+  }
 }
 
 function writeSpriteData(data: ProjectFile, sprite: SpriteData): void {
-  data.sprite = { settings: sprite.settings, sheets: sprite.sheets }
+  data.sprite = {
+    settings: sprite.settings,
+    sheets: sprite.sheets,
+    style: sprite.style,
+    review: sprite.review,
+    lockKey: sprite.lockKey,
+    exportDir: sprite.exportDir,
+    lastExport: sprite.lastExport
+  }
 }
 
 async function readText(p: string): Promise<string> {
@@ -323,6 +386,19 @@ export class SpriteService {
       })
     }
     if (dirty) await this.save(dir, data, sprite)
+    const defs = this.defs(sprite, sheets)
+    const strips: StripView[] = []
+    for (const d of defs) strips.push(await this.stripView(dir, d, sprite))
+    for (const st of strips) {
+      if (!st.mirrorOf) continue
+      const src = strips.find((x) => x.key === st.mirrorOf)
+      if (!src) continue
+      st.versions = src.versions
+      st.selected = src.selected
+      st.url = src.url
+      st.decision = src.decision
+      st.qa = src.qa
+    }
     return {
       rel,
       name: basename(dir),
@@ -330,8 +406,286 @@ export class SpriteService {
       kind: 'sprite',
       settings: sprite.settings,
       sheets,
+      style: { ...sprite.style, refImages: sprite.style.refImages.filter((r) => existsSync(join(dir, r))) },
+      strips,
+      lockKey: this.lockOf(sprite, defs),
+      export: { outDir: sprite.exportDir, lastAt: sprite.lastExport?.at ?? 0, lastSheets: sprite.lastExport?.sheets ?? 0, lastFrames: sprite.lastExport?.frames ?? 0 },
       updatedAt: Date.parse(data.updatedAt) || 0
     }
+  }
+
+  private defs(sprite: SpriteData, views?: SheetView[]): StripDef[] {
+    const ok = new Set((views ?? []).filter((v) => v.status !== 'missing').map((v) => v.id))
+    return buildStripDefs(
+      sprite.sheets.filter((s) => !views || ok.has(s.id)),
+      sprite.settings
+    )
+  }
+
+  private lockOf(sprite: SpriteData, defs: StripDef[]): string | null {
+    if (sprite.lockKey && defs.some((d) => d.key === sprite.lockKey && !d.mirrorOf)) return sprite.lockKey
+    return autoLockKey(defs)
+  }
+
+  private async stripView(dir: string, d: StripDef, sprite: SpriteData): Promise<StripView> {
+    const versions = await listStripVersions(dir, d.assetRel)
+    const entry = sprite.review[d.key]
+    const last = versions.length ? versions[versions.length - 1] : 0
+    const selected = entry?.selected && versions.includes(entry.selected) ? entry.selected : last
+    const orig = await origStrip(dir, d).catch(() => null)
+    const meta = selected ? await readStripMeta(dir, d.assetRel, selected) : null
+    return {
+      key: d.key,
+      assetRel: d.assetRel,
+      sheetId: d.sheet.id,
+      sheetName: basename(d.sheet.path),
+      animId: d.anim.id,
+      anim: d.anim.name,
+      dir: d.anim.dir,
+      frameCount: d.frames.length,
+      frameSizes: frameSizes(d.frames),
+      origUrl: orig ? fileUrl(orig, basename(orig)) : null,
+      mirrorOf: d.mirrorOf,
+      versions,
+      selected,
+      url: selected ? fileUrl(versionPath(dir, d.assetRel, selected), `${selected}`) : null,
+      decision: selected ? (entry?.decision ?? null) : null,
+      qa: meta?.qa ?? null
+    }
+  }
+
+  private async mutateView(rel: string, fn: (ctx: { dir: string; data: ProjectFile; sprite: SpriteData }) => Promise<void> | void, what: string): Promise<SpriteProjectView | null> {
+    return this.deps.run(async () => {
+      try {
+        const ctx = await this.load(rel)
+        await fn(ctx)
+        return await this.view(rel, ctx.dir, ctx.data, ctx.sprite, true)
+      } catch (e) {
+        this.deps.log(`sprite ${what} failed: ${(e as Error).message}`)
+        return null
+      }
+    })
+  }
+
+  setStyle(rel: string, patch: Partial<SpriteStyle>): Promise<SpriteProjectView | null> {
+    return this.mutateView(
+      rel,
+      ({ sprite }) => {
+        const p = patch && typeof patch === 'object' ? patch : {}
+        const next = sanitizeStyle({ ...sprite.style, ...p })
+        if (p.locked === true && !sprite.style.locked) next.lockedAt = Date.now()
+        if (p.locked === false) next.lockedAt = 0
+        sprite.style = next
+      },
+      'set style'
+    )
+  }
+
+  async addRefs(rel: string, win: BrowserWindow | null): Promise<SpriteProjectView | null> {
+    const { dialog } = await import('electron')
+    const opts: Electron.OpenDialogOptions = { properties: ['openFile', 'multiSelections', 'dontAddToRecent'], filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'webp'] }] }
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (r.canceled || !r.filePaths.length) return null
+    return this.mutateView(
+      rel,
+      async ({ dir, sprite }) => {
+        const refDir = join(dir, 'styles', 'sprite', 'refs')
+        await fs.mkdir(refDir, { recursive: true })
+        for (const src of r.filePaths.slice(0, 8)) {
+          if (sprite.style.refImages.length >= 8) break
+          const base = (basename(src).replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '_').slice(0, 40) || 'ref').toLowerCase()
+          let name = `${base}.png`
+          for (let n = 2; existsSync(join(refDir, name)); n++) name = `${base}-${n}.png`
+          await sharp(src).png().toFile(join(refDir, name))
+          sprite.style.refImages.push(`styles/sprite/refs/${name}`)
+        }
+      },
+      'add refs'
+    )
+  }
+
+  setLock(rel: string, key: string | null): Promise<SpriteProjectView | null> {
+    return this.mutateView(
+      rel,
+      ({ sprite }) => {
+        sprite.lockKey = typeof key === 'string' && key ? key : null
+      },
+      'set lock'
+    )
+  }
+
+  review(rel: string, patch: Record<string, SpriteStripPatch>): Promise<SpriteProjectView | null> {
+    return this.mutateView(
+      rel,
+      ({ sprite }) => {
+        for (const [k, v] of Object.entries(patch && typeof patch === 'object' ? patch : {})) {
+          if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !v || typeof v !== 'object') continue
+          const cur = sprite.review[k] ?? { decision: null, selected: 0 }
+          if (v.decision !== undefined) cur.decision = v.decision === 'approved' || v.decision === 'rejected' ? v.decision : null
+          if (v.selected !== undefined) {
+            cur.selected = int(v.selected, 0, 0, 100000)
+            if (v.decision === undefined) cur.decision = null
+          }
+          sprite.review[k] = cur
+        }
+      },
+      'review'
+    )
+  }
+
+  versions(rel: string, key: string): Promise<StripVersion[]> {
+    return this.deps.run(async () => {
+      try {
+        const { dir, sprite } = await this.load(rel)
+        const defs = this.defs(sprite)
+        const d0 = defs.find((x) => x.key === key)
+        if (!d0) return []
+        const d = d0.mirrorOf ? (defs.find((x) => x.key === d0.mirrorOf) ?? d0) : d0
+        const v = await stripVersions(dir, d.assetRel)
+        for (const x of v) this.deps.allow(versionPath(dir, d.assetRel, x.version))
+        return v
+      } catch (e) {
+        this.deps.log(`sprite versions failed: ${(e as Error).message}`)
+        return []
+      }
+    })
+  }
+
+  enqueue(rel: string, keys: string[], note?: string): Promise<number> {
+    return this.deps.run(async () => {
+      const push = this.deps.enqueue?.()
+      if (!push) return 0
+      const { dir, sprite } = await this.load(rel)
+      if (!sprite.style.locked) return -1
+      const defs = this.defs(sprite)
+      const lockKey = this.lockOf(sprite, defs)
+      const lockDef = defs.find((d) => d.key === lockKey)
+      let lockImages: string[] = []
+      if (lockDef && sprite.review[lockDef.key]?.decision === 'approved') {
+        const versions = await listStripVersions(dir, lockDef.assetRel)
+        const sel = sprite.review[lockDef.key]?.selected
+        const v = sel && versions.includes(sel) ? sel : versions[versions.length - 1]
+        if (v) lockImages = [versionPath(dir, lockDef.assetRel, v)]
+      }
+      let styleImages: string[] = []
+      let prompt = sprite.style.promptEn
+      if (sprite.style.templateId && this.deps.template) {
+        const tpl = await this.deps.template(sprite.style.templateId).catch(() => null)
+        const preview = tpl ? (tpl.previewSmPath ?? tpl.previewPath) : null
+        if (preview) styleImages = [preview]
+        if (!prompt.trim() && tpl) prompt = tpl.promptEn
+      }
+      const refImages = sprite.style.refImages.map((r) => join(dir, r)).filter((p) => existsSync(p))
+      const notes = [sprite.style.notes.trim(), (note ?? '').trim()].filter(Boolean).join('\n')
+      const specs: JobSpec[] = []
+      for (const key of keys) {
+        const d = defs.find((x) => x.key === key)
+        if (!d || d.mirrorOf) continue
+        specs.push({
+          projectPath: dir,
+          assetRelPath: d.assetRel,
+          sourcePath: d.sheet.path,
+          groupId: 'sprite',
+          stylePrompt: prompt,
+          styleImages,
+          refImages,
+          note: notes || undefined,
+          sprite: {
+            sheetId: d.sheet.id,
+            animId: d.anim.id,
+            anim: d.anim.name,
+            dir: d.anim.dir,
+            view: sprite.settings.view,
+            frames: d.frames,
+            lockImages: d.key === lockKey ? [] : lockImages
+          }
+        })
+      }
+      if (!specs.length) return 0
+      push(specs)
+      this.deps.log(`sprite ${rel}: enqueued ${specs.length} strip(s)`)
+      return specs.length
+    })
+  }
+
+  async pickExportDir(rel: string, win: BrowserWindow | null): Promise<string | null> {
+    const { dialog } = await import('electron')
+    const opts: Electron.OpenDialogOptions = { properties: ['openDirectory', 'createDirectory', 'dontAddToRecent'] }
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (r.canceled || !r.filePaths.length) return null
+    const picked = r.filePaths[0]
+    await this.mutateView(
+      rel,
+      ({ sprite }) => {
+        sprite.exportDir = picked
+      },
+      'export dir'
+    )
+    return picked
+  }
+
+  exportRun(rel: string, outDirRaw: string): Promise<SpriteExportResult> {
+    return this.deps.run(async () => {
+      const fail = (error: string, outDir = ''): SpriteExportResult => ({ ok: false, outDir, sheets: [], backupDir: null, error })
+      try {
+        const { dir, data, sprite } = await this.load(rel)
+        const outDir = resolve(dir, outDirRaw.trim() || sprite.exportDir || 'output')
+        const defs = this.defs(sprite)
+        const byKey = new Map(defs.map((d) => [d.key, d]))
+        const pickVersion = async (d: StripDef): Promise<string | null> => {
+          const e = sprite.review[d.key]
+          if (e?.decision !== 'approved') return null
+          const versions = await listStripVersions(dir, d.assetRel)
+          const v = e.selected && versions.includes(e.selected) ? e.selected : versions[versions.length - 1]
+          return v ? versionPath(dir, d.assetRel, v) : null
+        }
+        const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
+        let backupDir: string | null = null
+        const result: SpriteExportResult['sheets'] = []
+        for (const rec of sprite.sheets) {
+          if (!existsSync(rec.path)) continue
+          if (pathKey(dirname(rec.path)) === pathKey(outDir)) return fail('outIsSource', outDir)
+          const pieces: ExportPiece[] = []
+          for (const d of defs.filter((x) => x.sheet.id === rec.id)) {
+            const src = d.mirrorOf ? byKey.get(d.mirrorOf) : d
+            if (!src) continue
+            const file = await pickVersion(src)
+            if (!file) continue
+            pieces.push({ def: d, file, flip: !!d.mirrorOf, sourceSizes: frameSizes(src.frames) })
+          }
+          if (!pieces.length) continue
+          pieces.sort((a, b) => Number(!!a.def.mirrorOf) - Number(!!b.def.mirrorOf))
+          const { image, replaced } = await composeSheet(rec.path, rec.frames, pieces)
+          await fs.mkdir(outDir, { recursive: true })
+          const name = sheetOutName(rec.path)
+          const target = join(outDir, name)
+          const extras = rec.atlasPath && existsSync(rec.atlasPath) ? [rec.atlasPath] : []
+          for (const f of [target, ...extras.map((a) => join(outDir, basename(a)))]) {
+            if (!existsSync(f)) continue
+            backupDir = backupDir ?? join(outDir, '_backup', stamp)
+            await fs.mkdir(backupDir, { recursive: true })
+            await fs.copyFile(f, join(backupDir, basename(f)))
+          }
+          await savePng(image, target)
+          let atlas: string | null = null
+          for (const a of extras) {
+            await fs.copyFile(a, join(outDir, basename(a)))
+            atlas = basename(a)
+          }
+          const used = rec.anims.reduce((n, a) => n + a.frames.length, 0)
+          result.push({ name, file: target, frames: replaced, kept: Math.max(0, rec.frames.length - rec.empty.length - replaced), atlas })
+          this.deps.log(`sprite export ${rel}: ${name} ${replaced}/${used} frame(s) replaced`)
+        }
+        if (!result.length) return fail('nothingApproved', outDir)
+        sprite.exportDir = outDirRaw.trim() || sprite.exportDir
+        sprite.lastExport = { at: Date.now(), sheets: result.length, frames: result.reduce((n, r) => n + r.frames, 0) }
+        await this.save(dir, data, sprite)
+        return { ok: true, outDir, sheets: result, backupDir, error: null }
+      } catch (e) {
+        this.deps.log(`sprite export failed: ${(e as Error).message}`)
+        return fail((e as Error).message)
+      }
+    })
   }
 
   open(rel: string): Promise<SpriteProjectView | null> {
@@ -603,4 +957,18 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_IPC.updateSheet, (_e, rel: unknown, id: unknown, patch: unknown) => service.updateSheet(s(rel), s(id), o<SheetPatch>(patch)))
   ipcMain.handle(SPRITE_IPC.detectGrid, (_e, rel: unknown, id: unknown) => service.detectGrid(s(rel), s(id)))
   ipcMain.handle(SPRITE_IPC.setSettings, (_e, rel: unknown, patch: unknown) => service.setSettings(s(rel), o<Partial<SpriteSettings>>(patch)))
+  ipcMain.handle(SPRITE_GEN_IPC.setStyle, (_e, rel: unknown, patch: unknown) => service.setStyle(s(rel), o<Partial<SpriteStyle>>(patch)))
+  ipcMain.handle(SPRITE_GEN_IPC.addRefs, (_e, rel: unknown) => service.addRefs(s(rel), getWindow()))
+  ipcMain.handle(SPRITE_GEN_IPC.setLock, (_e, rel: unknown, key: unknown) => service.setLock(s(rel), typeof key === 'string' ? key : null))
+  ipcMain.handle(SPRITE_GEN_IPC.enqueue, (_e, rel: unknown, keys: unknown, note: unknown) => service.enqueue(s(rel), ss(keys), typeof note === 'string' ? note : undefined))
+  ipcMain.handle(SPRITE_GEN_IPC.review, (_e, rel: unknown, patch: unknown) => service.review(s(rel), o<Record<string, SpriteStripPatch>>(patch)))
+  ipcMain.handle(SPRITE_GEN_IPC.versions, (_e, rel: unknown, key: unknown) => service.versions(s(rel), s(key)))
+  ipcMain.handle(SPRITE_GEN_IPC.exportRun, (_e, rel: unknown, outDir: unknown) => service.exportRun(s(rel), s(outDir)))
+  ipcMain.handle(SPRITE_GEN_IPC.exportDir, (_e, rel: unknown) => service.pickExportDir(s(rel), getWindow()))
+  ipcMain.handle(SPRITE_GEN_IPC.reveal, async (_e, p: unknown) => {
+    const target = s(p)
+    if (!target || !existsSync(target)) return
+    const { shell } = await import('electron')
+    await shell.openPath(target)
+  })
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState, type DragEvent, type ReactElement } from 'react'
+import { useEffect, useRef, useState, type DragEvent, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
@@ -10,6 +10,11 @@ import { EASE, viewTransition } from '@renderer/lib/motion'
 import { fileSize } from '@renderer/lib/format'
 import { useSprite } from '@renderer/store/sprite'
 import { useWs } from '@renderer/store/workspace'
+import { samePath, useQueue } from '@renderer/store/queue'
+import { SpriteStyleStep } from './SpriteStyleStep'
+import { SpriteGenStep } from './SpriteGenStep'
+import { SpriteReviewStep } from './SpriteReviewStep'
+import { SpriteExportStep } from './SpriteExportStep'
 
 const STEPS = ['sheets', 'grid', 'style', 'gen', 'review', 'export'] as const
 type StepKey = (typeof STEPS)[number]
@@ -17,9 +22,13 @@ const STEP_ICON: Record<StepKey, IconName> = { sheets: 'upload', grid: 'grid', s
 
 function canStep(v: SpriteProjectView, n: number): boolean {
   if (n === 1) return true
-  if (n === 2) return v.sheets.length > 0
-  return false
+  if (n === 2 || n === 3) return v.sheets.length > 0
+  if (n === 4) return v.sheets.length > 0 && v.style.locked
+  if (n === 5) return v.strips.some((s) => s.versions.length > 0)
+  return v.strips.some((s) => s.decision === 'approved')
 }
+
+const LOCK_KEY = ['', 'grid', 'grid', 'gen', 'review', 'export'] as const
 
 function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
   const { t } = useTranslation()
@@ -27,13 +36,14 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
   const setStep = useSprite((s) => s.setStep)
   const frames = v.sheets.reduce((n, s) => n + s.frames.length - s.empty.length, 0)
   const anims = v.sheets.reduce((n, s) => n + s.anims.length, 0)
+  const gens = v.strips.filter((s) => !s.mirrorOf)
   const subs = [
     t('spriteProject.sub.sheets', { count: v.sheets.length }),
     t('spriteProject.sub.grid', { frames, anims }),
-    t('spriteProject.sub.soon'),
-    t('spriteProject.sub.soon'),
-    t('spriteProject.sub.soon'),
-    t('spriteProject.sub.soon')
+    v.style.locked ? t('spriteProject.sub.styleLocked') : t('spriteProject.sub.styleOpen'),
+    t('spriteProject.sub.gen', { done: gens.filter((s) => s.versions.length > 0).length, total: gens.length }),
+    t('spriteProject.sub.review', { count: gens.filter((s) => s.decision === 'approved').length }),
+    v.export.lastAt > 0 ? t('spriteProject.sub.exported', { count: v.export.lastSheets }) : t('spriteProject.sub.notExported')
   ]
   return (
     <div className="steps" role="tablist">
@@ -56,7 +66,7 @@ function StepBar({ v }: { v: SpriteProjectView }): ReactElement {
               role="tab"
               aria-selected={cur}
               aria-disabled={locked || undefined}
-              title={locked ? t(n === 2 ? 'spriteProject.lock.grid' : 'spriteProject.lock.soon') : undefined}
+              title={locked ? t(`spriteProject.lock.${LOCK_KEY[n - 1] || 'grid'}`) : undefined}
               onClick={() => !locked && setStep(n)}
             >
               <span className="num">{done && !cur ? <Icon name="check" size={13} /> : locked ? <Icon name="lock" size={12} /> : n}</span>
@@ -342,22 +352,6 @@ function GridStep({ v }: { v: SpriteProjectView }): ReactElement {
   )
 }
 
-function Soon({ step }: { step: StepKey }): ReactElement {
-  const { t } = useTranslation()
-  return (
-    <div className="soon">
-      <div className="soon-card">
-        <div className="soon-ic">
-          <Icon name="sparkles" size={26} />
-        </div>
-        <span className="chip c-blue">{t('project.soon.title')}</span>
-        <h2>{t(`spriteProject.steps.${step}`)}</h2>
-        <p>{t('spriteProject.soonDesc')}</p>
-      </div>
-    </div>
-  )
-}
-
 export function SpriteProjectScreen({ project }: { project: ProjectView }): ReactElement {
   const { t } = useTranslation()
   const load = useSprite((s) => s.load)
@@ -372,6 +366,20 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
     void load(project.rel)
   }, [project.rel, project.updatedAt, load])
   useEffect(() => () => reset(), [reset])
+  const refresh = useSprite((s) => s.refresh)
+  const snap = useQueue((s) => s.snap)
+  const finished = useRef('')
+  useEffect(() => {
+    if (!snap || !view) return
+    const sig = snap.jobs
+      .filter((j) => samePath(j.projectPath, view.dir) && (j.status === 'done' || j.status === 'qaWarn' || j.status === 'error'))
+      .map((j) => `${j.id}:${j.status}:${j.finishedAt ?? 0}`)
+      .join('|')
+    if (sig === finished.current) return
+    const first = finished.current === ''
+    finished.current = sig
+    if (!first) void refresh()
+  }, [snap, view, refresh])
 
   if (!view) {
     return (
@@ -416,7 +424,19 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
             transition={viewTransition}
           >
             <Intro step={key} n={step} />
-            {key === 'sheets' ? <SheetsStep v={view} /> : key === 'grid' ? <GridStep v={view} /> : <Soon step={key} />}
+            {key === 'sheets' ? (
+              <SheetsStep v={view} />
+            ) : key === 'grid' ? (
+              <GridStep v={view} />
+            ) : key === 'style' ? (
+              <SpriteStyleStep v={view} />
+            ) : key === 'gen' ? (
+              <SpriteGenStep v={view} />
+            ) : key === 'review' ? (
+              <SpriteReviewStep v={view} />
+            ) : (
+              <SpriteExportStep v={view} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

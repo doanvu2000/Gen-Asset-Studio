@@ -475,7 +475,14 @@ if (!app.requestSingleInstanceLock()) {
     registerSpriteIpc(
       ipcMain,
       () => mainWindow,
-      new SpriteService({ ...workspace.spriteDeps(), log: logger.scoped('sprite'), readProject, writeProject })
+      new SpriteService({
+        ...workspace.spriteDeps(),
+        log: logger.scoped('sprite'),
+        readProject,
+        writeProject,
+        enqueue: () => (queue ? (specs) => (queue as JobQueue).enqueue(specs) : null),
+        template: (id) => style.templates.get(id)
+      })
     )
     disposeExportIpc = registerExportIpc(ipcMain, () => mainWindow, {
       loadProject: (rel) => workspace.loadForExport(rel),

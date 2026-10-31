@@ -1,4 +1,5 @@
 import type { RateLimits } from './types'
+import type { SpriteJobSpec } from './sprite'
 
 export type JobStatus = 'queued' | 'running' | 'processing' | 'done' | 'qaWarn' | 'error' | 'paused' | 'canceled'
 
@@ -61,6 +62,7 @@ export interface JobSpec {
   edgeAnchored?: EdgeSide[] | 'auto'
   model?: string
   effort?: string
+  sprite?: SpriteJobSpec
 }
 
 export interface QueueJob extends JobSpec {

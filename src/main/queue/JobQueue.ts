@@ -18,6 +18,7 @@ import {
 import type { RateLimits } from '@shared/types'
 import type { LogFn } from '../logger'
 import { JobFailure, runGenJob, type CodexLike, type PipelineLike } from './GenJob'
+import { runStripJob } from '../sprite/stripJob'
 
 export interface GenSettings {
   model?: string
@@ -208,6 +209,7 @@ export class JobQueue extends EventEmitter {
         edgeAnchored: s.edgeAnchored,
         model: s.model,
         effort: s.effort,
+        sprite: s.sprite,
         id: randomUUID(),
         attempt: 1,
         status: 'queued',
@@ -461,7 +463,7 @@ export class JobQueue extends EventEmitter {
     const gs = this.opts.genSettings?.() ?? {}
     try {
       if (this.opts.hasDiskSpace && !(await this.opts.hasDiskSpace(job))) throw new JobFailure('diskFull', 'not enough free disk space')
-      const result = await runGenJob(job, {
+      const result = await (job.sprite ? runStripJob : runGenJob)(job, {
         codex: this.opts.codex,
         pipeline: this.opts.pipeline,
         log: this.opts.log,
