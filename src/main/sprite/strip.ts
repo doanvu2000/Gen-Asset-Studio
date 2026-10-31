@@ -278,7 +278,7 @@ export async function scaleRegion(src: RawImage, box: Box, s: number): Promise<R
   return resizeRaw(part, w, h)
 }
 
-export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawImage[], opts: { anchorTol?: number; heightTol?: number } = {}): Promise<StripFit> {
+export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawImage[], opts: { anchorTol?: number; heightTol?: number; anim?: string; trims?: Box[] } = {}): Promise<StripFit> {
   const anchorTol = opts.anchorTol ?? Math.max(3, Math.round(l.cellH * 0.04))
   const heightTol = opts.heightTol ?? 0.12
   const info = originals.map((orig, i) => {
@@ -345,9 +345,109 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
     { id: 'height', status: heightBad.length ? 'warn' : 'pass', value: Math.round(worstHeight * 100), threshold: Math.round(heightTol * 100), frames: heightBad, message: `max height change ${Math.round(worstHeight * 100)}%` },
     { id: 'clipped', status: clipped.length ? 'warn' : 'pass', value: clipped.length, threshold: 0, frames: clipped, message: clipped.length ? `${clipped.length} frame(s) clipped by the cell` : 'no clipping' },
     { id: 'cut', status: cut.length ? 'warn' : 'pass', value: cut.length, threshold: 0, frames: cut, message: cut.length ? `${cut.length} frame(s) touch the AI cell border` : 'cells separated' },
-    { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' }
+    { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' },
+    staticCheck(frames, opts.anim ?? '', missing, originals)
   ]
+  if (opts.trims) checks.push(overflowCheck(frames, opts.trims, missing))
   return { frames, scale: s, offsetX: offX, offsetY: offY, qa: { pass: !checks.some((c) => c.status === 'fail'), checks } }
+}
+
+export function trimBox(f: FrameRect): Box {
+  return { x: f.srcX, y: f.srcY, width: f.rotated ? f.h : f.w, height: f.rotated ? f.w : f.h }
+}
+
+export function isTrimmed(f: FrameRect): boolean {
+  const t = trimBox(f)
+  return t.x > 0 || t.y > 0 || t.width < f.srcW || t.height < f.srcH
+}
+
+export function overflowRatio(img: RawImage, trim: Box): number {
+  let total = 0
+  let out = 0
+  for (let y = 0; y < img.height; y++) {
+    const inY = y >= trim.y && y < trim.y + trim.height
+    for (let x = 0; x < img.width; x++) {
+      if (img.data[(y * img.width + x) * 4 + 3] <= 20) continue
+      total++
+      if (!inY || x < trim.x || x >= trim.x + trim.width) out++
+    }
+  }
+  return total ? out / total : 0
+}
+
+export function overflowCheck(frames: RawImage[], trims: Box[], skip: number[]): StripQaCheck {
+  const warnAt = 0.005
+  const failAt = 0.05
+  const bad: number[] = []
+  let worst = 0
+  frames.forEach((f, i) => {
+    const t = trims[i]
+    if (!t || skip.includes(i)) return
+    const r = overflowRatio(f, t)
+    worst = Math.max(worst, r)
+    if (r > warnAt) bad.push(i)
+  })
+  const pct = Math.round(worst * 1000) / 10
+  return {
+    id: 'overflow',
+    status: worst > failAt ? 'fail' : bad.length ? 'warn' : 'pass',
+    value: pct,
+    threshold: warnAt * 100,
+    frames: bad,
+    message: bad.length ? `${bad.length} frame(s) exceed the trimmed rect, up to ${pct}% cut on export` : 'fits trimmed rects'
+  }
+}
+
+export function motionDiff(a: RawImage, b: RawImage): number {
+  const W = Math.max(a.width, b.width)
+  const H = Math.max(a.height, b.height)
+  const ax = Math.floor((W - a.width) / 2)
+  const ay = H - a.height
+  const bx = Math.floor((W - b.width) / 2)
+  const by = H - b.height
+  const px = (img: RawImage, x: number, y: number): number => (x < 0 || y < 0 || x >= img.width || y >= img.height ? -1 : (y * img.width + x) * 4)
+  let union = 0
+  let changed = 0
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const i = px(a, x - ax, y - ay)
+      const j = px(b, x - bx, y - by)
+      const aa = i < 0 ? 0 : a.data[i + 3]
+      const ab = j < 0 ? 0 : b.data[j + 3]
+      if (aa <= 40 && ab <= 40) continue
+      union++
+      if (Math.abs(aa - ab) > 48) changed++
+      else if (aa > 40 && ab > 40 && Math.abs(a.data[i] - b.data[j]) + Math.abs(a.data[i + 1] - b.data[j + 1]) + Math.abs(a.data[i + 2] - b.data[j + 2]) > 96) changed++
+    }
+  }
+  return union ? changed / union : 0
+}
+
+export function staticTolerance(anim: string): number {
+  return /idle|stand|breath/i.test(anim) ? 0.02 : 0.05
+}
+
+export function staticCheck(frames: RawImage[], anim: string, skip: number[], originals?: RawImage[]): StripQaCheck {
+  const tol = staticTolerance(anim)
+  const diffs: number[] = []
+  const bad: number[] = []
+  for (let i = 1; i < frames.length; i++) {
+    if (skip.includes(i) || skip.includes(i - 1)) continue
+    const d = motionDiff(frames[i], frames[i - 1])
+    const limit = originals?.[i] && originals[i - 1] ? Math.min(tol, motionDiff(originals[i], originals[i - 1]) * 0.5) : tol
+    diffs.push(d)
+    if (d < limit) bad.push(i)
+  }
+  const mean = diffs.length ? diffs.reduce((n, d) => n + d, 0) / diffs.length : 0
+  const pct = Math.round(mean * 1000) / 10
+  return {
+    id: 'static',
+    status: bad.length ? 'warn' : 'pass',
+    value: pct,
+    threshold: tol * 100,
+    frames: bad,
+    message: !diffs.length ? 'single frame' : bad.length ? `${bad.length} frame(s) barely change from the previous one (mean motion ${pct}%)` : `mean motion ${pct}%`
+  }
 }
 
 export function same(a: RawImage, b: RawImage): boolean {

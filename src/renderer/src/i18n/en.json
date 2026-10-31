@@ -1493,6 +1493,8 @@
         "clipped": "Clipped by frame",
         "missing": "Missing frame",
         "duplicate": "Duplicate frame",
+        "overflow": "Exceeds trimmed rect",
+        "static": "Too little motion",
         "cut": "Touches AI cell edge"
       },
       "anim": "Animation",

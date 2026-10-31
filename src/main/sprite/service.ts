@@ -40,8 +40,8 @@ import {
 } from '@shared/sprite'
 import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
-import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, stripVersions, versionPath, type ExportPiece, type StripDef, type StripReviewEntry } from './strips'
-import { savePng } from './strip'
+import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
+import { encodePng, savePng } from './strip'
 import { atlasJson, buildSnippets, snippetsMarkdown } from './snippets'
 import { ensureThumb, pathKey, type ProjectFile } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
@@ -778,7 +778,6 @@ export class SpriteService {
         const { dir, data, sprite } = await this.load(rel)
         const outDir = resolve(dir, outDirRaw.trim() || sprite.exportDir || 'output')
         const defs = this.defs(sprite)
-        const byKey = new Map(defs.map((d) => [d.key, d]))
         const pickVersion = async (d: StripDef): Promise<string | null> => {
           const e = sprite.review[d.key]
           const versions = await listStripVersions(dir, d.assetRel)
@@ -791,16 +790,8 @@ export class SpriteService {
         for (const rec of sprite.sheets) {
           if (!existsSync(rec.path)) continue
           if (pathKey(dirname(rec.path)) === pathKey(outDir)) return fail('outIsSource', outDir)
-          const pieces: ExportPiece[] = []
-          for (const d of defs.filter((x) => x.sheet.id === rec.id)) {
-            const src = d.mirrorOf ? byKey.get(d.mirrorOf) : d
-            if (!src) continue
-            const file = await pickVersion(src)
-            if (!file) continue
-            pieces.push({ def: d, file, flip: !!d.mirrorOf, sourceSizes: frameSizes(src.frames) })
-          }
+          const pieces = await sheetPieces(defs, rec.id, pickVersion)
           if (!pieces.length) continue
-          pieces.sort((a, b) => Number(!!a.def.mirrorOf) - Number(!!b.def.mirrorOf))
           const { image, replaced } = await composeSheet(rec.path, rec.frames, pieces)
           await fs.mkdir(outDir, { recursive: true })
           const name = sheetOutName(rec.path)
@@ -846,6 +837,30 @@ export class SpriteService {
       } catch (e) {
         this.deps.log(`sprite export failed: ${(e as Error).message}`)
         return fail((e as Error).message)
+      }
+    })
+  }
+
+  previewSheet(rel: string, sheetId: string): Promise<string | null> {
+    return this.deps.run(async () => {
+      try {
+        const { dir, sprite } = await this.load(rel)
+        const rec = sprite.sheets.find((x) => x.id === sheetId)
+        if (!rec || !existsSync(rec.path)) return null
+        const pickVersion = async (d: StripDef): Promise<string | null> => {
+          const versions = await listStripVersions(dir, d.assetRel)
+          if (!versions.length) return null
+          const e = sprite.review[d.key]
+          const approved = e?.decision === 'approved' ? e.version || e.selected : 0
+          const v = approved && versions.includes(approved) ? approved : versions[versions.length - 1]
+          return versionPath(dir, d.assetRel, v)
+        }
+        const pieces = await sheetPieces(this.defs(sprite), rec.id, pickVersion)
+        const { image } = await composeSheet(rec.path, rec.frames, pieces)
+        return `data:image/png;base64,${Buffer.from(await encodePng(image)).toString('base64')}`
+      } catch (e) {
+        this.deps.log(`sprite preview failed: ${(e as Error).message}`)
+        return null
       }
     })
   }
@@ -1134,6 +1149,7 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_GEN_IPC.pickCharacter, () => service.pickCharacter(getWindow()))
   ipcMain.handle(SPRITE_GEN_IPC.createSheet, (_e, rel: unknown, spec: unknown) => service.createSheet(s(rel), o<NewSheetSpec>(spec)))
   ipcMain.handle(SPRITE_GEN_IPC.snippets, (_e, rel: unknown, id: unknown) => service.snippets(s(rel), s(id)))
+  ipcMain.handle(SPRITE_GEN_IPC.previewSheet, (_e, rel: unknown, id: unknown) => service.previewSheet(s(rel), s(id)))
   ipcMain.handle(SPRITE_GEN_IPC.reveal, async (_e, p: unknown) => {
     const target = s(p)
     if (!target || !existsSync(target)) return

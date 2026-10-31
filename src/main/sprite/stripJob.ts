@@ -6,7 +6,7 @@ import type { GeneratedImage } from '../codex/service'
 import { JobFailure, releaseVersion, reserveVersion, versionsDir, type GenContext } from '../queue/GenJob'
 import { decode, hexToRgb } from '../pipeline/image'
 import { buildNewStripPrompt, composeGuide, fitNewStrip } from './create'
-import { buildStripPrompt, composeSource, fitStrip, joinFrames, keyStrip, loadSheet, savePng, stripLayout, uprightFrame } from './strip'
+import { buildStripPrompt, composeSource, fitStrip, isTrimmed, joinFrames, keyStrip, loadSheet, savePng, stripLayout, trimBox, uprightFrame } from './strip'
 
 const DEVELOPER_INSTRUCTIONS = [
   'You are a sprite animation restyling worker inside Gen Asset Studio.',
@@ -141,8 +141,8 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
     try {
       const keyed = await keyStrip(rawPath, layout, hexToRgb(chroma.hex))
       fit = create
-        ? await fitNewStrip(keyed, layout, Math.round(create.cell * 0.78), create.cell - Math.max(2, Math.round(create.cell * 0.05)), !/jump/i.test(spec.anim)).then((r) => ({ ...r, offsetX: 0, offsetY: 0 }))
-        : await fitStrip(keyed, layout, originals)
+        ? await fitNewStrip(keyed, layout, Math.round(create.cell * 0.78), create.cell - Math.max(2, Math.round(create.cell * 0.05)), !/jump/i.test(spec.anim), spec.anim).then((r) => ({ ...r, offsetX: 0, offsetY: 0 }))
+        : await fitStrip(keyed, layout, originals, { anim: spec.anim, trims: spec.frames.some(isTrimmed) ? spec.frames.map(trimBox) : undefined })
     } catch (e) {
       throw new JobFailure('pipeline', `strip pipeline failed: ${(e as Error).message.split('\n')[0]}`)
     }

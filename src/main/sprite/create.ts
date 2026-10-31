@@ -1,7 +1,7 @@
 import type { Direction, StripQa, StripQaCheck, ViewAngle } from '@shared/sprite'
 import { resizeRaw, createImage } from '../pipeline/image'
 import type { RawImage } from '../pipeline/types'
-import { DIR_TEXT, VIEW_TEXT, blitClip, cellBox, cellContent, median, same, scaleRegion, type Box, type StripLayout } from './strip'
+import { DIR_TEXT, VIEW_TEXT, blitClip, cellBox, cellContent, median, same, scaleRegion, staticCheck, type Box, type StripLayout } from './strip'
 
 export const ANIM_TEXT: Record<string, string> = {
   idle: 'idle loop: standing in place, gentle breathing / bobbing, feet planted',
@@ -56,7 +56,7 @@ function feetCenter(img: RawImage, box: Box): number {
   return w ? sum / w : box.x + box.width / 2
 }
 
-export async function fitNewStrip(keyed: RawImage, l: StripLayout, targetH: number, baseline: number, grounded = true): Promise<NewFit> {
+export async function fitNewStrip(keyed: RawImage, l: StripLayout, targetH: number, baseline: number, grounded = true, anim = ''): Promise<NewFit> {
   const info = Array.from({ length: l.count }, (_, i) => {
     const region = cellBox(l, i)
     const { box, touches } = cellContent(keyed, region)
@@ -99,7 +99,8 @@ export async function fitNewStrip(keyed: RawImage, l: StripLayout, targetH: numb
     { id: 'height', status: heightBad.length ? 'warn' : 'pass', value: Math.round(worstH * 100), threshold: 25, frames: heightBad, message: `max height spread ${Math.round(worstH * 100)}%` },
     { id: 'clipped', status: clipped.length ? 'warn' : 'pass', value: clipped.length, threshold: 0, frames: clipped, message: clipped.length ? `${clipped.length} frame(s) clipped by the cell` : 'no clipping' },
     { id: 'cut', status: cut.length ? 'warn' : 'pass', value: cut.length, threshold: 0, frames: cut, message: cut.length ? `${cut.length} frame(s) touch the AI cell border` : 'cells separated' },
-    { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' }
+    { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' },
+    staticCheck(frames, anim, missing)
   ]
   return { frames, scale: s, qa: { pass: !checks.some((c) => c.status === 'fail'), checks } }
 }

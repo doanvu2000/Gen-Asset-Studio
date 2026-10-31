@@ -7,7 +7,9 @@ import { SpriteService } from '../src/main/sprite/service'
 import { runStripJob } from '../src/main/sprite/stripJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { pickChroma } from '../src/main/pipeline/chroma'
-import { decode } from '../src/main/pipeline/image'
+import { createImage, decode } from '../src/main/pipeline/image'
+import { overflowCheck, staticCheck, trimBox, isTrimmed } from '../src/main/sprite/strip'
+import type { RawImage } from '../src/main/pipeline/types'
 import type { CodexLike, PipelineLike } from '../src/main/queue/GenJob'
 
 const root = resolve(__dirname, '..')
@@ -72,7 +74,54 @@ async function diff(a: string, b: string): Promise<{ mean: number; changed: numb
   return { mean: sum / (x.width * x.height), changed: changed / (x.width * x.height) }
 }
 
+function paint(img: RawImage, x: number, y: number, bw: number, bh: number): RawImage {
+  for (let yy = y; yy < y + bh; yy++) for (let xx = x; xx < x + bw; xx++) img.data.set([200, 80, 40, 255], (yy * img.width + xx) * 4)
+  return img
+}
+
+function blob(w: number, h: number, x: number, y: number, bw: number, bh: number): RawImage {
+  return paint(createImage(w, h), x, y, bw, bh)
+}
+
+async function dataUrlSize(url: string | null): Promise<{ w: number; h: number; buf: Buffer | null }> {
+  if (!url || !url.startsWith('data:image/png;base64,')) return { w: 0, h: 0, buf: null }
+  const buf = Buffer.from(url.slice(22), 'base64')
+  const m = await sharp(buf).metadata()
+  return { w: m.width ?? 0, h: m.height ?? 0, buf }
+}
+
+function unitChecks(): void {
+  const trim = trimBox({ name: 'f', x: 0, y: 0, w: 20, h: 30, rotated: false, trimmed: true, srcX: 10, srcY: 5, srcW: 64, srcH: 64, pivotX: 0.5, pivotY: 1 })
+  check(trim.x === 10 && trim.y === 5 && trim.width === 20 && trim.height === 30, 'trimBox upright rect')
+  const rot = trimBox({ name: 'f', x: 0, y: 0, w: 30, h: 20, rotated: true, trimmed: true, srcX: 10, srcY: 5, srcW: 64, srcH: 64, pivotX: 0.5, pivotY: 1 })
+  check(rot.width === 20 && rot.height === 30, 'trimBox rotated swaps w/h')
+  check(!isTrimmed({ name: 'f', x: 0, y: 0, w: 64, h: 64, rotated: false, trimmed: false, srcX: 0, srcY: 0, srcW: 64, srcH: 64, pivotX: 0.5, pivotY: 1 }), 'full frame not trimmed')
+  const inside = blob(64, 64, 10, 5, 20, 30)
+  const little = blob(64, 64, 10, 6, 20, 30)
+  const lot = blob(64, 64, 4, 6, 30, 28)
+  const ok = overflowCheck([inside], [trim], [])
+  check(ok.id === 'overflow' && ok.status === 'pass' && ok.value === 0, `overflow pass inside trim (${ok.value})`)
+  const w = overflowCheck([inside, little], [trim, trim], [])
+  check(w.status === 'warn' && w.frames.join() === '1' && w.value > 0.5 && w.value <= 5, `overflow warn small spill (${w.value}%)`)
+  const f = overflowCheck([inside, lot], [trim, trim], [])
+  check(f.status === 'fail' && f.frames.join() === '1' && f.value > 5, `overflow fail big spill (${f.value}%)`)
+  check(overflowCheck([lot], [trim], [0]).status === 'pass', 'overflow skips missing frames')
+  const a = blob(64, 64, 20, 10, 20, 50)
+  const b = blob(64, 64, 24, 10, 20, 50)
+  const still = staticCheck([a, a, a], 'walk', [])
+  check(still.id === 'static' && still.status === 'warn' && still.frames.join() === '1,2' && still.value === 0, `static warn identical walk (${still.message})`)
+  const moving = staticCheck([a, b, a], 'walk', [])
+  check(moving.status === 'pass' && moving.value > 5, `static pass moving walk (${moving.value}%)`)
+  const c = paint(blob(64, 64, 20, 10, 20, 50), 40, 30, 4, 8)
+  check(staticCheck([a, c], 'walk', []).status === 'warn' && staticCheck([a, c], 'idle', []).status === 'pass', 'idle tolerates less motion than walk')
+  check(staticCheck([a, a], 'walk', [], [a, a]).status === 'pass', 'static pass when original is static too')
+  check(staticCheck([a, a], 'walk', [], [a, b]).status === 'warn', 'static warn when original moves')
+  check(staticCheck([a], 'walk', []).status === 'pass', 'static pass single frame')
+  check(staticCheck([a, createImage(64, 64), a], 'walk', [1]).frames.length === 0, 'static skips missing frames')
+}
+
 async function main(): Promise<void> {
+  unitChecks()
   rmSync(base, { recursive: true, force: true })
   mkdirSync(proj, { recursive: true })
   await writeProject(proj, emptyProject('Hero', 'sprite'))
@@ -102,6 +151,12 @@ async function main(): Promise<void> {
   check((await svc.enqueue('Hero', [lock as string])) === -1, 'enqueue refused until style locked')
   view = await svc.setStyle('Hero', { promptEn: 'candy style', locked: true })
   check(view?.style.locked === true, 'style locked')
+  const tpId = view?.sheets.find((x) => /tp/.test(x.name))?.id as string
+  const gridId = view?.sheets.find((x) => /grid/.test(x.name))?.id as string
+  const pv0 = await dataUrlSize(await svc.previewSheet('Hero', tpId))
+  const tpMeta = await sharp(join(samples, 'hero_4dir_tp.png')).metadata()
+  check(pv0.w === tpMeta.width && pv0.h === tpMeta.height, `preview before gen = original size ${pv0.w}x${pv0.h}`)
+  check((await svc.previewSheet('Hero', 'nope')) === null, 'preview unknown sheet -> null')
   const n = await svc.enqueue('Hero', [lock as string])
   check(n === 1 && queued[0].sprite?.lockImages.length === 0, 'lock strip enqueued without lock image')
 
@@ -110,6 +165,9 @@ async function main(): Promise<void> {
       const spec = queued.shift() as JobSpec
       const job = { ...spec, id: 'x', attempt: 1, status: 'running', step: 'waiting', progress: '', error: null, result: null, createdAt: 0, startedAt: 0, finishedAt: null, notBefore: null } as QueueJob
       const r = await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
+      const ids = r.qa.checks.map((c) => c.id)
+      const trimmed = (spec.sprite?.frames ?? []).some(isTrimmed)
+      check(ids.includes('static') && ids.includes('overflow') === trimmed, `${spec.assetRelPath} static check, overflow ${trimmed ? 'on' : 'off'}`)
       const fails = r.qa.checks.filter((c) => c.status !== 'pass').map((c) => `${c.id}=${c.value}`)
       check(r.qa.pass && fails.length === 0, `${spec.assetRelPath} v${r.version} qa clean ${fails.join(' ')}`)
     }
@@ -125,6 +183,9 @@ async function main(): Promise<void> {
   for (const s of view?.strips ?? []) if (!s.mirrorOf) patch[s.key] = { decision: 'approved' }
   view = await svc.review('Hero', patch)
   check(view?.strips.every((s) => s.decision === 'approved'), 'all strips approved (mirrors follow source)')
+  const pvLatest = await dataUrlSize(await svc.previewSheet('Hero', gridId))
+  const gridMeta = await sharp(join(samples, 'hero_8dir_grid.png')).metadata()
+  check(pvLatest.w === gridMeta.width && pvLatest.h === gridMeta.height, `preview with latest (unapproved) versions ${pvLatest.w}x${pvLatest.h}`)
   const vers = await svc.versions('Hero', lock as string)
   check(vers.length === 1 && !!vers[0].qa, 'versions list with qa')
 
@@ -143,6 +204,13 @@ async function main(): Promise<void> {
     check(d.mean < 10 && d.changed < 0.07, `${s.name} round-trip close to original`)
   }
   check(existsSync(join(out, 'hero_4dir_tp.json')), 'atlas copied next to sheet')
+  for (const [id, name] of [[tpId, 'hero_4dir_tp.png'], [gridId, 'hero_8dir_grid.png']]) {
+    const pv = await dataUrlSize(await svc.previewSheet('Hero', id))
+    const exported = await decode(join(out, name))
+    const prev = pv.buf ? await decode(pv.buf) : null
+    check(!!prev && prev.width === exported.width && Buffer.compare(Buffer.from(prev.data), Buffer.from(exported.data)) === 0, `${name} preview identical to export once approved`)
+  }
+  check(!existsSync(join(proj, 'output')), 'preview writes no output files')
   const again = await svc.exportRun('Hero', out)
   check(again.ok && !!again.backupDir && existsSync(join(again.backupDir as string, 'hero_8dir_grid.png')), 'second export backs up previous files')
   console.log(`\n${passed} passed, ${failed} failed  (out: ${out})`)

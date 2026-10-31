@@ -253,7 +253,7 @@ export const EMPTY_SPRITE_STYLE: SpriteStyle = { promptEn: '', templateId: null,
 export type StripDecision = 'approved' | 'rejected'
 
 export interface StripQaCheck {
-  id: 'anchor' | 'height' | 'clipped' | 'missing' | 'duplicate' | 'cut'
+  id: 'anchor' | 'height' | 'clipped' | 'missing' | 'duplicate' | 'cut' | 'overflow' | 'static'
   status: 'pass' | 'warn' | 'fail'
   value: number
   threshold: number
@@ -332,7 +332,8 @@ export const SPRITE_GEN_IPC = {
   reveal: 'sprite:reveal',
   pickCharacter: 'sprite:pick-character',
   createSheet: 'sprite:create-sheet',
-  snippets: 'sprite:snippets'
+  snippets: 'sprite:snippets',
+  previewSheet: 'sprite:preview-sheet'
 } as const
 
 export interface SpriteGenApi {
@@ -348,6 +349,7 @@ export interface SpriteGenApi {
   pickCharacter: () => Promise<PickedImage | null>
   createSheet: (rel: string, spec: NewSheetSpec) => Promise<CreateSheetResult>
   snippets: (rel: string, sheetId: string) => Promise<SheetSnippets | null>
+  previewSheet: (rel: string, sheetId: string) => Promise<string | null>
 }
 
 export function stripFrames(sizes: FrameSize[]): FrameRect[] {

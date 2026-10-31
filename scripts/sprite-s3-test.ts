@@ -96,6 +96,8 @@ async function main(): Promise<void> {
     const res = await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
     const m = await sharp(res.versionPath).metadata()
     const n = spec.sprite?.frames.length ?? 0
+    const st = res.qa.checks.find((c) => c.id === 'static')
+    check(st?.status === 'warn' && res.qa.pass && !res.qa.checks.some((c) => c.id === 'overflow'), `fake copies the guide into every cell -> static warn ${st?.value}%, qa still pass`)
     check(m.width === n * 128 && m.height === 128, `${spec.assetRelPath} v${res.version} ${m.width}x${m.height}, qa missing=${res.qa.checks.find((c) => c.id === 'missing')?.value}`)
   }
   let view = await svc.open('Hero New')

@@ -1493,6 +1493,8 @@
         "clipped": "Bị cắt khung",
         "missing": "Thiếu frame",
         "duplicate": "Frame trùng",
+        "overflow": "Tràn rect trim",
+        "static": "Chuyển động quá ít",
         "cut": "Chạm mép ô AI"
       },
       "anim": "Animation",

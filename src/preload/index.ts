@@ -188,7 +188,8 @@ const api: GasApi = {
     reveal: (path: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.reveal, path),
     pickCharacter: () => ipcRenderer.invoke(SPRITE_GEN_IPC.pickCharacter),
     createSheet: (rel: string, spec: NewSheetSpec) => ipcRenderer.invoke(SPRITE_GEN_IPC.createSheet, rel, spec),
-    snippets: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.snippets, rel, sheetId)
+    snippets: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.snippets, rel, sheetId),
+    previewSheet: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.previewSheet, rel, sheetId)
   },
   spine: {
     open: (rel: string) => ipcRenderer.invoke(SPINE_IPC.open, rel),

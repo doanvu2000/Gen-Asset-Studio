@@ -155,6 +155,19 @@ export interface ExportPiece {
   sourceSizes: FrameSize[]
 }
 
+export async function sheetPieces(defs: StripDef[], sheetId: string, pick: (d: StripDef) => Promise<string | null>): Promise<ExportPiece[]> {
+  const byKey = new Map(defs.map((d) => [d.key, d]))
+  const pieces: ExportPiece[] = []
+  for (const d of defs.filter((x) => x.sheet.id === sheetId)) {
+    const src = d.mirrorOf ? byKey.get(d.mirrorOf) : d
+    if (!src) continue
+    const file = await pick(src)
+    if (!file) continue
+    pieces.push({ def: d, file, flip: !!d.mirrorOf, sourceSizes: frameSizes(src.frames) })
+  }
+  return pieces.sort((a, b) => Number(!!a.def.mirrorOf) - Number(!!b.def.mirrorOf))
+}
+
 export async function composeSheet(sheetPath: string, frames: FrameRect[], pieces: ExportPiece[]): Promise<{ image: RawImage; replaced: number }> {
   const base = await decode(sheetPath)
   const done = new Set<number>()
