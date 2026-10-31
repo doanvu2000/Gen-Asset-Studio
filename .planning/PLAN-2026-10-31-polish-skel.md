@@ -35,3 +35,8 @@ Ngoài phạm vi (giữ lại sau): mẫu style riêng cho nhân vật (tốn l�
 
 ## WP-5: E2E + index/CHANGELOG (main)
 - E2E thật app (profile tạm, dọn queue, thoát bằng window.close), CHANGELOG/PLAN-sprite-spine cập nhật, HANDOFF.
+
+## Đợt 2 (chủ nhân: "3 việc còn lại kia làm đi") — commit từng phần
+- WP-6: mẫu style nhân vật (4 mẫu + preview gen Codex, phân loại ui/character, Sprite/Spine ưu tiên mẫu nhân vật). Phạm vi: resources/style-templates, src/main/style/templates.ts, src/shared/style.ts, scripts/gen-template-previews.mjs, Sprite/SpineStyleStep, i18n.
+- WP-7: QA overflow cho dải mirror. Phạm vi: src/main/sprite/*, scripts/sprite-*-test.ts.
+- WP-8: thẻ Workspace Sprite "Chưa gen" + spineProgress chọn dir sig mới nhất. Phạm vi: src/main/workspace/service.ts (+ test).

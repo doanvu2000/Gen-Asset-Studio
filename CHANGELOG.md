@@ -33,12 +33,16 @@ Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Re
 - Spine: nhận skeleton nhị phân **`.skel` 4.2** như `.json` (nhập, preview, rigging, xuất `.skel` mới + `.original.skel` khi có chỉnh rig)
 - Sprite QA mới: **Tràn rect trim** (frame mới sẽ bị cắt khi xuất vào sheet trimmed) và **Chuyển động quá ít**; kèm gợi ý + nút điền sẵn ghi chú gen lại
 - Lưới tổng Sprite: **Đi thử bằng frame mới** (công tắc Gốc/Mới), chọn sheet, chỉ hiện các hướng sheet có
+- **4 mẫu style nhân vật** cho Sprite/Spine: Chibi, Pixel Art, Vẽ tay Fantasy, Anime cel-shade (Sprite/Spine hiện mẫu nhân vật trước, Reskin hiện mẫu UI trước)
+- QA Tràn rect trim kiểm cả hướng lật gương (vd E lật từ W)
 ### Remove
 - Loại ảnh "Sprite sheet" (đang khoá) trong project Reskin — thay bằng loại project Sprite sheet riêng
 
 ### Fixbug
 - Sprite: màn Gen không tự cập nhật khi ảnh đầu tiên gen xong
 - Duyệt Sprite/Spine: quyết định duyệt gắn với phiên bản — có bản gen mới thì phải duyệt lại
+- Thẻ Workspace Sprite luôn ghi "Chưa gen": nay đếm đúng dải đã gen / đã duyệt / đã xuất
+- Thẻ Workspace Spine lấy đúng ảnh của bộ file đang dùng sau khi nhập lại
 - Spine: ảnh thẻ Workspace đổi theo region mới; nút "Mở thư mục" bước Xuất không còn full width
 - Sprite: câu giới thiệu bước Xuất đúng cho sheet tạo mới; ô mô tả dialog Tạo sheet mới cao hơn, dòng thêm animation không bị cắt
 
