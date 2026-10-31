@@ -76,7 +76,7 @@ function spineSig(spine: Record<string, unknown>): string | null {
     .filter((p) => typeof p.path === 'string' && p.path)
     .map((p) => (typeof p.hash === 'string' ? p.hash : ''))
   return createHash('sha1')
-    .update([typeof atlas.hash === 'string' ? atlas.hash : '', ...pages].join('|'))
+    .update(['pma1', typeof atlas.hash === 'string' ? atlas.hash : '', ...pages].join('|'))
     .digest('hex')
     .slice(0, 10)
 }

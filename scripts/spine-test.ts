@@ -431,19 +431,24 @@ async function backendFixes(page: Raw): Promise<void> {
   const t = new Date(Date.now() + 5000)
   const { utimesSync } = await import('node:fs')
   utimesSync(pagePath, t, t)
+  const old = new Date('2021-06-01T00:00:00.000Z')
+  utimesSync(join(dir, 'project.json'), old, old)
   v = await svc.open('Fix16')
   const pj2 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   check(v?.status === 'ok' && Math.abs(pj2.spine.pages['img/hero.png'].mtime - t.getTime()) < 2, 'touched page (same bytes) → ok, new mtime stored')
+  check(statSync(join(dir, 'project.json')).mtimeMs === old.getTime(), 'stats refresh keeps project.json mtime')
   const p3 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   delete p3.spine.skeleton.mtime
   delete p3.spine.skeleton.size
   delete p3.spine.assets
   p3.updatedAt = '2020-01-01T00:00:00.000Z'
   writeFileSync(join(dir, 'project.json'), JSON.stringify(p3))
+  utimesSync(join(dir, 'project.json'), old, old)
   v = await svc.open('Fix16')
   const p3b = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   check(v?.status === 'ok' && typeof p3b.spine.skeleton.mtime === 'number', 'legacy project without mtime → rehash once, ok, stats stored')
   check(p3b.updatedAt === '2020-01-01T00:00:00.000Z' && p3b.spine.assets.head === 'spine/head' && v?.regions.find((x) => x.name === 'head')?.versions.length === 3, 'open-time migration (stats + asset map) does not bump updatedAt')
+  check(statSync(join(dir, 'project.json')).mtimeMs === old.getTime(), 'open-time migration keeps project.json mtime')
   await savePng(red, pagePath)
   v = await svc.open('Fix16')
   check(v?.status === 'changed' && v.error === 'sourceChanged' && v.changedFiles?.length === 1 && v.regions.length === 0, 'page replaced in place → status changed / sourceChanged')
@@ -460,6 +465,8 @@ async function backendFixes(page: Raw): Promise<void> {
   const pj5 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   check(!coll.error && pj5.spine.assets.head === 'spine/head' && pj5.spine.assets.Head.startsWith('spine/Head-') && coll.view?.regions.find((x) => x.name === 'head')?.versions.length === 3, 'colliding region added before an existing one → existing asset dir kept')
   writeFileSync(join(src, 'hero.atlas'), atlasText.replace('rotate:90', 'rotate:180'))
+  const rv = await svc.open('Fix16')
+  check(rv?.status === 'changed' && rv.error === 'unsupportedRotate:arm_l 180' && rv.changedFiles?.length === 1, `changed atlas that fails to parse → parse error wins (${rv?.error})`)
   await svc.review('Fix16', { head: { decision: 'approved' }, nope: { decision: 'approved' } })
   const pj6 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   check(pj6.spine.review.head.version === 3 && pj6.spine.review.head.seen === 3 && !pj6.spine.review.nope.version && !pj6.spine.review.nope.seen, 'review uses stored asset map (atlas unparseable), unknown region gets no version/seen')

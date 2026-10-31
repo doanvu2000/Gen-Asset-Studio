@@ -150,7 +150,7 @@ async function main(): Promise<void> {
 
   const atlas = { path: join(base, 'hero.atlas'), hash: 'atlas-v2' }
   const pages = { 'hero.png': { path: join(base, 'hero.png'), hash: 'page-v2' } }
-  const sig = createHash('sha1').update(['atlas-v2', 'page-v2'].join('|')).digest('hex').slice(0, 10)
+  const sig = createHash('sha1').update(['pma1', 'atlas-v2', 'page-v2'].join('|')).digest('hex').slice(0, 10)
   const p1 = await project('P1-reimport', 'spine', { spine: { atlas, pages } })
   touch(join(p1, '.cache', 'spine', '0000000000', 'board.png'), Date.now())
   touch(join(p1, '.cache', 'spine', sig, 'board.png'), Date.now() - 60_000)

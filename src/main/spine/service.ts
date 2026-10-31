@@ -275,8 +275,10 @@ export class SpineService {
     l.data.spine = { ...l.spine }
     const file = join(l.dir, PROJECT_FILE)
     const tmp = `${file}.${process.pid}.tmp`
+    const prev = await fs.stat(file).catch(() => null)
     await fs.writeFile(tmp, JSON.stringify(l.data, null, 2), 'utf8')
     await fs.rename(tmp, file)
+    if (prev) await fs.utimes(file, prev.atimeMs / 1000, prev.mtimeMs / 1000)
   }
 
   private async assetsFor(l: Loaded, atlas: SpineAtlasData): Promise<Map<string, string>> {
@@ -403,13 +405,15 @@ export class SpineService {
     }
     if (!spine.skeleton) return base
     const changedFiles = await this.sourceChanges(l)
-    if (changedFiles.length) return { ...base, status: 'changed', error: error ?? 'sourceChanged', changedFiles }
+    const changed = changedFiles.length ? { changedFiles } : {}
     let parsed: Parsed | null = null
     try {
       parsed = await this.parse(spine)
     } catch (e) {
-      return { ...base, status: 'changed', error: e instanceof SkeletonError || e instanceof AtlasError ? `${e.code}:${e.message}` : `parse:${(e as Error).message}` }
+      const parseError = e instanceof SkeletonError || e instanceof AtlasError ? `${e.code}:${e.message}` : `parse:${(e as Error).message}`
+      return { ...base, status: 'changed', error: changedFiles.length ? (error ?? parseError) : parseError, ...changed }
     }
+    if (changedFiles.length) return { ...base, status: 'changed', error: error ?? 'sourceChanged', changedFiles }
     if (!parsed) return { ...base, status: 'missing' }
     const assets = await this.assetsFor(l, parsed.atlas)
     const sources = await this.ensureSources(dir, spine, parsed.atlas, assets)
