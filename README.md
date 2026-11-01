@@ -2,7 +2,13 @@
 
 App Windows giúp đổi style **cả bộ asset 2D** cho game chỉ trong vài bước, dùng AI vẽ ảnh của Codex (ChatGPT).
 
-Bạn đưa vào một folder ảnh UI (nút, icon, popup, thanh máu…), chọn hoặc tự tạo style mới, app vẽ lại từng ảnh và xuất ra **đúng tên file, đúng cây thư mục, đúng kích thước** như cũ — chép đè vào game là dùng được.
+Có 3 loại project, chọn khi tạo:
+
+| Loại | Dành cho | Vào | Ra |
+|---|---|---|---|
+| **Reskin ảnh** | BA, không cần vẽ | Folder ảnh UI (nút, icon, popup, thanh máu…) PNG/JPG/WebP | Ảnh cùng tên, cùng kích thước, cùng cây thư mục — chép đè vào game là dùng được |
+| **Sprite sheet** | Artist, animation | Sheet PNG + TexturePacker/Aseprite JSON, Cocos `.plist`, Unity `.png.meta` (không có thì tự dò lưới) — hoặc **1 ảnh nhân vật** để tạo sheet mới | Sheet cùng rect, file atlas dùng lại; sheet tạo mới kèm TexturePacker JSON + code mẫu Flutter Flame / Android / iOS |
+| **Spine** | Artist, Spine 4.2 | Skeleton `.json` hoặc `.skel` 4.2 + `.atlas` + ảnh page | Page PNG đúng toạ độ region, `.atlas` giữ nguyên, skeleton mới nếu có chỉnh vị trí |
 
 ![Phiên bản](https://img.shields.io/github/v/release/doanvu2000/Gen-Asset-Studio)
 
@@ -33,7 +39,9 @@ Lần đầu mở app, màn **Chuẩn bị môi trường** tự chạy:
 
 ## Sử dụng
 
-Mỗi bước trong project đều có dòng hướng dẫn **Bước N/5** ở đầu màn hình.
+Mỗi bước trong project đều có dòng hướng dẫn ở đầu màn hình. Mở lại project thì app tự nhảy tới bước chưa xong.
+
+### Reskin ảnh (5 bước)
 
 | Bước | Làm gì |
 |---|---|
@@ -44,6 +52,26 @@ Mỗi bước trong project đều có dòng hướng dẫn **Bước N/5** ở 
 | 5. Xuất | Chọn folder xuất (mặc định `output` trong project), tuỳ chọn thêm bản ×2 / ×4 → **Xuất**. Ảnh giữ đúng định dạng gốc |
 
 Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả luồng với 14 ảnh có sẵn. Xem lại hướng dẫn: **Cài đặt › Chung › Xem lại hướng dẫn**.
+
+### Sprite sheet (4 bước)
+
+| Bước | Làm gì |
+|---|---|
+| 1. Nhập | Kéo thả sheet + file atlas, hoặc **Tạo sheet mới** từ 1 ảnh nhân vật (chọn 4/6/8 hướng, góc nhìn, cỡ ô, animation idle/walk/run/attack…). Kiểm lưới, đặt tên animation, hướng, FPS; xem anim chạy thử, **Đi thử** bằng phím mũi tên/WASD |
+| 2. Style | 1 style cho cả nhân vật: mẫu nhân vật có sẵn (Chibi, Pixel Art, Vẽ tay Fantasy, Anime cel) hoặc tự mô tả + ảnh tham chiếu |
+| 3. Gen & duyệt | Gen dải hướng đầu tiên làm **ảnh khoá nhân vật** → duyệt → app tự gen các dải còn lại theo ảnh khoá. Hướng phải lật gương từ hướng trái, không tốn lượt. Xem Gốc / Mới chạy đồng bộ, QA tự báo lệch chân, chênh chiều cao, bị cắt, thiếu/trùng frame; **Lưới tổng** xem mọi hướng cùng lúc |
+| 4. Xuất | Sheet cùng tên, cùng W×H, đè đúng rect (cả frame xoay/trim); frame chưa duyệt giữ gốc |
+
+### Spine (4 bước)
+
+| Bước | Làm gì |
+|---|---|
+| 1. Nhập | Kéo thả skeleton `.json`/`.skel` (Spine 4.2) — app tự tìm `.atlas` và ảnh page cạnh nó. Xem nhân vật chạy animation ngay trong app |
+| 2. Style | Như Sprite sheet |
+| 3. Gen & duyệt | Gen từng region (đầu, tay, áo…) theo style chung, giữ đúng kích thước region. Duyệt với nhân vật mới chạy animation; panel **Chỉnh vị trí** sửa setup pose (vị trí, xoay, scale) nếu phần mới lệch |
+| 4. Xuất | Page PNG cùng tên, cùng W×H, region đúng toạ độ (kể cả xoay, premultiplied alpha); có chỉnh vị trí thì ghi skeleton mới kèm bản gốc `.original.json`/`.original.skel` |
+
+Sửa file Spine bên ngoài app (trong Spine Editor) thì app báo **File nguồn đã đổi** — nhập lại rồi làm tiếp.
 
 ### Mẹo
 
@@ -69,7 +97,7 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 
 **Cài bản mới báo "Gen Asset Studio cannot be closed"?** App vẫn đang chạy ngầm (đang gen thì đóng app chỉ thu xuống taskbar). Thoát hẳn app hoặc End task `Gen Asset Studio.exe` trong Task Manager rồi bấm **Retry**. Cập nhật bằng nút trong app thì không gặp lỗi này.
 
-**Spine / Sprite sheet?** Chọn loại project khi tạo, cả hai đi 4 bước: Nhập → Style → Gen & duyệt → Xuất. Sprite sheet: reskin sheet có sẵn (TexturePacker, Aseprite, Cocos .plist, Unity .meta hoặc tự dò lưới) hoặc tạo sheet mới từ 1 ảnh nhân vật; duyệt xong dải hướng khoá nhân vật thì app tự gen các dải còn lại. Spine: nhận Spine 4.2 dạng `.json` và `.skel`, cả atlas premultiplied alpha.
+**Spine bản cũ (3.x, 4.0, 4.1)?** Chưa hỗ trợ — mở bằng Spine 4.2 rồi xuất lại. Atlas xoay region 180°/270° cũng chưa nhận, xuất lại với rotation 90° hoặc tắt rotation.
 
 **Giấy phép Spine?** Khung xem trước Spine dùng [spine-player](https://esotericsoftware.com/spine-player) theo Spine Runtimes License: người dùng project Spine cần có license Spine Editor.
 
@@ -87,6 +115,8 @@ npm run dist:win       # file cài NSIS vào release/<phiên bản>/
 npm run dist:portable  # bản portable vào release/<phiên bản>/
 npm run test:format    # test nhận định dạng ảnh
 npm run test:export    # test xuất ảnh
+npm run test:sprite    # test Sprite (atlas, lưới, QA)
+npm run test:spine     # test Spine (atlas, .skel, ghép region, xuất)
 ```
 
 Phát hành bản mới: tăng `version` trong `package.json` → thêm mục mới vào `CHANGELOG.md` (Update · Add · Remove · Fixbug) → `npm run dist:win` + `npm run dist:portable` → tạo GitHub Release `v<phiên bản>` kèm `GenAssetStudio-Setup-*.exe`, `.blockmap`, `latest.yml`, `GenAssetStudio-Portable-*.exe`, dán mục changelog làm ghi chú (`node scripts/release-notes.mjs <phiên bản>`).
