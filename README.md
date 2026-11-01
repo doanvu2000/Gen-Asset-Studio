@@ -69,7 +69,7 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 
 **Cài bản mới báo "Gen Asset Studio cannot be closed"?** App vẫn đang chạy ngầm (đang gen thì đóng app chỉ thu xuống taskbar). Thoát hẳn app hoặc End task `Gen Asset Studio.exe` trong Task Manager rồi bấm **Retry**. Cập nhật bằng nút trong app thì không gặp lỗi này.
 
-**Spine / Sprite sheet?** Chọn loại project khi tạo. Sprite sheet: reskin sheet có sẵn hoặc tạo sheet mới từ 1 ảnh nhân vật. Spine: chỉ nhận Spine 4.2 dạng `.json` (chưa nhận `.skel`).
+**Spine / Sprite sheet?** Chọn loại project khi tạo, cả hai đi 4 bước: Nhập → Style → Gen & duyệt → Xuất. Sprite sheet: reskin sheet có sẵn (TexturePacker, Aseprite, Cocos .plist, Unity .meta hoặc tự dò lưới) hoặc tạo sheet mới từ 1 ảnh nhân vật; duyệt xong dải hướng khoá nhân vật thì app tự gen các dải còn lại. Spine: nhận Spine 4.2 dạng `.json` và `.skel`, cả atlas premultiplied alpha.
 
 **Giấy phép Spine?** Khung xem trước Spine dùng [spine-player](https://esotericsoftware.com/spine-player) theo Spine Runtimes License: người dùng project Spine cần có license Spine Editor.
 

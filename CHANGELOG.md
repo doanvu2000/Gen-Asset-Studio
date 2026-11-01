@@ -2,7 +2,7 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
-## Chưa phát hành
+## 1.2.0 — 2026-11-01
 
 ### Add
 - **3 loại project tách riêng**, chọn khi tạo: **Reskin ảnh** (cho BA), **Sprite sheet** và **Spine** (cho artist); màn tạo project ghi rõ dành cho ai, các bước, đầu vào/đầu ra
