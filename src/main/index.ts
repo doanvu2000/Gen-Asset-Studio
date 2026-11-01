@@ -21,6 +21,7 @@ import { JobQueue, queueStatePath, registerQueueIpc } from './queue'
 import { closePipeline, getPipeline } from './pipeline'
 import { createUpdater, registerUpdateIpc, type Updater } from './updater'
 import { registerExportIpc } from './export'
+import { attachQueueNotifier } from './system/notify'
 import { createSampleProject } from './sample'
 import { hasGenSpace, registerStorageIpc, removeGeneratedImage, StorageService } from './storage/service'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
@@ -219,6 +220,7 @@ function initQueue(): void {
   })
   queue = q
   registerQueueIpc(ipcMain, () => mainWindow, q)
+  attachQueueNotifier({ queue: q, getWindow: () => mainWindow, enabled: () => settings.get().notifyQueueDone, lang: () => settings.get().lang })
   void q
     .load()
     .then(() => q.setConcurrency(settings.get().gen.concurrency))

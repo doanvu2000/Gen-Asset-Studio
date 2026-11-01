@@ -9,6 +9,7 @@ import type { CodexInstaller } from '../src/main/codex/installer'
 import { PipelineClient } from '../src/main/pipeline/client'
 import { JobQueue } from '../src/main/queue/JobQueue'
 import type { CodexLike } from '../src/main/queue/GenJob'
+import { BatchTracker } from '../src/main/system/queueBatch'
 
 const root = resolve(__dirname, '..')
 const project = process.env['GAS_QUEUE_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-queue-test'
@@ -87,7 +88,28 @@ class FakeCodex {
   }
 }
 
+function batchTests(): void {
+  const t = new BatchTracker()
+  const j = (id: string, status: QueueJob['status']): { id: string; status: QueueJob['status'] } => ({ id, status })
+  assert(t.update([]).state === null && t.update([j('a', 'done')]).ended === null, 'batch: idle at startup reports nothing')
+  assert(t.update([j('a', 'queued'), j('b', 'queued')]).state?.total === 2, 'batch: starts on first active jobs')
+  const mid = t.update([j('a', 'done'), j('b', 'running'), j('c', 'queued')])
+  assert(mid.state?.total === 3 && mid.state.done === 1 && mid.ended === null, 'batch: grows when jobs are added mid-run')
+  const end = t.update([j('a', 'done'), j('b', 'error'), j('c', 'qaWarn')])
+  assert(end.ended?.done === 2 && end.ended.failed === 1 && end.state === null, 'batch: ends with done/failed counts')
+  assert(t.update([j('a', 'done'), j('b', 'error'), j('c', 'qaWarn')]).ended === null, 'batch: no repeat report once idle')
+  t.update([j('x', 'running'), j('y', 'queued')])
+  assert(t.update([j('x', 'canceled'), j('y', 'canceled')]).ended === null, 'batch: cancel-all reports nothing')
+  t.update([j('x', 'running'), j('y', 'queued')])
+  const part = t.update([j('x', 'done'), j('y', 'canceled')])
+  assert(part.ended?.done === 1 && part.ended.failed === 0, 'batch: canceled jobs excluded from counts')
+  t.update([j('r', 'queued')])
+  assert(t.update([j('r', 'error')]).ended?.failed === 1, 'batch: failed-only batch still ends')
+  assert(t.update([j('r', 'queued')]).state?.total === 1, 'batch: retry starts a new batch')
+}
+
 async function offlineTests(pipeline: PipelineClient): Promise<void> {
+  batchTests()
   const dir = join(project, 'offline')
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })

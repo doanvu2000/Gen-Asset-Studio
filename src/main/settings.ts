@@ -85,6 +85,7 @@ function sanitize(input: unknown, base: AppSettings, internal: boolean): AppSett
       out.lang = raw.lang as Lang
     }
     if (raw.closeWhenBusy === 'background' || raw.closeWhenBusy === 'quit') out.closeWhenBusy = raw.closeWhenBusy
+    if (typeof raw.notifyQueueDone === 'boolean') out.notifyQueueDone = raw.notifyQueueDone
     if ('gen' in raw) out.gen = sanitizeGen(raw.gen, out.gen)
     if ('onboarding' in raw) out.onboarding = sanitizeOnboarding(raw.onboarding, out.onboarding)
     if ('promo' in raw) out.promo = sanitizePromo(raw.promo, out.promo)

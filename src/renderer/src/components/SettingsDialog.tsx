@@ -27,6 +27,8 @@ function GeneralTab(): ReactElement {
   const setLang = useApp((s) => s.setLang)
   const closeWhenBusy = useApp((s) => s.settings.closeWhenBusy)
   const setCloseWhenBusy = useApp((s) => s.setCloseWhenBusy)
+  const notifyDone = useApp((s) => s.settings.notifyQueueDone)
+  const setNotifyDone = useApp((s) => s.setNotifyQueueDone)
   const closeSettings = useApp((s) => s.closeSettings)
   const replayTours = useApp((s) => s.replayTours)
   const promoHints = useApp((s) => s.settings.promo.hints)
@@ -64,6 +66,21 @@ function GeneralTab(): ReactElement {
             ]}
             onChange={(v) => void setCloseWhenBusy(v)}
             ariaLabel={t('settings.closeBusy.label')}
+          />
+        </div>
+        <div className="row">
+          <div className="rl">
+            {t('settings.notifyDone.label')}
+            <small className="muted">{t('settings.notifyDone.hint')}</small>
+          </div>
+          <Segmented
+            value={notifyDone ? 'on' : 'off'}
+            options={[
+              { value: 'on', label: t('storage.on') },
+              { value: 'off', label: t('storage.off') }
+            ]}
+            onChange={(v) => void setNotifyDone(v === 'on')}
+            ariaLabel={t('settings.notifyDone.label')}
           />
         </div>
       </div>

@@ -26,6 +26,7 @@ interface AppState {
   setLang: (lang: Lang) => Promise<void>
   setCloseWhenBusy: (v: CloseWhenBusy) => Promise<void>
   setPromoHints: (on: boolean) => Promise<void>
+  setNotifyQueueDone: (on: boolean) => Promise<void>
   dismissPromo: (id: string) => Promise<void>
   toggleSidebar: () => void
   openSettings: (tab?: SettingsTab) => void
@@ -81,6 +82,10 @@ export const useApp = create<AppState>()((set, get) => ({
   setCloseWhenBusy: async (closeWhenBusy) => {
     set({ settings: { ...get().settings, closeWhenBusy } })
     get().applySettings(await window.gas.settings.set({ closeWhenBusy }))
+  },
+  setNotifyQueueDone: async (notifyQueueDone) => {
+    set({ settings: { ...get().settings, notifyQueueDone } })
+    get().applySettings(await window.gas.settings.set({ notifyQueueDone }))
   },
   setPromoHints: async (hints) => {
     const promo = { ...get().settings.promo, hints }

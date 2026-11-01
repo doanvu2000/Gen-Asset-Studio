@@ -51,6 +51,7 @@ export interface AppSettings {
   theme: ThemePref
   lang: Lang
   closeWhenBusy: CloseWhenBusy
+  notifyQueueDone: boolean
   workspace: string | null
   setup: SetupPersist
   gen: GenPrefs
@@ -62,6 +63,7 @@ export interface SettingsPatch {
   theme?: ThemePref
   lang?: Lang
   closeWhenBusy?: CloseWhenBusy
+  notifyQueueDone?: boolean
   gen?: Partial<GenPrefs>
   onboarding?: Partial<OnboardingPersist>
   promo?: Partial<PromoPrefs>
@@ -78,6 +80,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'light',
   lang: 'vi',
   closeWhenBusy: 'background',
+  notifyQueueDone: true,
   workspace: null,
   setup: { ...DEFAULT_SETUP },
   gen: { ...DEFAULT_GEN },
