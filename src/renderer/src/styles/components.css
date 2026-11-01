@@ -1120,3 +1120,30 @@
   align-items: center;
   gap: 5px;
 }
+
+.gen-est {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.gen-est-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--orange-bg);
+  color: var(--orange);
+}
+
+.gen-est-row {
+  padding: 0 24px 8px;
+}
+
+.spg-sheet > .gen-est-row {
+  padding: 0 0 6px;
+}

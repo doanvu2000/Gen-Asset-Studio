@@ -264,6 +264,10 @@
       "hint": "Đóng lúc còn việc chạy: thu xuống taskbar và chạy tiếp; đóng lần nữa sẽ hỏi có thoát hẳn không.",
       "background": "Chạy nền",
       "quit": "Thoát luôn"
+    },
+    "notifyDone": {
+      "label": "Báo khi gen xong",
+      "hint": "Thông báo Windows và nhấp nháy thanh tác vụ khi hàng đợi xong lúc cửa sổ không focus"
     }
   },
   "env": {
@@ -702,9 +706,6 @@
     "estimate": "Ước tính",
     "estCount": "{{count}} lượt gen",
     "estMin": "{{count}} phút",
-    "quotaLeft": "quota 5h còn {{left}}%",
-    "quotaOk": "Đủ quota",
-    "quotaLow": "Quota thấp — có thể dừng giữa chừng",
     "outOfQuota": "Hết quota",
     "outOfQuotaDesc": "Tự dừng, đếm ngược và tự chạy tiếp khi quota reset.",
     "groups": "Nhóm sẽ gen",
@@ -1913,5 +1914,13 @@
       "nothingQueued": "Không có region nào cần gen",
       "queued": "Đã đưa {{count}} region vào hàng đợi"
     }
+  },
+  "genEstimate": {
+    "turns_one": "{{count}} lượt Codex",
+    "turns_other": "{{count}} lượt Codex",
+    "left5h": "còn {{left}}% quota 5h",
+    "leftWeek": "{{left}}% tuần",
+    "mayHit": "Có thể chạm giới hạn — hàng đợi sẽ tự dừng và chạy tiếp khi quota hồi",
+    "exhausted": "Quota đã hết — hàng đợi sẽ tạm dừng và chạy tiếp khi quota hồi"
   }
 }

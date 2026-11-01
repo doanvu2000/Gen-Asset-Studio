@@ -264,6 +264,10 @@
       "hint": "Closing with tasks running minimizes to the taskbar and keeps working; closing again asks whether to quit.",
       "background": "Keep running",
       "quit": "Quit"
+    },
+    "notifyDone": {
+      "label": "Notify when generation finishes",
+      "hint": "Windows notification and taskbar flash when the queue finishes while the window is unfocused"
     }
   },
   "env": {
@@ -702,9 +706,6 @@
     "estimate": "Estimate",
     "estCount": "{{count}} generations",
     "estMin": "{{count}} min",
-    "quotaLeft": "5h quota {{left}}% left",
-    "quotaOk": "Quota OK",
-    "quotaLow": "Low quota — may pause midway",
     "outOfQuota": "Out of quota",
     "outOfQuotaDesc": "Pauses, counts down and resumes automatically when quota resets.",
     "groups": "Groups to generate",
@@ -1913,5 +1914,13 @@
       "nothingQueued": "No regions need generating",
       "queued": "Queued {{count}} regions"
     }
+  },
+  "genEstimate": {
+    "turns_one": "{{count}} Codex turn",
+    "turns_other": "{{count}} Codex turns",
+    "left5h": "{{left}}% of 5h quota left",
+    "leftWeek": "{{left}}% weekly left",
+    "mayHit": "May hit the limit — the queue will pause and resume when quota recovers",
+    "exhausted": "Quota exhausted — the queue will stay paused until quota recovers"
   }
 }

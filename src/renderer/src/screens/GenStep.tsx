@@ -8,6 +8,7 @@ import { Icon } from '@renderer/components/Icon'
 import { ModelChip } from '@renderer/components/ModelChip'
 import { Stepper } from '@renderer/components/Stepper'
 import { QuotaBanner } from '@renderer/components/QuotaBanner'
+import { GenEstimate } from '@renderer/components/GenEstimate'
 import { StageDots, StatusChip, jobPct, stageText } from '@renderer/components/JobBits'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
 import { errMsg, fileUrl, projAbs } from '@renderer/lib/files'
@@ -31,7 +32,6 @@ function GenConfig({ project }: { project: ProjectView }): ReactElement {
   const setActiveGroup = useWs((s) => s.setActiveGroup)
   const flushGroups = useWs((s) => s.flushGroups)
   const conc = useApp((s) => s.settings.gen.concurrency)
-  const rl = useEnv((s) => s.rateLimits)
   const all = useMemo(() => gennable(project), [project])
   const fresh = useMemo(() => new Set(all.filter((x) => x.input.versions.length === 0).map((x) => x.input.id)), [all])
   const [sel, setSel] = useState<Set<string>>(() => new Set(fresh.size ? fresh : all.map((x) => x.input.id)))
@@ -42,7 +42,6 @@ function GenConfig({ project }: { project: ProjectView }): ReactElement {
   const notLocked = project.groups.filter((g) => !isLocked(g) && g.assetIds.length)
   const ungrouped = project.inputs.filter((i) => !owner.has(i.id)).length
   const count = all.filter((x) => sel.has(x.input.id)).length
-  const left5 = rl?.primary ? Math.max(0, Math.round(100 - rl.primary.usedPercent)) : null
 
   const setScopeTo = (s: 'new' | 'all'): void => {
     setScope(s)
@@ -141,20 +140,8 @@ function GenConfig({ project }: { project: ProjectView }): ReactElement {
               <b>{t('gen.estCount', { count })}</b>
               <span className="muted">
                 · ~{t('gen.estMin', { count: minutes(count, conc) })}
-                {left5 !== null && ` · ${t('gen.quotaLeft', { left: left5 })}`}
               </span>
-              {left5 !== null &&
-                (left5 >= 25 ? (
-                  <span className="chip c-green">
-                    <Icon name="check" size={11} />
-                    {t('gen.quotaOk')}
-                  </span>
-                ) : (
-                  <span className="chip c-orange">
-                    <Icon name="alert" size={11} />
-                    {t('gen.quotaLow')}
-                  </span>
-                ))}
+              <GenEstimate turns={count} hideTurns />
             </div>
           </div>
           <div className="gkv">

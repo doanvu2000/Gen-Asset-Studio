@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { QueueJob } from '@shared/queue'
 import type { SpriteProjectView, StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
+import { GenEstimate } from '@renderer/components/GenEstimate'
 import { Segmented } from '@renderer/components/Segmented'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
@@ -257,6 +258,11 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
                       {t('spriteProject.work.genAll', { count: left })}
                     </button>
                   </h4>
+                  {left > 0 && (
+                    <div className="gen-est-row">
+                      <GenEstimate turns={left} />
+                    </div>
+                  )}
                   {rows.map((s) => {
                     const job = jobOf(v, s, jobs)
                     const state = stripState(s, job)

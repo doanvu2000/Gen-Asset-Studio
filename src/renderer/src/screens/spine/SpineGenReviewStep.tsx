@@ -4,6 +4,7 @@ import type { SpinePlayer } from '@esotericsoftware/spine-player'
 import type { QueueJob } from '@shared/queue'
 import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
+import { GenEstimate } from '@renderer/components/GenEstimate'
 import { Segmented } from '@renderer/components/Segmented'
 import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
@@ -393,6 +394,11 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
           </button>
         </div>
       </div>
+      {todo.length > 0 && (
+        <div className="gen-est-row">
+          <GenEstimate turns={todo.length} />
+        </div>
+      )}
       <div className="sgr-body">
         <div className="sgr-list">
           {pages.length ? (
