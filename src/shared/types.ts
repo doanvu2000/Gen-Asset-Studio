@@ -27,9 +27,10 @@ export interface GenPrefs {
   concurrency: number
   styleCount: number
   scale: ExportScale
+  autoRegenOnQaFail: boolean
 }
 
-export const DEFAULT_GEN: GenPrefs = { concurrency: 3, styleCount: 3, scale: 1 }
+export const DEFAULT_GEN: GenPrefs = { concurrency: 3, styleCount: 3, scale: 1, autoRegenOnQaFail: false }
 
 export interface OnboardingPersist {
   tours: Record<string, boolean>

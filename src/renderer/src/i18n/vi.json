@@ -245,6 +245,8 @@
       "stylesHint": "Mặc định khi bấm “Gợi ý style”",
       "scale": "Kích thước xuất mặc định",
       "scaleHint": "×2/×4 là resize thường, không gen lại",
+      "autoRegen": "Tự gen lại khi QA lỗi nặng",
+      "autoRegenHint": "Tốn thêm lượt Codex; chỉ gen lại 1 lần khi QA báo lỗi nặng",
       "maxRun": "Ảnh tối đa mỗi lần chạy",
       "task": {
         "promptPolish": "Chuẩn hoá prompt",
@@ -755,6 +757,7 @@
   },
   "queue": {
     "title": "Hàng đợi gen",
+    "autoRegen": "Tự gen lại",
     "pauseAll": "Dừng tất cả",
     "resumeAll": "Chạy tiếp",
     "quota": "Quota Codex",
@@ -1501,6 +1504,7 @@
       "regenNote": "Ghi chú khi gen lại",
       "regenPh": "VD: chân trái ở frame 3 bị mất; tóc phải tím như ảnh khoá",
       "regenGo": "Gen lại dải này",
+      "saveGif": "Lưu GIF",
       "regenRunning": "Đang gen lại…",
       "reject": "Cần sửa",
       "approve": "Duyệt",
@@ -1563,7 +1567,22 @@
       "atlasNew": "{{name}}.json (tạo mới)",
       "newNote": "Sheet tạo mới: đã ghi thêm file .json (TexturePacker) và .md (code Flame / Android / iOS) cạnh ảnh.",
       "formatsTitle": "Định dạng engine",
-      "formatsDesc": "TexturePacker JSON luôn được xuất. Chọn thêm file cho Godot 4, Unity, Cocos Creator (ghi cạnh PNG)."
+      "formatsDesc": "TexturePacker JSON luôn được xuất. Chọn thêm file cho Godot 4, Unity, Cocos Creator (ghi cạnh PNG).",
+      "animTitle": "Ảnh động xem trước",
+      "animDesc": "Xuất mỗi dải thành GIF/WebP động (đúng FPS và kiểu lặp) vào thư mục preview/ để gửi duyệt nhanh. Hướng đối xứng được lật từ hướng gốc.",
+      "animFormat": "Định dạng",
+      "animScale": "Phóng to",
+      "animSource": "Nguồn",
+      "animSourceNew": "Bản mới",
+      "animSourceOrig": "Bản gốc",
+      "animSheet": "Sheet",
+      "animAll": "Tất cả sheet",
+      "animRun": "Xuất ảnh động",
+      "animDone": "Đã xuất {{count}} ảnh động",
+      "animNone": "Chưa có dải nào để xuất.",
+      "animLine": "{{frames}} frame · {{fps}} FPS",
+      "animSkipped": "Bỏ qua {{count}} dải không có ảnh.",
+      "animBackup": "File trùng tên đã sao lưu vào {{path}}"
     },
     "create": {
       "title": "Tạo sheet mới từ ảnh nhân vật",

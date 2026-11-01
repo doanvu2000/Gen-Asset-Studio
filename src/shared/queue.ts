@@ -63,6 +63,7 @@ export interface JobSpec {
   model?: string
   effort?: string
   sprite?: SpriteJobSpec
+  autoRegenOf?: string
 }
 
 export interface QueueJob extends JobSpec {

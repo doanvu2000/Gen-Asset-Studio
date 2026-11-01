@@ -1,13 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
-import type { JobSpec, QueueJob } from '../src/shared/queue'
+import type { JobResult, JobSpec, QueueJob } from '../src/shared/queue'
 import type { RateLimits } from '../src/shared/types'
 import { codexCurrentDir, codexHome } from '../src/main/paths'
 import { CodexService, type TurnResult } from '../src/main/codex/service'
 import type { CodexInstaller } from '../src/main/codex/installer'
 import { PipelineClient } from '../src/main/pipeline/client'
 import { JobQueue } from '../src/main/queue/JobQueue'
+import { buildRegenNote } from '../src/main/queue/autoRegen'
 import type { CodexLike } from '../src/main/queue/GenJob'
 import { BatchTracker } from '../src/main/system/queueBatch'
 
@@ -146,6 +147,46 @@ async function offlineTests(pipeline: PipelineClient): Promise<void> {
   assert(q2.get('was-running')?.status === 'queued' && q2.get('was-running')?.attempt === 2, 'retry re-queues with attempt+1')
   q2.cancelAll()
   await q2.dispose()
+  await autoRegenTests(dir)
+}
+
+async function autoRegenTests(dir: string): Promise<void> {
+  assert(buildRegenNote([{ id: 'x', status: 'warn', value: 0, threshold: 0, message: 'w' }], 'keep') === 'keep', 'regen note: warn checks add nothing')
+  assert(buildRegenNote([{ id: 'missing', status: 'fail', value: 0, threshold: 0, message: 'm' }, { id: 'odd', status: 'fail', value: 0, threshold: 0, message: 'Odd failure.' }]).includes('Odd failure.'), 'regen note: unknown id falls back to message, empty old note ok')
+  const mk = (checkStatus: 'pass' | 'warn' | 'fail') =>
+    async (): Promise<JobResult> => ({
+      version: 1,
+      versionPath: '',
+      rawPath: '',
+      metaPath: '',
+      qa: { pass: checkStatus === 'pass', checks: [{ id: 'overflow', status: checkStatus, value: 1, threshold: 0, message: 'overflow' }] }
+    })
+  const run = async (status: 'pass' | 'warn' | 'fail', enabled: boolean, note?: string): Promise<QueueJob[]> => {
+    const statePath = join(dir, `regen-${status}-${enabled}.json`)
+    rmSync(statePath, { force: true })
+    const q = new JobQueue({
+      codex: new FakeCodex() as unknown as CodexLike,
+      pipeline: null as never,
+      log: () => {},
+      statePath,
+      staggerMs: 0,
+      autoRegenOnQaFail: () => enabled,
+      runJob: mk(status) as never
+    })
+    await q.load()
+    q.enqueue([{ ...spec('regen/a.png', note), projectPath: dir }])
+    await q.whenIdle()
+    const jobs = q.snapshot().jobs
+    await q.dispose()
+    return jobs
+  }
+  assert((await run('fail', false)).length === 1, 'auto-regen: setting off does not enqueue')
+  assert((await run('warn', true)).length === 1, 'auto-regen: warn-only QA does not enqueue')
+  assert((await run('pass', true)).length === 1, 'auto-regen: passing QA does not enqueue')
+  const jobs = await run('fail', true, 'old note')
+  assert(jobs.length === 2, 'auto-regen: fail QA enqueues exactly one new job, and the regen job failing again does not loop')
+  const regen = jobs.find((j) => j.autoRegenOf)
+  assert(regen?.autoRegenOf === jobs.find((j) => !j.autoRegenOf)?.id && regen.note?.startsWith('old note ') && regen.note.includes('inside its frame'), 'auto-regen: new job links to original and carries merged note')
 }
 
 async function checker(w: number, h: number): Promise<Buffer> {

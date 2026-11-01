@@ -245,6 +245,8 @@
       "stylesHint": "Default for “Suggest styles”",
       "scale": "Default export size",
       "scaleHint": "×2/×4 is a plain resize, no regeneration",
+      "autoRegen": "Auto-regenerate on severe QA failure",
+      "autoRegenHint": "Costs extra Codex turns; regenerates once when QA reports a severe failure",
       "maxRun": "Max images per run",
       "task": {
         "promptPolish": "Prompt polishing",
@@ -755,6 +757,7 @@
   },
   "queue": {
     "title": "Generation queue",
+    "autoRegen": "Auto-regen",
     "pauseAll": "Pause all",
     "resumeAll": "Resume",
     "quota": "Codex quota",
@@ -1501,6 +1504,7 @@
       "regenNote": "Note for regeneration",
       "regenPh": "e.g. left leg missing in frame 3; hair must be purple like the lock",
       "regenGo": "Regenerate this strip",
+      "saveGif": "Save GIF",
       "regenRunning": "Regenerating…",
       "reject": "Needs fix",
       "approve": "Approve",
@@ -1563,7 +1567,22 @@
       "atlasNew": "{{name}}.json (new)",
       "newNote": "New sheets: a .json (TexturePacker) and a .md (Flame / Android / iOS code) were written next to the image.",
       "formatsTitle": "Engine formats",
-      "formatsDesc": "TexturePacker JSON is always exported. Add files for Godot 4, Unity or Cocos Creator (written next to the PNG)."
+      "formatsDesc": "TexturePacker JSON is always exported. Add files for Godot 4, Unity or Cocos Creator (written next to the PNG).",
+      "animTitle": "Animated preview",
+      "animDesc": "Export each strip as an animated GIF/WebP (real FPS and loop mode) into the preview/ folder for quick review. Mirrored directions are flipped from their source.",
+      "animFormat": "Format",
+      "animScale": "Scale",
+      "animSource": "Source",
+      "animSourceNew": "New",
+      "animSourceOrig": "Original",
+      "animSheet": "Sheet",
+      "animAll": "All sheets",
+      "animRun": "Export animations",
+      "animDone": "Exported {{count}} animation(s)",
+      "animNone": "No strips to export yet.",
+      "animLine": "{{frames}} frames · {{fps}} FPS",
+      "animSkipped": "Skipped {{count}} strip(s) without an image.",
+      "animBackup": "Files with the same name were backed up to {{path}}"
     },
     "create": {
       "title": "New sheet from a character image",

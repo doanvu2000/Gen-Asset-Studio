@@ -18,6 +18,7 @@ import {
 import type { RateLimits } from '@shared/types'
 import type { LogFn } from '../logger'
 import { JobFailure, runGenJob, type CodexLike, type PipelineLike } from './GenJob'
+import { needsAutoRegen, regenSpecFor } from './autoRegen'
 import { runStripJob } from '../sprite/stripJob'
 
 export interface GenSettings {
@@ -31,6 +32,8 @@ export interface JobQueueOptions {
   log: LogFn
   statePath: string
   genSettings?: () => GenSettings
+  autoRegenOnQaFail?: () => boolean
+  runJob?: typeof runGenJob
   concurrency?: number
   staggerMs?: number
   timeoutMs?: number
@@ -210,6 +213,7 @@ export class JobQueue extends EventEmitter {
         model: s.model,
         effort: s.effort,
         sprite: s.sprite,
+        autoRegenOf: s.autoRegenOf,
         id: randomUUID(),
         attempt: 1,
         status: 'queued',
@@ -463,7 +467,7 @@ export class JobQueue extends EventEmitter {
     const gs = this.opts.genSettings?.() ?? {}
     try {
       if (this.opts.hasDiskSpace && !(await this.opts.hasDiskSpace(job))) throw new JobFailure('diskFull', 'not enough free disk space')
-      const result = await (job.sprite ? runStripJob : runGenJob)(job, {
+      const result = await (this.opts.runJob ?? (job.sprite ? runStripJob : runGenJob))(job, {
         codex: this.opts.codex,
         pipeline: this.opts.pipeline,
         log: this.opts.log,
@@ -484,6 +488,7 @@ export class JobQueue extends EventEmitter {
       this.autoRetries.delete(job.id)
       this.noImageStreak = 0
       this.finish(job, result.qa.pass ? 'done' : 'qaWarn', null)
+      this.maybeAutoRegen(job)
       this.opts.log(`job ${job.id} ${job.status} v${result.version} ${Date.now() - (job.startedAt ?? Date.now())} ms`)
     } catch (e) {
       this.handleFailure(job, e)
@@ -492,6 +497,13 @@ export class JobQueue extends EventEmitter {
       this.changed()
       this.pump()
     }
+  }
+
+  private maybeAutoRegen(job: QueueJob): void {
+    if (!needsAutoRegen(job, this.opts.autoRegenOnQaFail?.() === true)) return
+    if (this.jobs.some((j) => j.autoRegenOf === job.id)) return
+    this.opts.log(`job ${job.id} QA failed, auto-regenerating once`)
+    this.enqueue([regenSpecFor(job)])
   }
 
   private handleFailure(job: QueueJob, e: unknown): void {

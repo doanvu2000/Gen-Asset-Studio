@@ -187,6 +187,21 @@ function GenTab(): ReactElement {
           <Segmented value={String(gen.scale) as '1' | '2' | '4'} options={scaleOptions} onChange={(v) => setGen({ scale: Number(v) as ExportScale })} ariaLabel={t('settings.gen.scale')} />
         </div>
         <div className="row">
+          <div className="rl">
+            {t('settings.gen.autoRegen')}
+            <small className="muted">{t('settings.gen.autoRegenHint')}</small>
+          </div>
+          <Segmented
+            value={gen.autoRegenOnQaFail ? 'on' : 'off'}
+            options={[
+              { value: 'on', label: t('storage.on') },
+              { value: 'off', label: t('storage.off') }
+            ]}
+            onChange={(v) => setGen({ autoRegenOnQaFail: v === 'on' })}
+            ariaLabel={t('settings.gen.autoRegen')}
+          />
+        </div>
+        <div className="row">
           <div className="rl">{t('settings.gen.maxRun')}</div>
           <b>100</b>
         </div>

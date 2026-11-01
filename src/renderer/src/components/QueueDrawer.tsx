@@ -176,6 +176,7 @@ export function QueueDrawer(): ReactElement {
                         {run.slice(0, 4).map((j) => (
                           <div className="qjob" key={j.id}>
                             <span className="qj-n">{j.assetRelPath.split('/').pop()}</span>
+                            {j.autoRegenOf && <small className="muted">{t('queue.autoRegen')}</small>}
                             <StageDots job={j} />
                             <span className="qj-s">{stageText(j, (k) => tDyn(t, k))}</span>
                           </div>

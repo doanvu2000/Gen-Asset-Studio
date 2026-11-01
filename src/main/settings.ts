@@ -71,6 +71,7 @@ function sanitizeGen(input: unknown, base: GenPrefs): GenPrefs {
   out.concurrency = clampInt(raw.concurrency, 1, 6, out.concurrency)
   out.styleCount = clampInt(raw.styleCount, 1, 6, out.styleCount)
   if (raw.scale === 1 || raw.scale === 2 || raw.scale === 4) out.scale = raw.scale as ExportScale
+  if (typeof raw.autoRegenOnQaFail === 'boolean') out.autoRegenOnQaFail = raw.autoRegenOnQaFail
   return out
 }
 

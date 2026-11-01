@@ -214,6 +214,7 @@ function initQueue(): void {
     log: logger.scoped('queue'),
     statePath: queueStatePath,
     genSettings: () => style.modelsSync().assetGen,
+    autoRegenOnQaFail: () => settings.get().gen.autoRegenOnQaFail,
     concurrency: settings.get().gen.concurrency,
     afterRawCopy: removeGeneratedImage,
     hasDiskSpace: (job) => hasGenSpace(job.projectPath)
