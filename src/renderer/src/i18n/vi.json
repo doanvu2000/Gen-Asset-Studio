@@ -1561,7 +1561,9 @@
       "copied": "Đã chép code",
       "snipFailed": "Chưa lấy được code mẫu cho sheet này.",
       "atlasNew": "{{name}}.json (tạo mới)",
-      "newNote": "Sheet tạo mới: đã ghi thêm file .json (TexturePacker) và .md (code Flame / Android / iOS) cạnh ảnh."
+      "newNote": "Sheet tạo mới: đã ghi thêm file .json (TexturePacker) và .md (code Flame / Android / iOS) cạnh ảnh.",
+      "formatsTitle": "Định dạng engine",
+      "formatsDesc": "TexturePacker JSON luôn được xuất. Chọn thêm file cho Godot 4, Unity, Cocos Creator (ghi cạnh PNG)."
     },
     "create": {
       "title": "Tạo sheet mới từ ảnh nhân vật",

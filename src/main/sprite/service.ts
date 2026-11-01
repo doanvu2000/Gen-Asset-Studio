@@ -42,7 +42,8 @@ import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
 import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetCoverPath, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
 import { encodePng, savePng } from './strip'
-import { atlasJson, buildSnippets, snippetsMarkdown } from './snippets'
+import { cocosPlist, godotTres, unityMeta } from './formats'
+import { atlasJson, buildSnippets, snippetsMarkdown, type SnippetSheet } from './snippets'
 import { ensureThumb, pathKey, readProject, type ProjectFile } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
@@ -121,6 +122,7 @@ function isImage(p: string): boolean {
 
 export function sanitizeSettings(raw: unknown, base: SpriteSettings = DEFAULT_SPRITE_SETTINGS): SpriteSettings {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {}
+  const fm = r.exportFormats && typeof r.exportFormats === 'object' ? (r.exportFormats as Record<string, unknown>) : {}
   const dirSet: DirSet = r.dirSet === 0 || r.dirSet === 4 || r.dirSet === 6 || r.dirSet === 8 ? r.dirSet : base.dirSet
   const rowPreset: RowPreset = PRESETS.includes(r.rowPreset as RowPreset) ? (r.rowPreset as RowPreset) : base.rowPreset
   let rowOrder: Direction[] = base.rowOrder
@@ -138,7 +140,12 @@ export function sanitizeSettings(raw: unknown, base: SpriteSettings = DEFAULT_SP
     view: VIEWS.includes(r.view as ViewAngle) ? (r.view as ViewAngle) : base.view,
     mirror: typeof r.mirror === 'boolean' ? r.mirror : base.mirror,
     cell: r.cell === 64 || r.cell === 128 || r.cell === 256 ? r.cell : base.cell,
-    autoChain: typeof r.autoChain === 'boolean' ? r.autoChain : base.autoChain
+    autoChain: typeof r.autoChain === 'boolean' ? r.autoChain : base.autoChain,
+    exportFormats: {
+      godot: typeof fm.godot === 'boolean' ? fm.godot : base.exportFormats.godot,
+      unity: typeof fm.unity === 'boolean' ? fm.unity : base.exportFormats.unity,
+      cocos: typeof fm.cocos === 'boolean' ? fm.cocos : base.exportFormats.cocos
+    }
   }
 }
 
@@ -954,10 +961,17 @@ export class SpriteService {
           }
           const used = rec.anims.reduce((n, a) => n + a.frames.length, 0)
           let snippets: string | null = null
+          let formats: string[] = []
           if (rec.origin === 'new' && rec.grid) {
             const jsonName = name.replace(/\.png$/i, '.json')
             const mdName = name.replace(/\.png$/i, '-snippets.md')
-            for (const f of [jsonName, mdName].map((n) => join(outDir, n))) {
+            const base = name.replace(/\.png$/i, '')
+            const fmt = sprite.settings.exportFormats
+            const extraFiles: Array<[string, (x: SnippetSheet) => string]> = []
+            if (fmt.godot) extraFiles.push([`${base}.tres`, godotTres])
+            if (fmt.unity) extraFiles.push([`${name}.meta`, unityMeta])
+            if (fmt.cocos) extraFiles.push([`${base}.plist`, cocosPlist])
+            for (const f of [jsonName, mdName, ...extraFiles.map(([n]) => n)].map((n) => join(outDir, n))) {
               if (!existsSync(f)) continue
               backupDir = backupDir ?? join(outDir, '_backup', stamp)
               await fs.mkdir(backupDir, { recursive: true })
@@ -965,11 +979,13 @@ export class SpriteService {
             }
             const sheet = { image: name, w: rec.w, h: rec.h, grid: rec.grid, frames: rec.frames, anims: rec.anims }
             await fs.writeFile(join(outDir, jsonName), atlasJson(sheet), 'utf8')
+            for (const [n, build] of extraFiles) await fs.writeFile(join(outDir, n), build(sheet), 'utf8')
+            formats = extraFiles.map(([n]) => n)
             await fs.writeFile(join(outDir, mdName), snippetsMarkdown(buildSnippets(sheet), name), 'utf8')
             atlas = jsonName
             snippets = join(outDir, mdName)
           }
-          result.push({ name, file: target, frames: replaced, kept: Math.max(0, rec.frames.length - rec.empty.length - replaced), atlas, snippets })
+          result.push({ name, file: target, frames: replaced, kept: Math.max(0, rec.frames.length - rec.empty.length - replaced), atlas, snippets, formats })
           this.deps.log(`sprite export ${rel}: ${name} ${replaced}/${used} frame(s) replaced`)
         }
         if (!result.length) return fail('nothingApproved', outDir)

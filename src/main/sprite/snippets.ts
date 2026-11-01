@@ -9,11 +9,11 @@ export interface SnippetSheet {
   anims: SpriteAnim[]
 }
 
-function animKey(a: SpriteAnim): string {
+export function animKey(a: SpriteAnim): string {
   return a.dir ? `${a.name}_${a.dir}` : a.name
 }
 
-function frameName(a: SpriteAnim, i: number): string {
+export function frameName(a: SpriteAnim, i: number): string {
   return `${animKey(a)}_${String(i).padStart(2, '0')}`
 }
 
@@ -117,7 +117,39 @@ export function buildSnippets(s: SnippetSheet): SheetSnippets {
     '    }',
     '}'
   ].join('\n')
-  return { image: s.image, json, flame, android, ios }
+  const base = s.image.replace(/\.png$/i, '')
+  const godot = [
+    `# ${base}.tres: SpriteFrames, one animation per "<anim>_<dir>" (speed = FPS)`,
+    '# The texture path inside the .tres is relative to the file. If Godot cannot find it,',
+    `# set it to the project path, e.g. res://art/${s.image}`,
+    '',
+    'extends AnimatedSprite2D',
+    '',
+    'func _ready() -> void:',
+    `    sprite_frames = load("res://${base}.tres")`,
+    `    play("${s.anims[0] ? animKey(s.anims[0]) : 'idle'}")`
+  ].join('\n')
+  const unity = [
+    `// Copy ${s.image} and ${s.image}.meta into Assets/ together (Sprite Mode = Multiple, ${s.w}x${s.h}).`,
+    '// Sprites are named "<anim>_<dir>_NN"; build clips from them:',
+    'using System.Linq;',
+    'using UnityEngine;',
+    '',
+    'public class SheetAnimator : MonoBehaviour',
+    '{',
+    `    public Sprite[] Frames(string anim) => Resources.LoadAll<Sprite>("${base}").Where(s => s.name.StartsWith(anim + "_")).OrderBy(s => s.name).ToArray();`,
+    '}'
+  ].join('\n')
+  const cocos = [
+    `// Put ${s.image} and ${base}.plist in assets/ (same folder). Cocos Creator imports the plist as a SpriteAtlas.`,
+    "import { Animation, AnimationClip, Sprite, SpriteAtlas, resources } from 'cc';",
+    '',
+    'export function clip(atlas: SpriteAtlas, anim: string, fps: number): AnimationClip {',
+    '    const frames = atlas.getSpriteFrames().filter((f) => f.name.startsWith(anim + "_")).sort((a, b) => a.name.localeCompare(b.name));',
+    '    return AnimationClip.createWithSpriteFrames(frames, fps)!;',
+    '}'
+  ].join('\n')
+  return { image: s.image, json, flame, android, ios, godot, unity, cocos }
 }
 
 export function snippetsMarkdown(sn: SheetSnippets, title: string): string {
@@ -143,6 +175,24 @@ export function snippetsMarkdown(sn: SheetSnippets, title: string): string {
     '',
     '```swift',
     sn.ios,
+    '```',
+    '',
+    '## Godot 4 (GDScript)',
+    '',
+    '```gdscript',
+    sn.godot,
+    '```',
+    '',
+    '## Unity (C#)',
+    '',
+    '```csharp',
+    sn.unity,
+    '```',
+    '',
+    '## Cocos Creator (TypeScript)',
+    '',
+    '```ts',
+    sn.cocos,
     '```',
     ''
   ].join('\n')

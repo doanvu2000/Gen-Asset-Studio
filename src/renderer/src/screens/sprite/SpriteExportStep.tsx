@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SheetSnippets, SheetView, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
+import type { ExportFormats, SheetSnippets, SheetView, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
 import { Segmented } from '@renderer/components/Segmented'
 import { Icon } from '@renderer/components/Icon'
 import { relTime } from '@renderer/lib/format'
@@ -13,7 +13,13 @@ function defaultOut(dir: string): string {
   return `${dir.replace(/[\\/]+$/, '')}${dir.includes('/') && !dir.includes('\\') ? '/' : '\\'}output`
 }
 
-type SnipTab = 'flame' | 'android' | 'ios'
+type SnipTab = 'flame' | 'android' | 'ios' | 'godot' | 'unity' | 'cocos'
+
+const FORMAT_OPTIONS: ReadonlyArray<{ key: keyof ExportFormats; label: string; file: string }> = [
+  { key: 'godot', label: 'Godot 4', file: '.tres' },
+  { key: 'unity', label: 'Unity', file: '.png.meta' },
+  { key: 'cocos', label: 'Cocos Creator', file: '.plist' }
+]
 
 function Snippets({ rel, sheet }: { rel: string; sheet: SheetView }): ReactElement {
   const { t } = useTranslation()
@@ -57,7 +63,10 @@ function Snippets({ rel, sheet }: { rel: string; sheet: SheetView }): ReactEleme
           options={[
             { value: 'flame', label: 'Flame' },
             { value: 'android', label: 'Android (Kotlin)' },
-            { value: 'ios', label: 'iOS (Swift)' }
+            { value: 'ios', label: 'iOS (Swift)' },
+            { value: 'godot', label: 'Godot' },
+            { value: 'unity', label: 'Unity' },
+            { value: 'cocos', label: 'Cocos' }
           ]}
           onChange={setTab}
         />
@@ -75,6 +84,7 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
   const { t } = useTranslation()
   const lang = useApp((s) => s.settings.lang)
   const refresh = useSprite((s) => s.refresh)
+  const setSettings = useSprite((s) => s.setSettings)
   const [outDir, setOutDir] = useState(v.export.outDir || defaultOut(v.dir))
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<SpriteExportResult | null>(null)
@@ -184,6 +194,30 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
       {newSheets.length > 0 && (
         <section className="spx-card">
           <h3>
+            <Icon name="grid" size={14} />
+            {t('spriteProject.export.formatsTitle')}
+          </h3>
+          <p className="muted">{t('spriteProject.export.formatsDesc')}</p>
+          <div className="spx-dir">
+            <label>
+              <input type="checkbox" checked disabled /> TexturePacker JSON
+            </label>
+            {FORMAT_OPTIONS.map((o) => (
+              <label key={o.key}>
+                <input
+                  type="checkbox"
+                  checked={v.settings.exportFormats[o.key]}
+                  onChange={(e) => void setSettings({ exportFormats: { ...v.settings.exportFormats, [o.key]: e.target.checked } })}
+                />{' '}
+                {o.label} <small className="mono">{o.file}</small>
+              </label>
+            ))}
+          </div>
+        </section>
+      )}
+      {newSheets.length > 0 && (
+        <section className="spx-card">
+          <h3>
             <Icon name="terminal" size={14} />
             {t('spriteProject.export.useTitle')}
           </h3>
@@ -206,6 +240,11 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
                 <b>{s.name}</b>
                 <span className="muted">{t('spriteProject.export.resLine', { frames: s.frames, kept: s.kept })}</span>
                 {s.atlas && <span className="chip c-blue">{s.atlas}</span>}
+                {s.formats.map((f) => (
+                  <span key={f} className="chip c-blue">
+                    {f}
+                  </span>
+                ))}
                 {s.snippets && (
                   <span className="chip c-orange" title={s.snippets}>
                     {s.snippets.split(/[\\/]/).pop()}

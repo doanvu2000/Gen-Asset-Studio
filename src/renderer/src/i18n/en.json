@@ -1561,7 +1561,9 @@
       "copied": "Code copied",
       "snipFailed": "Could not load sample code for this sheet.",
       "atlasNew": "{{name}}.json (new)",
-      "newNote": "New sheets: a .json (TexturePacker) and a .md (Flame / Android / iOS code) were written next to the image."
+      "newNote": "New sheets: a .json (TexturePacker) and a .md (Flame / Android / iOS code) were written next to the image.",
+      "formatsTitle": "Engine formats",
+      "formatsDesc": "TexturePacker JSON is always exported. Add files for Godot 4, Unity or Cocos Creator (written next to the PNG)."
     },
     "create": {
       "title": "New sheet from a character image",

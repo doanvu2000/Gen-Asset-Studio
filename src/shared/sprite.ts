@@ -84,6 +84,12 @@ export interface SpriteAnim {
   loop: LoopMode
 }
 
+export interface ExportFormats {
+  godot: boolean
+  unity: boolean
+  cocos: boolean
+}
+
 export interface SpriteSettings {
   dirSet: DirSet
   rowPreset: RowPreset
@@ -92,6 +98,7 @@ export interface SpriteSettings {
   mirror: boolean
   cell: 64 | 128 | 256
   autoChain: boolean
+  exportFormats: ExportFormats
 }
 
 export const DEFAULT_SPRITE_SETTINGS: SpriteSettings = {
@@ -101,7 +108,8 @@ export const DEFAULT_SPRITE_SETTINGS: SpriteSettings = {
   view: 'topdown',
   mirror: true,
   cell: 128,
-  autoChain: true
+  autoChain: true,
+  exportFormats: { godot: false, unity: false, cocos: false }
 }
 
 export type SheetStatus = 'ok' | 'missing' | 'changed'
@@ -144,6 +152,9 @@ export interface SheetSnippets {
   flame: string
   android: string
   ios: string
+  godot: string
+  unity: string
+  cocos: string
 }
 
 export interface CreateSheetResult {
@@ -324,7 +335,7 @@ export interface SpriteStripPatch {
 export interface SpriteExportResult {
   ok: boolean
   outDir: string
-  sheets: Array<{ name: string; file: string; frames: number; kept: number; atlas: string | null; snippets: string | null }>
+  sheets: Array<{ name: string; file: string; frames: number; kept: number; atlas: string | null; snippets: string | null; formats: string[] }>
   backupDir: string | null
   error: string | null
 }
