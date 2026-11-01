@@ -226,6 +226,7 @@ const IMG = new Set(['.png', '.jpg', '.jpeg', '.webp'])
 
 export class SpineService {
   private readonly hashMemo = new Map<string, { mtime: number; size: number; hash: string }>()
+  private readonly liveCache = new Map<string, string>()
 
   constructor(private readonly deps: SpineDeps) {}
 
@@ -328,7 +329,31 @@ export class SpineService {
       }
       if (parts.length) await savePng(await partsBoard(parts), board)
     }
+    if (spine.atlas && existsSync(cache)) this.pruneCache(cache)
     return out
+  }
+
+  private pruneCache(cache: string): void {
+    const root = dirname(cache)
+    const key = pathKey(root)
+    const sig = basename(cache)
+    if (this.liveCache.get(key) === sig) return
+    this.liveCache.set(key, sig)
+    void (async () => {
+      let failed = false
+      for (const e of await fs.readdir(root, { withFileTypes: true }).catch(() => [])) {
+        if (!e.isDirectory() || e.name === this.liveCache.get(key)) continue
+        await fs.rm(join(root, e.name), { recursive: true, force: true }).catch(() => {
+          failed = true
+        })
+      }
+      if (failed && this.liveCache.get(key) === sig) this.liveCache.delete(key)
+    })()
+  }
+
+  private missingFiles(spine: SpineData): { changedFiles?: string[] } {
+    const files = [spine.skeleton, spine.atlas, ...Object.values(spine.pages)].filter((r): r is FileRef => !!r && !existsSync(r.path)).map((r) => r.path)
+    return files.length ? { changedFiles: files } : {}
   }
 
   private async coverBoard(dir: string, spine: SpineData, regions: SpineRegionView[], sources: Map<string, string>): Promise<void> {
@@ -414,7 +439,7 @@ export class SpineService {
       return { ...base, status: 'changed', error: changedFiles.length ? (error ?? parseError) : parseError, ...changed }
     }
     if (changedFiles.length) return { ...base, status: 'changed', error: error ?? 'sourceChanged', changedFiles }
-    if (!parsed) return { ...base, status: 'missing' }
+    if (!parsed) return { ...base, status: 'missing', ...this.missingFiles(spine) }
     const assets = await this.assetsFor(l, parsed.atlas)
     const sources = await this.ensureSources(dir, spine, parsed.atlas, assets)
     const regions: SpineRegionView[] = []
@@ -449,7 +474,9 @@ export class SpineService {
       if (ok) this.deps.allow(ref.path)
       return { ...p, path: ok ? ref.path : null, url: ok ? fileUrl(ref.path, ref.hash) : null }
     })
-    return { ...base, loaded: pages.every((p) => !!p.path), status: pages.every((p) => !!p.path) ? 'ok' : 'missing', skeleton: parsed.info, pages, regions }
+    const loaded = pages.every((p) => !!p.path)
+    const gone = pages.filter((p) => !p.path).map((p) => spine.pages[p.name]?.path ?? join(dirname(spine.atlas?.path ?? dir), p.name))
+    return { ...base, loaded, status: loaded ? 'ok' : 'missing', ...(gone.length ? { changedFiles: gone } : {}), skeleton: parsed.info, pages, regions }
   }
 
   private mutate(rel: string, fn: (l: Loaded) => Promise<void> | void, what: string): Promise<SpineProjectView | null> {

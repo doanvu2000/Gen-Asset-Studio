@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import type { JobSpec } from '../src/shared/queue'
 import { parseSpineAtlas } from '../src/main/spine/atlas'
@@ -8,7 +8,7 @@ import { extractRegion, premultiply, writeRegion } from '../src/main/spine/regio
 import { SpineService, assignAssets, refersTo, regionAsset } from '../src/main/spine/service'
 import { AtlasError } from '../src/main/spine/atlas'
 import { versionsDir } from '../src/main/queue/GenJob'
-import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
+import { readProject, writeProject, emptyProject, pathKey } from '../src/main/workspace/project'
 import { createImage, decode } from '../src/main/pipeline/image'
 import { savePng } from '../src/main/sprite/strip'
 import { writeSkel } from './spine-skel-writer.mjs'
@@ -459,6 +459,23 @@ async function backendFixes(page: Raw): Promise<void> {
   const re = await svc.importPaths('Fix16', [join(src, 'hero.json')])
   const pj4 = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
   check(re.view?.status === 'ok' && !pj4.spine.review.head && pj4.spine.review.body?.decision === 'approved' && re.view.regions.find((x) => x.name === 'head')?.versions.length === 3, 're-import with re-packed atlas: resized region review reset, versions + other reviews kept')
+  const cacheRoot = join(dir, '.cache', 'spine')
+  mkdirSync(join(cacheRoot, 'deadbeef00', 'src'), { recursive: true })
+  writeFileSync(join(src, 'hero.atlas'), atlasText.replace('head\nbounds:2,2,100,100', 'head\nbounds:2,2,100,98'))
+  const re2 = await svc.importPaths('Fix16', [join(src, 'hero.json')])
+  for (let i = 0; i < 100 && readdirSync(cacheRoot).length > 1; i++) await new Promise((res) => setTimeout(res, 20))
+  const kept = readdirSync(cacheRoot)
+  check(re2.view?.status === 'ok' && kept.length === 1 && existsSync(join(cacheRoot, kept[0], 'src', 'head.png')), `stale cache dirs pruned after re-import, current kept (${kept.join(',')})`)
+  const skelPath = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8')).spine.skeleton.path
+  renameSync(join(src, 'hero.json'), join(src, 'hero.json.off'))
+  v = await svc.open('Fix16')
+  renameSync(join(src, 'hero.json.off'), join(src, 'hero.json'))
+  check(v?.status === 'missing' && v.changedFiles?.length === 1 && v.changedFiles[0] === skelPath, `only skeleton gone → missing lists just the skeleton (${v?.changedFiles?.join(',')})`)
+  renameSync(pagePath, `${pagePath}.off`)
+  v = await svc.open('Fix16')
+  renameSync(`${pagePath}.off`, pagePath)
+  check(v?.status === 'missing' && v.changedFiles?.length === 1 && pathKey(v.changedFiles[0]) === pathKey(pagePath) && readdirSync(cacheRoot).length === 1, `only page gone → missing lists just the page, cache kept (${v?.changedFiles?.join(',')})`)
+  check((await svc.open('Fix16'))?.status === 'ok', 'sources restored → ok')
 
   writeFileSync(join(src, 'hero.atlas'), atlasText.replace('head\nbounds:2,2,100,100', 'Head\nbounds:2,2,10,10\nhead\nbounds:2,2,100,100'))
   const coll = await svc.importPaths('Fix16', [join(src, 'hero.json')])
