@@ -8,6 +8,7 @@ import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
 import { SpritePlayground } from '@renderer/components/sprite/SpritePlayground'
 import { relTime } from '@renderer/lib/format'
+import { useReviewKeys, type ReviewKeyMap } from '@renderer/lib/useReviewKeys'
 import { jobOf, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
 import { useApp } from '@renderer/store/app'
 import { useQueue } from '@renderer/store/queue'
@@ -41,7 +42,7 @@ function fpsOf(v: SpriteProjectView, s: StripView): number {
   return anim?.fps ?? 10
 }
 
-export function StripDetail({ v, s, chip, onNext }: { v: SpriteProjectView; s: StripView; chip: ReactNode; onNext: () => void }): ReactElement {
+export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectView; s: StripView; chip: ReactNode; onNext: () => void; onStep: (dir: 1 | -1) => void }): ReactElement {
   const { t } = useTranslation()
   const lang = useApp((st) => st.settings.lang)
   const review = useSprite((st) => st.review)
@@ -81,23 +82,26 @@ export function StripDetail({ v, s, chip, onNext }: { v: SpriteProjectView; s: S
     void review({ [target.key]: { decision: 'rejected' } })
   }, [review, target.key, target.url])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.key === 'a' || e.key === 'A') approve()
-      else if (e.key === 'x' || e.key === 'X') reject()
-      else if ((e.key === 'r' || e.key === 'R') && canRegen) setRegen(true)
-      else if (e.key === ' ') {
-        e.preventDefault()
-        setPlaying((p) => !p)
-      } else if (e.key === ',' ) setPos((pos - 1 + s.frameCount) % s.frameCount)
-      else if (e.key === '.') setPos((pos + 1) % s.frameCount)
-      else return
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [approve, reject, canRegen, pos, s.frameCount, setPos])
+  const pickVersion = useCallback(
+    (n: number) => {
+      if (mirror || !versions.some((x) => x.version === n)) return
+      void review({ [target.key]: { selected: n, decision: null } })
+    },
+    [mirror, versions, review, target.key]
+  )
+
+  const keys: ReviewKeyMap = {
+    a: approve,
+    x: reject,
+    r: () => canRegen && setRegen(true),
+    ' ': () => setPlaying((p) => !p),
+    ',': () => setPos((pos - 1 + s.frameCount) % s.frameCount),
+    '.': () => setPos((pos + 1) % s.frameCount),
+    ArrowLeft: () => onStep(-1),
+    ArrowRight: () => onStep(1)
+  }
+  for (let n = 1; n <= 9; n++) keys[String(n)] = () => pickVersion(n)
+  useReviewKeys(keys)
 
   const jump = (frames: number[]): void => {
     if (!frames.length) return
@@ -277,11 +281,11 @@ export function StripDetail({ v, s, chip, onNext }: { v: SpriteProjectView; s: S
           )
         )}
         <div className="grow" />
-        <button type="button" className={target.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!target.url} onClick={reject} title="X">
+        <button type="button" className={target.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!target.url} onClick={reject} title={`${t('spriteProject.review.reject')} (X)`}>
           <Icon name="x" size={14} />
           {t('spriteProject.review.reject')}
         </button>
-        <button type="button" className={target.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!target.url} onClick={approve} title="A">
+        <button type="button" className={target.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!target.url} onClick={approve} title={`${t('spriteProject.review.approve')} (A)`}>
           <Icon name="check" size={14} />
           {t('spriteProject.review.approve')}
         </button>

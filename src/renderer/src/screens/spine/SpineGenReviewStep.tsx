@@ -10,6 +10,7 @@ import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { applyRig, origRigFromData, parseOrigRig, RigEditor } from '@renderer/components/spine/RigEditor'
 import { regionJob, regionQaFail, regionReviewState, regionState, rigEditCount, spineStepLock, type RegionReviewState } from '@renderer/lib/spine'
+import { useReviewKeys, type ReviewKeyMap } from '@renderer/lib/useReviewKeys'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSpine } from '@renderer/store/spine'
 import { toast } from '@renderer/store/toast'
@@ -116,7 +117,7 @@ function Row({ v, r, job, on, onPick }: { v: SpineProjectView; r: SpineRegionVie
   )
 }
 
-function Detail({ r, job, onNext, onClose }: { r: SpineRegionView; job: QueueJob | null; onNext: () => void; onClose: () => void }): ReactElement {
+function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: QueueJob | null; onNext: () => void; onStep: (dir: 1 | -1) => void; onClose: () => void }): ReactElement {
   const { t } = useTranslation()
   const review = useSpine((s) => s.review)
   const enqueue = useSpine((s) => s.enqueue)
@@ -136,19 +137,20 @@ function Detail({ r, job, onNext, onClose }: { r: SpineRegionView; job: QueueJob
     void review({ [r.key]: { decision: 'rejected' } })
   }, [review, r.key, r.url])
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent): void => {
-      const tag = (e.target as HTMLElement | null)?.tagName
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
-      if (e.ctrlKey || e.metaKey || e.altKey) return
-      if (e.key === 'a' || e.key === 'A') approve()
-      else if (e.key === 'x' || e.key === 'X') reject()
-      else if (e.key === 'r' || e.key === 'R') setRegen(true)
-      else if (e.key === 'Escape') onClose()
+  const keys: ReviewKeyMap = {
+    a: approve,
+    x: reject,
+    r: () => setRegen(true),
+    Escape: onClose,
+    ArrowLeft: () => onStep(-1),
+    ArrowRight: () => onStep(1)
+  }
+  for (let n = 1; n <= 9; n++) {
+    keys[String(n)] = () => {
+      if (r.versions.length > 1 && r.versions.includes(n)) void review({ [r.key]: { selected: n, decision: null } })
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [approve, reject, onClose])
+  }
+  useReviewKeys(keys)
 
   const w = Math.min(200, r.w * zoom)
   return (
@@ -257,11 +259,11 @@ function Detail({ r, job, onNext, onClose }: { r: SpineRegionView; job: QueueJob
           </button>
         )}
         <div className="grow" />
-        <button type="button" className={r.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!r.url} onClick={reject} title="X">
+        <button type="button" className={r.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!r.url} onClick={reject} title={`${t('spriteProject.review.reject')} (X)`}>
           <Icon name="x" size={14} />
           {t('spriteProject.review.reject')}
         </button>
-        <button type="button" className={r.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!r.url} onClick={approve} title="A">
+        <button type="button" className={r.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!r.url} onClick={approve} title={`${t('spriteProject.review.approve')} (A)`}>
           <Icon name="check" size={14} />
           {t('spriteProject.review.approve')}
         </button>
@@ -337,6 +339,14 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
     const after = [...list.slice(idx + 1), ...list.slice(0, idx)].find((r) => r.versions.length > 0 && r.decision !== 'approved')
     if (after) setPick(after.key)
   }, [list, pick])
+  const stepOne = useCallback(
+    (dir: 1 | -1) => {
+      const idx = list.findIndex((r) => r.key === pick)
+      const to = idx < 0 ? undefined : list[idx + dir]
+      if (to) setPick(to.key)
+    },
+    [list, pick]
+  )
   const closeDetail = useCallback(() => setPick(null), [])
 
   const counts: Record<Filter, number> = {
@@ -439,7 +449,7 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
               />
             </>
           ) : cur ? (
-            <Detail key={cur.key} r={cur} job={jobOf.get(cur.key) ?? null} onNext={nextOne} onClose={closeDetail} />
+            <Detail key={cur.key} r={cur} job={jobOf.get(cur.key) ?? null} onNext={nextOne} onStep={stepOne} onClose={closeDetail} />
           ) : (
             <p className="muted sgr-hint">{rigReady ? t('spineProject.gen.pickHint') : t('spineProject.gen.pickHintNoGen')}</p>
           )}

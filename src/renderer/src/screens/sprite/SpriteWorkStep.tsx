@@ -110,6 +110,12 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
     if (after) setSel(after.key)
   }
 
+  const step = (dir: 1 | -1): void => {
+    const idx = list.findIndex((s) => s.key === cur?.key)
+    const to = idx < 0 ? undefined : list[idx + dir]
+    if (to) setSel(to.key)
+  }
+
   const onRowKey = (e: KeyboardEvent, key: string): void => {
     if (e.key !== 'Enter' || e.target !== e.currentTarget) return
     e.preventDefault()
@@ -327,7 +333,7 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
               )
             })}
           </div>
-          {cur && <StripDetail key={cur.key} v={v} s={cur} chip={<StateChip v={v} strip={cur} state={stripState(cur, jobOf(v, cur, jobs))} job={jobOf(v, cur, jobs)} />} onNext={next} />}
+          {cur && <StripDetail key={cur.key} v={v} s={cur} chip={<StateChip v={v} strip={cur} state={stripState(cur, jobOf(v, cur, jobs))} job={jobOf(v, cur, jobs)} />} onNext={next} onStep={step} />}
         </div>
       )}
     </div>
