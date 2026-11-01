@@ -26,6 +26,8 @@ import {
   type SpriteSettings,
   type SpriteSkipped,
   type SpriteExportResult,
+  type SpriteAnimExportOpts,
+  type SpriteAnimExportResult,
   type CreateSheetResult,
   type NewSheetSpec,
   type PickedImage,
@@ -41,7 +43,10 @@ import {
 import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
 import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetCoverPath, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
-import { encodePng, savePng } from './strip'
+import { encodePng, flipFrame, savePng, splitFrames } from './strip'
+import { animFileBase, encodeAnimation, type AnimFormat } from './anim-export'
+import { decode } from '../pipeline/image'
+import type { RawImage } from '../pipeline/types'
 import { cocosPlist, godotTres, unityMeta } from './formats'
 import { atlasJson, buildSnippets, snippetsMarkdown, type SnippetSheet } from './snippets'
 import { ensureThumb, pathKey, readProject, type ProjectFile } from '../workspace/project'
@@ -1016,6 +1021,101 @@ export class SpriteService {
     })
   }
 
+  private async animFrames(dir: string, sprite: SpriteData, defs: StripDef[], def: StripDef, source: 'new' | 'orig'): Promise<{ frames: RawImage[]; fps: number; loop: boolean } | null> {
+    const src = def.mirrorOf ? (defs.find((d) => d.key === def.mirrorOf) ?? def) : def
+    let file: string | null = null
+    if (source === 'new') {
+      const versions = await listStripVersions(dir, src.assetRel)
+      const sel = sprite.review[src.key]?.selected
+      const v = sel && versions.includes(sel) ? sel : versions[versions.length - 1]
+      if (v) file = versionPath(dir, src.assetRel, v)
+    }
+    file = file ?? (await origStrip(dir, src))
+    if (!file) return null
+    let frames = splitFrames(await decode(file), frameSizes(src.frames))
+    if (def.mirrorOf) frames = frames.map(flipFrame)
+    const mode = def.anim.loop
+    if (mode === 'pingpong' && frames.length > 2) frames = [...frames, ...frames.slice(1, -1).reverse()]
+    return { frames, fps: def.anim.fps, loop: mode !== 'once' }
+  }
+
+  exportAnimations(rel: string, opts: SpriteAnimExportOpts): Promise<SpriteAnimExportResult> {
+    return this.deps.run(async () => {
+      const fail = (error: string, outDir = ''): SpriteAnimExportResult => ({ ok: false, outDir, files: [], skipped: 0, backupDir: null, error })
+      try {
+        const { dir, sprite } = await this.load(rel)
+        const format: AnimFormat = opts.format === 'webp' ? 'webp' : 'gif'
+        const scale = opts.scale === 4 ? 4 : opts.scale === 2 ? 2 : 1
+        const outDir = join(resolve(dir, (opts.outDir ?? '').trim() || sprite.exportDir || 'output'), 'preview')
+        const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
+        const used = new Set<string>()
+        const files: SpriteAnimExportResult['files'] = []
+        let backupDir: string | null = null
+        let skipped = 0
+        const defs = this.defs(sprite).filter((d) => !opts.sheetId || d.sheet.id === opts.sheetId)
+        const all = this.defs(sprite)
+        for (const d of defs) {
+          const a = await this.animFrames(dir, sprite, all, d, opts.source === 'orig' ? 'orig' : 'new')
+          if (!a || !a.frames.length) {
+            skipped++
+            continue
+          }
+          let base = animFileBase(d.sheet.path, d.anim.name, d.anim.dir)
+          if (used.has(base.toLowerCase())) base = `${base}_${d.anim.id.replace(/[^\w-]+/g, '')}`
+          used.add(base.toLowerCase())
+          const name = `${base}.${format}`
+          const target = join(outDir, name)
+          const buf = await encodeAnimation(a.frames, { fps: a.fps, format, loop: a.loop, scale })
+          await fs.mkdir(outDir, { recursive: true })
+          if (existsSync(target)) {
+            backupDir = backupDir ?? join(outDir, '_backup', stamp)
+            await fs.mkdir(backupDir, { recursive: true })
+            await fs.copyFile(target, join(backupDir, name))
+          }
+          await fs.writeFile(target, buf)
+          files.push({ name, file: target, frames: a.frames.length, fps: a.fps })
+        }
+        if (!files.length) return fail('nothingToExport', outDir)
+        this.deps.log(`sprite anim export ${rel}: ${files.length} ${format} file(s)`)
+        return { ok: true, outDir, files, skipped, backupDir, error: null }
+      } catch (e) {
+        this.deps.log(`sprite anim export failed: ${(e as Error).message}`)
+        return fail((e as Error).message)
+      }
+    })
+  }
+
+  animationFile(rel: string, key: string, format: AnimFormat): Promise<string | null> {
+    return this.deps.run(async () => {
+      try {
+        const { dir, sprite } = await this.load(rel)
+        const all = this.defs(sprite)
+        const d = all.find((x) => x.key === key)
+        if (!d) return null
+        const a = await this.animFrames(dir, sprite, all, d, 'new')
+        if (!a || !a.frames.length) return null
+        const out = join(dir, '.cache', 'anim', `${animFileBase(d.sheet.path, d.anim.name, d.anim.dir)}.${format}`)
+        await fs.mkdir(dirname(out), { recursive: true })
+        await fs.writeFile(out, await encodeAnimation(a.frames, { fps: a.fps, format, loop: a.loop, scale: 2 }))
+        return out
+      } catch (e) {
+        this.deps.log(`sprite anim file failed: ${(e as Error).message}`)
+        return null
+      }
+    })
+  }
+
+  async saveAnimation(rel: string, key: string, format: AnimFormat, win: BrowserWindow | null): Promise<string | null> {
+    const tmp = await this.animationFile(rel, key, format)
+    if (!tmp) return null
+    const { dialog } = await import('electron')
+    const opts: Electron.SaveDialogOptions = { defaultPath: basename(tmp), filters: [{ name: format.toUpperCase(), extensions: [format] }] }
+    const r = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (r.canceled || !r.filePath) return null
+    await fs.copyFile(tmp, r.filePath)
+    return r.filePath
+  }
+
   open(rel: string): Promise<SpriteProjectView | null> {
     return this.deps.run(async () => {
       try {
@@ -1302,6 +1402,8 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_GEN_IPC.createSheet, (_e, rel: unknown, spec: unknown) => service.createSheet(s(rel), o<NewSheetSpec>(spec)))
   ipcMain.handle(SPRITE_GEN_IPC.snippets, (_e, rel: unknown, id: unknown) => service.snippets(s(rel), s(id)))
   ipcMain.handle(SPRITE_GEN_IPC.previewSheet, (_e, rel: unknown, id: unknown) => service.previewSheet(s(rel), s(id)))
+  ipcMain.handle(SPRITE_GEN_IPC.exportAnims, (_e, rel: unknown, opts: unknown) => service.exportAnimations(s(rel), o<SpriteAnimExportOpts>(opts)))
+  ipcMain.handle(SPRITE_GEN_IPC.saveAnim, (_e, rel: unknown, key: unknown, format: unknown) => service.saveAnimation(s(rel), s(key), format === 'webp' ? 'webp' : 'gif', getWindow()))
   ipcMain.handle(SPRITE_GEN_IPC.reveal, async (_e, p: unknown) => {
     const target = s(p)
     if (!target || !existsSync(target)) return

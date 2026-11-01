@@ -172,6 +172,11 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
             </option>
           ))}
         </select>
+        {(src.url || s.origUrl) && (
+          <button type="button" className="btn ghost sm" onClick={() => void window.gas.spriteGen.saveAnim(v.rel, s.key, 'gif')}>
+            {t('spriteProject.review.saveGif')}
+          </button>
+        )}
       </div>
       {mode === 'side' ? (
         <div className="spr-d-stage">

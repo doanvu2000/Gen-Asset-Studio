@@ -14,7 +14,7 @@ import type {
 } from '@shared/types'
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
 import { SPINE_IPC, type SpineRegionPatch, type SpineRig } from '@shared/spine'
-import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteSettings, type SpriteStripPatch, type SpriteStyle, type NewSheetSpec } from '@shared/sprite'
+import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteAnimExportOpts, type SpriteSettings, type SpriteStripPatch, type SpriteStyle, type NewSheetSpec } from '@shared/sprite'
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
@@ -190,7 +190,9 @@ const api: GasApi = {
     pickCharacter: () => ipcRenderer.invoke(SPRITE_GEN_IPC.pickCharacter),
     createSheet: (rel: string, spec: NewSheetSpec) => ipcRenderer.invoke(SPRITE_GEN_IPC.createSheet, rel, spec),
     snippets: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.snippets, rel, sheetId),
-    previewSheet: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.previewSheet, rel, sheetId)
+    previewSheet: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.previewSheet, rel, sheetId),
+    exportAnims: (rel: string, opts: SpriteAnimExportOpts) => ipcRenderer.invoke(SPRITE_GEN_IPC.exportAnims, rel, opts),
+    saveAnim: (rel: string, key: string, format: 'gif' | 'webp') => ipcRenderer.invoke(SPRITE_GEN_IPC.saveAnim, rel, key, format)
   },
   spine: {
     open: (rel: string) => ipcRenderer.invoke(SPINE_IPC.open, rel),

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { ExportFormats, SheetSnippets, SheetView, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
+import type { ExportFormats, SheetSnippets, SheetView, SpriteAnimExportResult, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
 import { Segmented } from '@renderer/components/Segmented'
 import { Icon } from '@renderer/components/Icon'
 import { relTime } from '@renderer/lib/format'
@@ -88,6 +88,12 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
   const [outDir, setOutDir] = useState(v.export.outDir || defaultOut(v.dir))
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<SpriteExportResult | null>(null)
+  const [animFormat, setAnimFormat] = useState<'gif' | 'webp'>('gif')
+  const [animScale, setAnimScale] = useState<1 | 2 | 4>(2)
+  const [animSource, setAnimSource] = useState<'new' | 'orig'>('new')
+  const [animSheet, setAnimSheet] = useState('')
+  const [animBusy, setAnimBusy] = useState(false)
+  const [animRes, setAnimRes] = useState<SpriteAnimExportResult | null>(null)
 
   const rows = useMemo(
     () =>
@@ -123,6 +129,22 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
       toast(String((e as Error).message ?? e), 'err')
     } finally {
       setBusy(false)
+    }
+  }
+
+  const runAnims = async (): Promise<void> => {
+    if (animBusy) return
+    setAnimBusy(true)
+    setAnimRes(null)
+    try {
+      const r = await window.gas.spriteGen.exportAnims(v.rel, { sheetId: animSheet, format: animFormat, scale: animScale, source: animSource, outDir })
+      setAnimRes(r)
+      if (r.ok) toast(t('spriteProject.export.animDone', { count: r.files.length }))
+      else toast(r.error === 'nothingToExport' ? t('spriteProject.export.animNone') : (r.error ?? t('spriteProject.export.failed')), 'err')
+    } catch (e) {
+      toast(String((e as Error).message ?? e), 'err')
+    } finally {
+      setAnimBusy(false)
     }
   }
 
@@ -225,6 +247,82 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
           {newSheets.map((sh) => (
             <Snippets key={sh.id} rel={v.rel} sheet={sh} />
           ))}
+        </section>
+      )}
+      {v.strips.length > 0 && (
+        <section className="spx-card">
+          <h3>
+            <Icon name="play" size={14} />
+            {t('spriteProject.export.animTitle')}
+          </h3>
+          <p className="muted">{t('spriteProject.export.animDesc')}</p>
+          <div className="spx-dir">
+            <Segmented<'gif' | 'webp'>
+              value={animFormat}
+              ariaLabel={t('spriteProject.export.animFormat')}
+              options={[
+                { value: 'gif', label: 'GIF' },
+                { value: 'webp', label: 'WebP' }
+              ]}
+              onChange={setAnimFormat}
+            />
+            <Segmented<'1' | '2' | '4'>
+              value={String(animScale) as '1' | '2' | '4'}
+              ariaLabel={t('spriteProject.export.animScale')}
+              options={[
+                { value: '1', label: '×1' },
+                { value: '2', label: '×2' },
+                { value: '4', label: '×4' }
+              ]}
+              onChange={(x) => setAnimScale(Number(x) as 1 | 2 | 4)}
+            />
+            <Segmented<'new' | 'orig'>
+              value={animSource}
+              ariaLabel={t('spriteProject.export.animSource')}
+              options={[
+                { value: 'new', label: t('spriteProject.export.animSourceNew') },
+                { value: 'orig', label: t('spriteProject.export.animSourceOrig') }
+              ]}
+              onChange={setAnimSource}
+            />
+            {v.sheets.length > 1 && (
+              <select className="inp sm" value={animSheet} aria-label={t('spriteProject.export.animSheet')} onChange={(e) => setAnimSheet(e.target.value)}>
+                <option value="">{t('spriteProject.export.animAll')}</option>
+                {v.sheets.map((sh) => (
+                  <option key={sh.id} value={sh.id}>
+                    {sh.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div className="spx-acts">
+            <button type="button" className="btn" disabled={animBusy} onClick={() => void runAnims()}>
+              {animBusy ? <span className="spin" /> : <Icon name="download" size={14} />}
+              {t('spriteProject.export.animRun')}
+            </button>
+          </div>
+          {animRes && (
+            <>
+              {animRes.error && <div className="note err">{animRes.error === 'nothingToExport' ? t('spriteProject.export.animNone') : animRes.error}</div>}
+              <ul className="spx-res">
+                {animRes.files.map((f) => (
+                  <li key={f.file}>
+                    <b>{f.name}</b>
+                    <span className="muted">{t('spriteProject.export.animLine', { frames: f.frames, fps: f.fps })}</span>
+                  </li>
+                ))}
+              </ul>
+              {animRes.skipped > 0 && <p className="muted">{t('spriteProject.export.animSkipped', { count: animRes.skipped })}</p>}
+              {animRes.backupDir && <p className="muted">{t('spriteProject.export.animBackup', { path: animRes.backupDir })}</p>}
+              {animRes.outDir && animRes.ok && (
+                <button type="button" className="btn" onClick={() => void window.gas.spriteGen.reveal(animRes.outDir)}>
+                  <Icon name="external" size={14} />
+                  {t('spriteProject.export.open')}
+                </button>
+              )}
+            </>
+          )}
         </section>
       )}
       {result && (

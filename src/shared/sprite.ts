@@ -340,6 +340,23 @@ export interface SpriteExportResult {
   error: string | null
 }
 
+export interface SpriteAnimExportOpts {
+  sheetId: string
+  format: 'gif' | 'webp'
+  scale: 1 | 2 | 4
+  source: 'new' | 'orig'
+  outDir?: string
+}
+
+export interface SpriteAnimExportResult {
+  ok: boolean
+  outDir: string
+  files: Array<{ name: string; file: string; frames: number; fps: number }>
+  skipped: number
+  backupDir: string | null
+  error: string | null
+}
+
 export const SPRITE_GEN_IPC = {
   setStyle: 'sprite:set-style',
   addRefs: 'sprite:add-refs',
@@ -354,7 +371,9 @@ export const SPRITE_GEN_IPC = {
   pickCharacter: 'sprite:pick-character',
   createSheet: 'sprite:create-sheet',
   snippets: 'sprite:snippets',
-  previewSheet: 'sprite:preview-sheet'
+  previewSheet: 'sprite:preview-sheet',
+  exportAnims: 'sprite:export-anims',
+  saveAnim: 'sprite:save-anim'
 } as const
 
 export interface SpriteGenApi {
@@ -372,6 +391,8 @@ export interface SpriteGenApi {
   createSheet: (rel: string, spec: NewSheetSpec) => Promise<CreateSheetResult>
   snippets: (rel: string, sheetId: string) => Promise<SheetSnippets | null>
   previewSheet: (rel: string, sheetId: string) => Promise<string | null>
+  exportAnims: (rel: string, opts: SpriteAnimExportOpts) => Promise<SpriteAnimExportResult>
+  saveAnim: (rel: string, key: string, format: 'gif' | 'webp') => Promise<string | null>
 }
 
 export function stripFrames(sizes: FrameSize[]): FrameRect[] {

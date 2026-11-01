@@ -9,6 +9,7 @@ import { runStripJob } from '../src/main/sprite/stripJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { pickChroma } from '../src/main/pipeline/chroma'
 import { createImage, decode } from '../src/main/pipeline/image'
+import { encodeAnimation, frameDelay, padFrames } from '../src/main/sprite/anim-export'
 import { composeSource, fitStrip, framesHaveShadow, overflowCheck, shadowRows, staticCheck, stripLayout, trimBox, isTrimmed, mirrorNeedsCheck } from '../src/main/sprite/strip'
 import type { FrameRect } from '../src/shared/sprite'
 import type { RawImage } from '../src/main/pipeline/types'
@@ -166,8 +167,36 @@ async function shadowChecks(): Promise<void> {
   check(!none.qa.checks.some((c) => c.id === 'shadow'), 'no shadow check when source has none')
 }
 
+async function animChecks(): Promise<void> {
+  const fr = (dx: number): RawImage => blob(16, 20, 2 + dx, 4, 6, 12)
+  check(frameDelay(10) === 100 && frameDelay(0) === 100 && frameDelay(-3) === 100 && frameDelay(8) === 125, 'frameDelay from fps, fps<=0 -> 100ms')
+  const padded = padFrames([fr(0), blob(10, 30, 1, 1, 4, 4)])
+  check(padded.every((f) => f.width === 16 && f.height === 30), 'padFrames pads to largest cell')
+  const feet = padded[0]
+  check(feet.data[((30 - 1 - 4) * 16 + 6) * 4 + 3] === 255 || feet.data[((30 - 1 - 5) * 16 + 6) * 4 + 3] === 255, 'padFrames keeps feet on bottom')
+  for (const format of ['gif', 'webp'] as const) {
+    const buf = await encodeAnimation([fr(0), fr(2), fr(4)], { fps: 8, format, loop: true, scale: 2 })
+    const m = await sharp(buf, { animated: true }).metadata()
+    check(m.pages === 3 && m.width === 32 && m.pageHeight === 40 && (m.delay ?? []).every((d) => Math.abs(d - 125) <= 10), `${format}: 3 pages, x2 size, ~125ms (gif rounds to 10ms) (${m.pages} ${m.width}x${m.pageHeight} ${m.delay})`)
+    check(m.loop === 0, `${format}: loop forever`)
+    const once = await sharp(await encodeAnimation([fr(0), fr(2)], { fps: 10, format, loop: false, scale: 1 }), { animated: true }).metadata()
+    check(once.pages === 2 && once.loop === 1, `${format}: loop once (${once.loop})`)
+    const one = await sharp(await encodeAnimation([fr(0)], { fps: 0, format, loop: true, scale: 4 }), { animated: true }).metadata()
+    check((one.pages ?? 1) === 1 && one.width === 64, `${format}: single frame valid x4 (${one.width})`)
+    const mixed = await sharp(await encodeAnimation([fr(0), blob(10, 30, 1, 1, 4, 4)], { fps: 10, format, loop: true, scale: 1 }), { animated: true }).metadata()
+    check(mixed.pages === 2 && mixed.width === 16 && mixed.pageHeight === 30, `${format}: mixed sizes padded`)
+  }
+  const bgBuf = await encodeAnimation([fr(0), fr(1)], { fps: 10, format: 'webp', loop: true, scale: 1, background: '#112233' })
+  const bgRaw = await sharp(bgBuf).ensureAlpha().raw().toBuffer()
+  check(bgRaw[3] === 255 && bgRaw[0] === 0x11, 'background colour flattens alpha')
+  let threw = false
+  await encodeAnimation([], { fps: 10, format: 'gif', loop: true, scale: 1 }).catch(() => (threw = true))
+  check(threw, 'no frames rejected')
+}
+
 async function main(): Promise<void> {
   unitChecks()
+  await animChecks()
   await shadowChecks()
   rmSync(base, { recursive: true, force: true })
   mkdirSync(proj, { recursive: true })
