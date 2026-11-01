@@ -236,7 +236,9 @@ async function main(): Promise<void> {
   const pipeline = new PipelineClient(resolve(root, 'src/main/pipeline/worker.ts'), { execArgv: ['--import', 'tsx'], size: 2 })
   try {
     if (!realOnly) await offlineTests(pipeline)
-    if (!offlineOnly) await realTest(pipeline)
+    const exe = join(codexCurrentDir, 'bin', 'codex.exe')
+    if (!offlineOnly && !realOnly && !existsSync(exe)) log(`skip real test: no codex.exe at ${exe}`)
+    else if (!offlineOnly) await realTest(pipeline)
   } finally {
     await pipeline.close()
   }

@@ -62,12 +62,12 @@ async function checkTemplates(style: StyleService): Promise<void> {
 
 async function main(): Promise<void> {
   mkdirSync(project, { recursive: true })
-  if (templatesOnly) {
+  const exe = join(codexCurrentDir, 'bin', 'codex.exe')
+  if (templatesOnly || !existsSync(exe)) {
+    if (!templatesOnly) log(`no codex.exe at ${exe}, templates only`)
     await checkTemplates(makeStyle({} as StyleCodex))
     return
   }
-  const exe = join(codexCurrentDir, 'bin', 'codex.exe')
-  if (!existsSync(exe)) throw new Error(`codex.exe missing at ${exe}`)
   log(`CODEX_HOME=${codexHome}`)
   const installer = { exePath: () => exe } as unknown as CodexInstaller
   const codex = new CodexService(installer, (m) => log(`[codex] ${m}`))

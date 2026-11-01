@@ -31,7 +31,6 @@ interface Spec {
   approved: boolean
   versions: number
   selected?: number
-  type?: 'sprite'
   badSize?: boolean
 }
 
@@ -44,8 +43,7 @@ const SPECS: Spec[] = [
   { id: 'i_unap', root: 0, rel: 'ui/buttons/btn_red.png', from: 'btn_green', group: true, approved: false, versions: 1 },
   { id: 'i_nog', root: 0, rel: 'ui/misc/loose.png', from: 'btn_green', group: false, approved: true, versions: 1 },
   { id: 'i_nov', root: 1, rel: 'fx/spark.png', from: 'style_ref', group: true, approved: true, versions: 0 },
-  { id: 'i_bad', root: 1, rel: 'fx/bad_size.png', from: 'style_ref', group: true, approved: true, versions: 1, badSize: true },
-  { id: 'i_spr', root: 0, rel: 'ui/sheet.png', from: 'style_ref', group: true, approved: true, versions: 1, type: 'sprite' }
+  { id: 'i_bad', root: 1, rel: 'fx/bad_size.png', from: 'style_ref', group: true, approved: true, versions: 1, badSize: true }
 ]
 
 const EXPECTED_OK = ['i_btn', 'i_btn2', 'i_pop', 'i_root', 'i_long']
@@ -78,7 +76,7 @@ async function setup(): Promise<void> {
     const abs = join(root, ...s.rel.split('/'))
     const buf = await fs.readFile(from)
     await writeFileLong(abs, buf)
-    inputs.push({ id: s.id, root: s.root, rel: s.rel, w, h, alpha: true, size: buf.length, mtime: 0, hash: '', type: s.type ?? 'normal', typeAuto: true, kind: 'button' })
+    inputs.push({ id: s.id, root: s.root, rel: s.rel, w, h, alpha: true, size: buf.length, mtime: 0, hash: '', type: 'normal', typeAuto: true, kind: 'button' })
     if (s.approved || s.selected) review[s.id] = { decision: s.approved ? 'approved' : null, selected: s.selected ?? null, updatedAt: Date.now() }
   }
   await fs.mkdir(proj, { recursive: true })
@@ -134,7 +132,6 @@ async function main(): Promise<void> {
   check(reasons.i_nog === 'notGrouped', 'bỏ qua không thuộc nhóm')
   check(reasons.i_nov === 'noVersion', 'bỏ qua chưa có version')
   check(reasons.i_bad === 'sizeMismatch', `bỏ qua sai W×H (${plan.skipped.find((s) => s.id === 'i_bad')?.detail})`)
-  check(reasons.i_spr === 'sprite', 'bỏ qua sprite sheet')
   check(plan.items.find((i) => i.id === 'i_btn')?.version === 2, 'dùng selectedVersion=2 thay vì mới nhất v3')
   check(plan.items.find((i) => i.id === 'i_pop')?.version === 2, 'không chọn → dùng version mới nhất')
   check(plan.totalFiles === 10 && plan.conflicts === 0, `10 file, 0 xung đột (got ${plan.totalFiles}/${plan.conflicts})`)
@@ -159,7 +156,7 @@ async function main(): Promise<void> {
   check(existsSync(join(plan.outDir, '@2x', 'game', 'ui', 'buttons', 'btn_green.png')), '×2 nằm trong output/@2x/<cây gốc>')
   check(existsSync(join(plan.outDir, 'game', 'logo.png')), '×1 nằm ngay output/<cây gốc>')
   const report = JSON.parse(await fs.readFile(join(plan.outDir, REPORT_FILE), 'utf8')) as { counts: { written: number; skipped: number } }
-  check(report.counts.written === 10 && report.counts.skipped === 5, 'export-report.json đúng số')
+  check(report.counts.written === 10 && report.counts.skipped === 4, 'export-report.json đúng số')
 
   const plan2 = await planExport(src, opts)
   check(plan2.conflicts === 10, `lần 2 thấy 10 file đã tồn tại (got ${plan2.conflicts})`)

@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import sharp from 'sharp'
 import { PipelineClient } from '../src/main/pipeline/client'
@@ -166,7 +166,8 @@ async function contactSheet(rows: { name: string; original: Buffer; result: Proc
 async function main(): Promise<void> {
   const original = await sharp(join(inDir, 'btn_green.png')).png().toBuffer()
   const styleRef = await sharp(join(inDir, 'style_ref.png')).png().toBuffer()
-  const cases: Case[] = readdirSync(aiDir)
+  if (!existsSync(aiDir)) console.log(`no AI outputs at ${aiDir}, synthetic cases only`)
+  const cases: Case[] = (existsSync(aiDir) ? readdirSync(aiDir) : [])
     .filter((f) => f.endsWith('.png'))
     .map((f) => ({ name: basename(f, '.png').replace(/-2026-10-29T[\d-]+Z/, ''), ai: readFileSync(join(aiDir, f)), original, options: { chroma: 'magenta' } }))
   cases.push(...(await synthCases(original)))

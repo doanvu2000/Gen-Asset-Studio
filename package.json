@@ -25,7 +25,9 @@
     "test:sprite-gen": "tsx --tsconfig tsconfig.node.json scripts/sprite-s2-test.ts",
     "test:sprite-new": "tsx --tsconfig tsconfig.node.json scripts/sprite-s3-test.ts",
     "test:spine": "tsx --tsconfig tsconfig.node.json scripts/spine-test.ts",
-    "test:workspace-card": "tsx --tsconfig tsconfig.node.json scripts/workspace-card-test.ts"
+    "test:workspace-card": "tsx --tsconfig tsconfig.node.json scripts/workspace-card-test.ts",
+    "test:sample": "tsx --tsconfig tsconfig.node.json scripts/sample-test.ts",
+    "test": "node scripts/test-all.mjs"
   },
   "dependencies": {
     "@esotericsoftware/spine-player": "4.2.120",
