@@ -16,10 +16,10 @@ import { useSprite } from '@renderer/store/sprite'
 type Mode = 'side' | 'onion'
 type TrySrc = 'orig' | 'new'
 
-type HintId = Extract<StripQaCheck['id'], 'overflow' | 'static'>
+type HintId = Extract<StripQaCheck['id'], 'overflow' | 'static' | 'shadow'>
 
 function isHinted(id: StripQaCheck['id']): id is HintId {
-  return id === 'overflow' || id === 'static'
+  return id === 'overflow' || id === 'static' || id === 'shadow'
 }
 
 function QaHint({ id, onFill }: { id: HintId; onFill?: (note: string) => void }): ReactElement {

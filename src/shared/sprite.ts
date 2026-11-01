@@ -262,7 +262,7 @@ export const EMPTY_SPRITE_STYLE: SpriteStyle = { promptEn: '', templateId: null,
 export type StripDecision = 'approved' | 'rejected'
 
 export interface StripQaCheck {
-  id: 'anchor' | 'height' | 'clipped' | 'missing' | 'duplicate' | 'cut' | 'overflow' | 'static'
+  id: 'anchor' | 'height' | 'clipped' | 'missing' | 'duplicate' | 'cut' | 'overflow' | 'static' | 'shadow'
   status: 'pass' | 'warn' | 'fail'
   value: number
   threshold: number

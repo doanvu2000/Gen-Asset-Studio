@@ -9,7 +9,7 @@ import { runStripJob } from '../src/main/sprite/stripJob'
 import { readProject, writeProject, emptyProject } from '../src/main/workspace/project'
 import { pickChroma } from '../src/main/pipeline/chroma'
 import { createImage, decode } from '../src/main/pipeline/image'
-import { overflowCheck, staticCheck, trimBox, isTrimmed, mirrorNeedsCheck } from '../src/main/sprite/strip'
+import { composeSource, fitStrip, framesHaveShadow, overflowCheck, shadowRows, staticCheck, stripLayout, trimBox, isTrimmed, mirrorNeedsCheck } from '../src/main/sprite/strip'
 import type { FrameRect } from '../src/shared/sprite'
 import type { RawImage } from '../src/main/pipeline/types'
 import type { CodexLike, PipelineLike } from '../src/main/queue/GenJob'
@@ -136,8 +136,39 @@ function unitChecks(): void {
   check(staticCheck([a, createImage(64, 64), a], 'walk', [1]).frames.length === 0, 'static skips missing frames')
 }
 
+function withShadow(img: RawImage, x: number, y: number, bw: number, bh: number): RawImage {
+  for (let yy = y; yy < y + bh; yy++) for (let xx = x; xx < x + bw; xx++) img.data.set([20, 20, 24, 110], (yy * img.width + xx) * 4)
+  return img
+}
+
+async function shadowChecks(): Promise<void> {
+  const body = (dx: number): RawImage => blob(64, 64, 22 + dx, 10, 20, 44)
+  const shaded = (dx: number): RawImage => withShadow(body(dx), 14 + dx, 54, 36, 4)
+  const plain = body(0)
+  check(shadowRows(plain, { x: 22, y: 10, width: 20, height: 44 }) === 0, 'no shadow rows on plain body')
+  check(shadowRows(shaded(0), { x: 14, y: 10, width: 36, height: 48 }) === 4, 'shadow rows under feet detected')
+  const dark = paint(blob(64, 64, 22, 10, 20, 44), 22, 50, 20, 4)
+  dark.data.fill(0)
+  for (let y = 50; y < 54; y++) for (let x = 22; x < 42; x++) dark.data.set([30, 30, 30, 255], (y * 64 + x) * 4)
+  check(shadowRows(dark, { x: 22, y: 50, width: 20, height: 4 }) === 0, 'too-thin dark band not taken as shadow')
+  const originals = [shaded(0), shaded(4), shaded(0), shaded(4)]
+  check(framesHaveShadow(originals) && !framesHaveShadow([plain, plain]), 'framesHaveShadow by majority')
+  const layout = stripLayout(originals.length, 64, 64)
+  const lost = await fitStrip(composeSource([body(0), body(4), body(0), body(4)], layout), layout, originals, { anim: 'walk' })
+  const sh = lost.qa.checks.find((c) => c.id === 'shadow')
+  check(sh?.status === 'warn' && sh.frames.join() === '0,1,2,3', `shadow warn when AI drops it (${sh?.message})`)
+  const anchor = lost.qa.checks.find((c) => c.id === 'anchor')
+  check(anchor?.status === 'pass' && anchor.value <= 1, `feet stay on ground line without shadow (${anchor?.message})`)
+  check(lost.qa.checks.find((c) => c.id === 'height')?.status === 'pass', 'body height compared without shadow')
+  const kept = await fitStrip(composeSource(originals, layout), layout, originals, { anim: 'walk' })
+  check(kept.qa.checks.find((c) => c.id === 'shadow')?.status === 'pass', 'shadow pass when AI keeps it')
+  const none = await fitStrip(composeSource([plain, plain], stripLayout(2, 64, 64)), stripLayout(2, 64, 64), [plain, plain], { anim: 'idle' })
+  check(!none.qa.checks.some((c) => c.id === 'shadow'), 'no shadow check when source has none')
+}
+
 async function main(): Promise<void> {
   unitChecks()
+  await shadowChecks()
   rmSync(base, { recursive: true, force: true })
   mkdirSync(proj, { recursive: true })
   await writeProject(proj, emptyProject('Hero', 'sprite'))

@@ -2,6 +2,18 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
+## Chưa phát hành
+
+### Update
+- Sprite: sheet gốc có bóng dưới chân thì prompt bắt AI giữ bóng ở mọi frame; tạo sheet mới từ ảnh có bóng cũng giữ bóng
+- Sprite › Lưới tổng: ô các hướng tự xếp theo bề ngang, màn rộng không còn ô giãn trống
+
+### Add
+- QA **Mất bóng dưới chân**: báo frame AI bỏ bóng, kèm gợi ý và nút điền ghi chú gen lại
+
+### Fixbug
+- Sprite: AI bỏ bóng dưới chân không còn làm nhân vật lơ lửng — frame mất bóng được căn theo chân thay vì theo đáy bóng
+
 ## 1.2.0 — 2026-11-01
 
 ### Add

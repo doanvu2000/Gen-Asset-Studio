@@ -278,6 +278,64 @@ export async function scaleRegion(src: RawImage, box: Box, s: number): Promise<R
   return resizeRaw(part, w, h)
 }
 
+function shadowish(d: Uint8Array, i: number): boolean {
+  const mx = Math.max(d[i], d[i + 1], d[i + 2])
+  const mn = Math.min(d[i], d[i + 1], d[i + 2])
+  return (d[i + 3] < 235 && mx < 110) || (mx < 70 && mx - mn < 30)
+}
+
+export function shadowRows(img: RawImage, box: Box): number {
+  const limit = Math.floor(box.height * 0.35)
+  let rows = 0
+  let widest = 0
+  for (let y = box.y + box.height - 1; y >= box.y && rows < limit; y--) {
+    let solid = 0
+    let minX = Infinity
+    let maxX = -1
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const i = (y * img.width + x) * 4
+      if (img.data[i + 3] <= 20) continue
+      if (!shadowish(img.data, i)) solid++
+      else {
+        minX = Math.min(minX, x)
+        maxX = Math.max(maxX, x)
+      }
+    }
+    if (solid > 1) break
+    if (maxX >= 0) widest = Math.max(widest, maxX - minX + 1)
+    rows++
+  }
+  return rows >= Math.max(2, Math.round(box.height * 0.03)) && widest >= box.width * 0.4 ? rows : 0
+}
+
+function solidBox(img: RawImage, box: Box, rows: number): Box | null {
+  let x0 = Infinity
+  let y0 = Infinity
+  let x1 = -1
+  let y1 = -1
+  for (let y = box.y; y < box.y + box.height - rows; y++) {
+    for (let x = box.x; x < box.x + box.width; x++) {
+      const i = (y * img.width + x) * 4
+      if (img.data[i + 3] <= 20 || shadowish(img.data, i)) continue
+      x0 = Math.min(x0, x)
+      y0 = Math.min(y0, y)
+      x1 = Math.max(x1, x)
+      y1 = Math.max(y1, y)
+    }
+  }
+  return x1 < 0 ? null : { x: x0, y: y0, width: x1 - x0 + 1, height: y1 - y0 + 1 }
+}
+
+function droppedShadow(full: Box, body: Box, ai: Box): boolean {
+  const r = (b: Box): number => Math.log(b.height / b.width)
+  return Math.abs(r(ai) - r(body)) < Math.abs(r(ai) - r(full))
+}
+
+export function framesHaveShadow(frames: RawImage[]): boolean {
+  const boxes = frames.map((f) => ({ f, b: bbox(f) })).filter((x): x is { f: RawImage; b: Box } => !!x.b)
+  return boxes.length > 0 && boxes.filter((x) => shadowRows(x.f, x.b) > 0).length * 2 >= boxes.length
+}
+
 export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawImage[], opts: { anchorTol?: number; heightTol?: number; anim?: string; trims?: Box[]; mirrors?: SpriteMirrorRects[] } = {}): Promise<StripFit> {
   const anchorTol = opts.anchorTol ?? Math.max(3, Math.round(l.cellH * 0.04))
   const heightTol = opts.heightTol ?? 0.12
@@ -286,16 +344,20 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
     const region = cellBox(l, i)
     const { box, touches } = cellContent(keyed, region)
     const origin = frameOrigin(orig, l, i)
-    return { orig, ob, box, touches, origin }
+    const rows = ob ? shadowRows(orig, ob) : 0
+    const solid = ob && rows ? solidBox(orig, ob, rows) : null
+    const lost = !!(ob && solid && box && droppedShadow(ob, solid, box))
+    const obody = ob && lost && solid ? { ...ob, height: solid.y + solid.height - ob.y } : ob
+    return { orig, ob, box, touches, origin, obody, shadow: !!solid, lost }
   })
-  const ratios = info.filter((f) => f.ob && f.box).map((f) => (f.ob as Box).height / (f.box as Box).height)
+  const ratios = info.filter((f) => f.obody && f.box).map((f) => (f.obody as Box).height / (f.box as Box).height)
   const s = median(ratios) || 1
   const offsX: number[] = []
   const offsY: number[] = []
   for (const f of info) {
-    if (!f.ob || !f.box) continue
-    const ocx = f.ob.x + f.ob.width / 2
-    const oby = f.ob.y + f.ob.height
+    if (!f.obody || !f.box) continue
+    const ocx = f.obody.x + f.obody.width / 2
+    const oby = f.obody.y + f.obody.height
     const acx = f.box.x - f.origin.x + f.box.width / 2
     const aby = f.box.y - f.origin.y + f.box.height
     offsX.push(ocx - acx * s)
@@ -325,13 +387,13 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
     const dy = Math.round((f.box.y - f.origin.y) * s + offY)
     blitClip(out, scaled, dx, dy)
     if (dx < 0 || dy < 0 || dx + scaled.width > out.width || dy + scaled.height > out.height) clipped.push(i)
-    if (f.ob) {
-      const ex = Math.abs(f.ob.x + f.ob.width / 2 - (dx + scaled.width / 2))
-      const ey = Math.abs(f.ob.y + f.ob.height - (dy + scaled.height))
+    if (f.obody) {
+      const ex = Math.abs(f.obody.x + f.obody.width / 2 - (dx + scaled.width / 2))
+      const ey = Math.abs(f.obody.y + f.obody.height - (dy + scaled.height))
       const err = Math.max(ex, ey)
       worstAnchor = Math.max(worstAnchor, err)
       if (err > anchorTol) anchorBad.push(i)
-      const hr = Math.abs(scaled.height / f.ob.height - 1)
+      const hr = Math.abs(scaled.height / f.obody.height - 1)
       worstHeight = Math.max(worstHeight, hr)
       if (hr > heightTol) heightBad.push(i)
     }
@@ -348,6 +410,12 @@ export async function fitStrip(keyed: RawImage, l: StripLayout, originals: RawIm
     { id: 'duplicate', status: dup.length ? 'warn' : 'pass', value: dup.length, threshold: 0, frames: dup, message: dup.length ? `${dup.length} frame(s) identical to the previous one` : 'frames differ' },
     staticCheck(frames, opts.anim ?? '', missing, originals)
   ]
+  const shadowSrc = info.filter((f) => f.shadow)
+  if (shadowSrc.length * 2 >= info.filter((f) => f.ob).length && shadowSrc.length > 0) {
+    const lost = info.flatMap((f, i) => (f.lost ? [i] : []))
+    const bad = lost.length * 3 >= shadowSrc.length
+    checks.push({ id: 'shadow', status: bad ? 'warn' : 'pass', value: lost.length, threshold: Math.ceil(shadowSrc.length / 3), frames: bad ? lost : [], message: lost.length ? `${lost.length} frame(s) lost the shadow under the feet` : 'shadow kept' })
+  }
   if (opts.trims || opts.mirrors?.length) checks.push(overflowCheck(frames, opts.trims ?? [], missing, opts.mirrors))
   return { frames, scale: s, offsetX: offX, offsetY: offY, qa: { pass: !checks.some((c) => c.status === 'fail'), checks } }
 }
@@ -545,6 +613,7 @@ export interface StripPromptInput {
   lockCount: number
   styleImageCount: number
   refImageCount: number
+  shadow?: boolean
 }
 
 export function buildStripPrompt(p: StripPromptInput): string {
@@ -577,7 +646,8 @@ export function buildStripPrompt(p: StripPromptInput): string {
   lines.push(`- Output the same ${l.cols} x ${l.rows} grid with exactly ${l.count} frames, each frame centered in its own cell at the same position and size as in image 1. Empty cells stay empty.`)
   lines.push('- Keep each frame\'s pose, limb positions, facing direction and silhouette exactly as in the source frame; only the art style changes. The animation must still play correctly frame by frame.')
   lines.push('- The character is identical in every frame: same design, same colors, same proportions, same size. Feet stay on the same ground line across frames.')
-  lines.push('- Keep every element the source frames have (for example a soft shadow under the feet) and add nothing new. Leave clear empty space between cells. No grid lines, borders, frame numbers, labels or text.')
+  if (p.shadow) lines.push('- Every source frame has a soft dark shadow on the ground under the feet. Keep it in EVERY frame: same size, same position under the feet, drawn as a dark semi-transparent ellipse in the new style, never in the background color.')
+  lines.push(`- Keep every element the source frames have${p.shadow ? '' : ' (for example a soft shadow under the feet)'} and add nothing new. Leave clear empty space between cells. No grid lines, borders, frame numbers, labels or text.`)
   lines.push(`- Background: fill the entire canvas with one ${p.chromaName}, exact hex ${p.chromaHex}. No gradient or texture. Never use this color on the character.`)
   lines.push(`- The output canvas aspect ratio must be ${l.aspect}.`)
   lines.push('- Clean crisp edges, no blur.')

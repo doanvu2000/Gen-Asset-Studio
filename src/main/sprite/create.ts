@@ -157,6 +157,7 @@ export function buildNewStripPrompt(p: NewPromptInput): string {
   lines.push('- Same character in every frame: identical design, colors, proportions and size. Only the pose changes, following the animation.')
   lines.push('- Consecutive frames must differ clearly (readable poses), never copy the reference pose into every cell.')
   lines.push('- Leave clear empty space between cells. No grid lines, borders, frame numbers, labels, text or extra objects.')
+  lines.push('- If the character image has a shadow under the feet, keep that same soft shadow under the feet in every frame.')
   lines.push(`- Background: fill the entire canvas with one ${p.chromaName}, exact hex ${p.chromaHex}. No gradient, texture or floor. Never use this color on the character.`)
   lines.push(`- The output canvas aspect ratio must be ${l.aspect}.`)
   lines.push('- Clean crisp edges, no blur.')

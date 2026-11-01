@@ -7,7 +7,7 @@ import { JobFailure, releaseVersion, reserveVersion, versionsDir, type GenContex
 import { decode, hexToRgb } from '../pipeline/image'
 import { buildNewStripPrompt, composeGuide, fitNewStrip } from './create'
 import { refreshSpriteCovers } from './service'
-import { buildStripPrompt, composeSource, fitStrip, isTrimmed, joinFrames, keyStrip, loadSheet, mirrorNeedsCheck, savePng, stripLayout, trimBox, uprightFrame } from './strip'
+import { buildStripPrompt, composeSource, fitStrip, framesHaveShadow, isTrimmed, joinFrames, keyStrip, loadSheet, mirrorNeedsCheck, savePng, stripLayout, trimBox, uprightFrame } from './strip'
 
 const DEVELOPER_INSTRUCTIONS = [
   'You are a sprite animation restyling worker inside Gen Asset Studio.',
@@ -85,7 +85,8 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
       chromaHex: chroma.hex,
       lockCount: lockImages.length,
       styleImageCount: styleImages.length,
-      refImageCount: refImages.length
+      refImageCount: refImages.length,
+      shadow: framesHaveShadow(originals)
     })
     const model = job.model || ctx.model
     const effort = job.effort || ctx.effort

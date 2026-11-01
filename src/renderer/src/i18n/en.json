@@ -1511,7 +1511,8 @@
         "duplicate": "Duplicate frame",
         "overflow": "Exceeds trimmed rect",
         "static": "Too little motion",
-        "cut": "Touches AI cell edge"
+        "cut": "Touches AI cell edge",
+        "shadow": "Shadow lost"
       },
       "anim": "Animation",
       "ovHint": "Every direction plays at once — spot mismatches between directions",
@@ -1524,11 +1525,13 @@
       "tryFail": "Couldn't build the sheet from new frames — playing the source sheet",
       "qaHint": {
         "overflow": "Regenerate with a note to shrink the character, or use an untrimmed sheet",
-        "static": "Regenerate with a note to increase the motion range"
+        "static": "Regenerate with a note to increase the motion range",
+        "shadow": "Regenerate with a note to keep the shadow under the feet"
       },
       "qaNote": {
         "overflow": "Make the character smaller so it fits the frame; keep arms, legs and weapons inside",
-        "static": "Increase the motion range: each frame must clearly differ in arm, leg and body pose"
+        "static": "Increase the motion range: each frame must clearly differ in arm, leg and body pose",
+        "shadow": "Keep the soft shadow under the feet in every frame, same size and position as the source sheet"
       },
       "qaFill": "Fill note"
     },

@@ -1511,7 +1511,8 @@
         "duplicate": "Frame trùng",
         "overflow": "Tràn rect trim",
         "static": "Chuyển động quá ít",
-        "cut": "Chạm mép ô AI"
+        "cut": "Chạm mép ô AI",
+        "shadow": "Mất bóng dưới chân"
       },
       "anim": "Animation",
       "ovHint": "Mọi hướng chạy cùng lúc — bắt lệch giữa các hướng",
@@ -1524,11 +1525,13 @@
       "tryFail": "Không ghép được sheet bằng frame mới — đang chạy bằng sheet gốc",
       "qaHint": {
         "overflow": "Gen lại kèm ghi chú thu nhỏ nhân vật, hoặc dùng sheet không trim",
-        "static": "Gen lại kèm ghi chú tăng biên độ chuyển động"
+        "static": "Gen lại kèm ghi chú tăng biên độ chuyển động",
+        "shadow": "Gen lại kèm ghi chú giữ bóng dưới chân"
       },
       "qaNote": {
         "overflow": "Thu nhỏ nhân vật cho vừa khung, không để tay/chân/vũ khí tràn ra ngoài",
-        "static": "Tăng biên độ chuyển động: mỗi frame phải khác rõ tư thế tay, chân, thân"
+        "static": "Tăng biên độ chuyển động: mỗi frame phải khác rõ tư thế tay, chân, thân",
+        "shadow": "Giữ bóng mờ dưới chân ở mọi frame, cùng cỡ và vị trí như sheet gốc"
       },
       "qaFill": "Điền ghi chú"
     },
