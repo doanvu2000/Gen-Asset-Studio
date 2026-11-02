@@ -2,14 +2,31 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
-## Chưa phát hành
-
-### Update
-- Sprite: sheet gốc có bóng dưới chân thì prompt bắt AI giữ bóng ở mọi frame; tạo sheet mới từ ảnh có bóng cũng giữ bóng
-- Sprite › Lưới tổng: ô các hướng tự xếp theo bề ngang, màn rộng không còn ô giãn trống
+## 2.0.0 — 2026-11-02
 
 ### Add
+- **Việc cần làm** (mục mới ở thanh bên, có badge): gom việc của mọi project — chờ duyệt, QA lỗi, đã duyệt chưa xuất, job lỗi; bấm Mở là nhảy đúng project, đúng bước, đúng asset/dải/region
+- **Thanh duyệt chung** cho Reskin, Sprite, Spine: chip phiên bản, So sánh A/B, Đổi màu, Gen lại, Cần sửa, Duyệt — cùng vị trí, cùng phím
+- **So sánh A/B** 2 phiên bản: đặt cạnh nhau hoặc thanh trượt chia đôi (phím `C`, kéo hoặc `[` `]`); Sprite chạy 2 player đồng bộ
+- **Bảng phím tắt** (phím `?`) ở mọi màn duyệt; Sprite/Spine thêm ←/→ đổi dải/region, 1–9 chọn phiên bản
+- **Đổi màu nhanh** không tốn lượt Codex: chỉnh sắc độ / bão hoà / độ sáng, hoặc chỉ một dải màu (bấm chọn màu trên ảnh); lưu thành phiên bản mới — cho Reskin, Sprite và Spine
+- **Xem lướt chưa duyệt**: mở lần lượt các mục chưa quyết định, A/X tự sang mục kế, có thanh tiến độ; **Duyệt tất cả bản QA đạt** có xác nhận — cho cả 3 loại project
+- **Spine: skin biến thể** giữ nguyên rig — mỗi skin có style, gen, duyệt riêng; xem trước trong player; xuất thêm page `<page>-<skin>.png`, atlas gộp và skeleton có skin mới (cả `.json` và `.skel`), file gốc không đổi
+- **Thư viện style của team**: lưu style đang chốt (prompt, ghi chú, ảnh tham chiếu) từ Reskin/Sprite/Spine, chọn lại ở mọi project, đổi tên/xoá, xuất/nhập file `.gasstyle` để chia sẻ máy khác
+- **Sprite: sheet nguồn đã đổi** — app so từng frame với lúc gen, báo dải nào bị ảnh hưởng (nhãn trên dải + banner) và nút **Gen lại các dải bị ảnh hưởng**; báo riêng khi atlas đổi bố cục hoặc mất file
+- Sprite: xuất thêm **Godot 4 `.tres`** (SpriteFrames), **Unity `.png.meta`** (sprite Multiple), **Cocos Creator `.plist`** cho sheet tạo mới — tick chọn ở màn Xuất, có code mẫu từng engine
+- Sprite: xuất **GIF/WebP động** mỗi dải (đúng FPS, kiểu lặp, ×1/×2/×4) vào `preview/`; nút **Lưu GIF** ngay ở màn duyệt dải
+- **Ước tính lượt Codex** trước khi gen hàng loạt: "N lượt · còn X% quota 5h · Y% tuần", cảnh báo khi có thể chạm giới hạn
+- **Báo khi gen xong**: thông báo Windows + nháy thanh tác vụ khi hàng đợi xong lúc app không ở trước; thanh tiến độ trên icon taskbar; chấm đỏ khi có job lỗi (tắt được trong Cài đặt)
+- **Tự gen lại khi QA lỗi nặng** (tắt sẵn, bật trong Cài đặt › Gen): gen lại đúng 1 lần kèm ghi chú sửa theo lỗi
+- **Cài đặt › Thống kê**: lượt Codex theo ngày, theo project, theo loại và style; tỉ lệ QA đạt lần đầu; số lượt gen lại; lỗi thường gặp (7/30 ngày)
 - QA **Mất bóng dưới chân**: báo frame AI bỏ bóng, kèm gợi ý và nút điền ghi chú gen lại
+
+### Update
+- Tinh gọn: điều chỉnh ít dùng gập vào khối **Nâng cao** (nhớ trạng thái) ở Lưới & hướng, player Sprite, cài đặt nhân vật, 3 màn Xuất và tab Gen
+- Mở project lớn nhanh hơn
+- Sprite: sheet gốc có bóng dưới chân thì prompt bắt AI giữ bóng ở mọi frame; tạo sheet mới từ ảnh có bóng cũng giữ bóng
+- Sprite › Lưới tổng: ô các hướng tự xếp theo bề ngang, màn rộng không còn ô giãn trống
 
 ### Fixbug
 - Sprite: AI bỏ bóng dưới chân không còn làm nhân vật lơ lửng — frame mất bóng được căn theo chân thay vì theo đáy bóng

@@ -9,8 +9,8 @@ Có 3 loại project, chọn khi tạo:
 | Loại | Dành cho | Vào | Ra |
 |---|---|---|---|
 | **Reskin ảnh** | BA, không cần vẽ | Folder ảnh UI (nút, icon, popup, thanh máu…) PNG/JPG/WebP | Ảnh cùng tên, cùng kích thước, cùng cây thư mục — chép đè vào game là dùng được |
-| **Sprite sheet** | Artist, animation | Sheet PNG + TexturePacker/Aseprite JSON, Cocos `.plist`, Unity `.png.meta` (không có thì tự dò lưới) — hoặc **1 ảnh nhân vật** để tạo sheet mới | Sheet cùng rect, file atlas dùng lại; sheet tạo mới kèm TexturePacker JSON + code mẫu Flutter Flame / Android / iOS |
-| **Spine** | Artist, Spine 4.2 | Skeleton `.json` hoặc `.skel` 4.2 + `.atlas` + ảnh page | Page PNG đúng toạ độ region, `.atlas` giữ nguyên, skeleton mới nếu có chỉnh vị trí |
+| **Sprite sheet** | Artist, animation | Sheet PNG + TexturePacker/Aseprite JSON, Cocos `.plist`, Unity `.png.meta` (không có thì tự dò lưới) — hoặc **1 ảnh nhân vật** để tạo sheet mới | Sheet cùng rect, file atlas dùng lại; sheet tạo mới kèm TexturePacker JSON (tuỳ chọn thêm Godot `.tres`, Unity `.png.meta`, Cocos `.plist`) + code mẫu; GIF/WebP động để gửi duyệt |
+| **Spine** | Artist, Spine 4.2 | Skeleton `.json` hoặc `.skel` 4.2 + `.atlas` + ảnh page | Page PNG đúng toạ độ region, `.atlas` giữ nguyên, skeleton mới nếu có chỉnh vị trí; thêm skin biến thể giữ nguyên rig |
 
 ![Phiên bản](https://img.shields.io/github/v/release/doanvu2000/Gen-Asset-Studio)
 
@@ -62,7 +62,7 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 | 1. Nhập | Kéo thả sheet + file atlas, hoặc **Tạo sheet mới** từ 1 ảnh nhân vật (chọn 4/6/8 hướng, góc nhìn, cỡ ô, animation idle/walk/run/attack…). Kiểm lưới, đặt tên animation, hướng, FPS; xem anim chạy thử, **Đi thử** bằng phím mũi tên/WASD |
 | 2. Style | 1 style cho cả nhân vật: mẫu nhân vật có sẵn (Chibi, Pixel Art, Vẽ tay Fantasy, Anime cel) hoặc tự mô tả + ảnh tham chiếu |
 | 3. Gen & duyệt | Gen dải hướng đầu tiên làm **ảnh khoá nhân vật** → duyệt → app tự gen các dải còn lại theo ảnh khoá. Hướng phải lật gương từ hướng trái, không tốn lượt. Xem Gốc / Mới chạy đồng bộ, QA tự báo lệch chân, chênh chiều cao, bị cắt, thiếu/trùng frame; **Lưới tổng** xem mọi hướng cùng lúc |
-| 4. Xuất | Sheet cùng tên, cùng W×H, đè đúng rect (cả frame xoay/trim); frame chưa duyệt giữ gốc |
+| 4. Xuất | Sheet cùng tên, cùng W×H, đè đúng rect (cả frame xoay/trim); frame chưa duyệt giữ gốc. Sheet tạo mới: tick thêm Godot / Unity / Cocos. Mục **Ảnh động xem trước** xuất GIF/WebP mỗi dải |
 
 ### Spine (4 bước)
 
@@ -73,7 +73,17 @@ Lần đầu dùng: bấm **Tạo project mẫu** ở workspace để thử cả
 | 3. Gen & duyệt | Gen từng region (đầu, tay, áo…) theo style chung, giữ đúng kích thước region. Duyệt với nhân vật mới chạy animation; panel **Chỉnh vị trí** sửa setup pose (vị trí, xoay, scale) nếu phần mới lệch |
 | 4. Xuất | Page PNG cùng tên, cùng W×H, region đúng toạ độ (kể cả xoay, premultiplied alpha); có chỉnh vị trí thì ghi skeleton mới kèm bản gốc `.original.json`/`.original.skel` |
 
-Sửa file Spine bên ngoài app (trong Spine Editor) thì app báo **File nguồn đã đổi** — nhập lại rồi làm tiếp.
+**Skin biến thể**: ở bước Style/Gen chọn **Skin › Thêm skin** (vd `red_armor`) → chọn style riêng → gen, duyệt như bình thường. Rig dùng chung. Ở bước Xuất tick skin muốn xuất: app ghi thêm page `<page>-<skin>.png`, atlas gộp và skeleton có skin mới (`.json` hoặc `.skel`), file gốc không đổi.
+
+Sửa file Spine bên ngoài app (trong Spine Editor) thì app báo **File nguồn đã đổi** — nhập lại rồi làm tiếp. Sprite cũng vậy: sửa sheet nguồn thì app đánh dấu dải bị ảnh hưởng và có nút **Gen lại các dải bị ảnh hưởng**.
+
+### Duyệt nhanh
+
+- **Việc cần làm** (thanh bên): mọi mục chờ duyệt, QA lỗi, chưa xuất, job lỗi của tất cả project — bấm **Mở** là tới đúng chỗ.
+- Thanh duyệt giống nhau ở cả 3 loại project. Phím: **A** duyệt · **X** cần sửa · **R** gen lại/ghi chú · **←/→** mục trước/sau · **1–9** chọn phiên bản (Sprite/Spine) · **C** so sánh A/B · **?** xem mọi phím.
+- **Xem lướt chưa duyệt**: đi lần lượt qua các mục chưa quyết định. **Duyệt tất cả bản QA đạt** khi đã tin QA.
+- **Đổi màu**: chỉnh sắc độ / bão hoà / độ sáng hoặc chỉ một dải màu, lưu thành phiên bản mới — không tốn lượt Codex.
+- **Thư viện style của team**: **Lưu vào thư viện** ở bước Style, dùng lại ở project khác; xuất/nhập file `.gasstyle` để gửi cho người khác.
 
 ### Mẹo
 
@@ -81,6 +91,7 @@ Sửa file Spine bên ngoài app (trong Spine Editor) thì app báo **File ngu�
 - Xuất đè lên file cũ thì bản cũ được cất vào `output/_backup/<thời gian>/`.
 - Nút, khung popup, thanh kéo dài được nên bật **9-slice** để góc không bị méo.
 - **Chốt luôn theo mô tả** nhanh hơn nhưng không có ảnh khoá style, các ảnh có thể lệch nhau hơn một chút — muốn đồng đều thì vẽ preview rồi chốt.
+- Trước khi gen hàng loạt app ước tính số lượt Codex và quota còn lại. Gen xong lúc đang làm việc khác thì có thông báo Windows (tắt ở **Cài đặt › Chung**). **Cài đặt › Thống kê** xem lượt dùng và tỉ lệ QA đạt.
 - Đóng app khi đang gen: app thu xuống taskbar và chạy tiếp; đóng lần nữa sẽ hỏi có thoát hẳn không (đổi ở **Cài đặt › Chung**).
 - JPG không có nền trong suốt — khi xuất ra JPG, phần trong suốt thành nền trắng.
 - Gặp lỗi → bấm **Gửi lỗi cho Codex sửa** hoặc **Xuất log** gửi cho người phụ trách.
@@ -115,13 +126,13 @@ npm run dev            # chạy thử
 npm run build          # kiểm kiểu + build
 npm run dist:win       # file cài NSIS vào release/<phiên bản>/
 npm run dist:portable  # bản portable vào release/<phiên bản>/
-npm run test:format    # test nhận định dạng ảnh
-npm run test:export    # test xuất ảnh
-npm run test:sprite    # test Sprite (atlas, lưới, QA)
-npm run test:spine     # test Spine (atlas, .skel, ghép region, xuất)
+npm test               # chạy mọi bộ test (CI chạy lệnh này + typecheck mỗi lần push)
+npm run test:spine     # chạy riêng 1 bộ: test:<format|export|sprite|sprite-gen|spine|recolor|stats|todo…>
+npm run test:e2e       # E2E Playwright trên app đã build (không gọi Codex)
+npm run perf:bench     # đo tốc độ quét/mở project lớn
 ```
 
-Phát hành bản mới: tăng `version` trong `package.json` → thêm mục mới vào `CHANGELOG.md` (Update · Add · Remove · Fixbug) → `npm run dist:win` + `npm run dist:portable` → tạo GitHub Release `v<phiên bản>` kèm `GenAssetStudio-Setup-*.exe`, `.blockmap`, `latest.yml`, `GenAssetStudio-Portable-*.exe`, dán mục changelog làm ghi chú (`node scripts/release-notes.mjs <phiên bản>`).
+Phát hành bản mới: `npm test` + `npm run typecheck` sạch → tăng `version` trong `package.json` → thêm mục mới vào `CHANGELOG.md` (Update · Add · Remove · Fixbug) → `npm run dist:win` + `npm run dist:portable` → tạo GitHub Release `v<phiên bản>` kèm `GenAssetStudio-Setup-*.exe`, `.blockmap`, `latest.yml`, `GenAssetStudio-Portable-*.exe`, dán mục changelog làm ghi chú (`node scripts/release-notes.mjs <phiên bản>`).
 
 Tài liệu thiết kế: `.planning/`.
 
