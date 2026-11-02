@@ -57,6 +57,7 @@ import { fileUrl } from '../workspace/protocol'
 import { atlasImageName, isAtlasFile, parseAtlas } from './atlas'
 import { detectGrid, emptyCells, gridFrames, makeGrid } from './grid'
 import { animId, animsFromGrid, animsFromNames, animsFromTags } from './anims'
+import { atlasTextHash, createSourceChecker, type SourceChecker } from './source'
 
 export interface SheetRecord {
   id: string
@@ -67,6 +68,9 @@ export interface SheetRecord {
   mtime: number
   hash: string
   atlasPath: string | null
+  atlasSize: number
+  atlasMtime: number
+  atlasHash: string
   format: AtlasFormat
   grid: GridSpec | null
   frames: FrameRect[]
@@ -85,6 +89,7 @@ export interface SpriteData {
   sheets: SheetRecord[]
   style: SpriteStyle
   review: Record<string, StripReviewEntry>
+  srcSigs: Record<string, string[]>
   lockKey: string | null
   exportDir: string
   lastExport: { at: number; sheets: number; frames: number } | null
@@ -245,6 +250,9 @@ function sanitizeSheet(raw: unknown): SheetRecord | null {
     mtime: num(r.mtime),
     hash: typeof r.hash === 'string' ? r.hash : '',
     atlasPath: typeof r.atlasPath === 'string' && r.atlasPath ? r.atlasPath : null,
+    atlasSize: num(r.atlasSize),
+    atlasMtime: num(r.atlasMtime),
+    atlasHash: typeof r.atlasHash === 'string' ? r.atlasHash : '',
     format,
     grid: format === 'grid' ? (grid ?? (w && h ? makeGrid(w, h, w, h) : null)) : grid,
     frames,
@@ -288,6 +296,16 @@ function sanitizeReview(raw: unknown): Record<string, StripReviewEntry> {
   return out
 }
 
+function sanitizeSigs(raw: unknown): Record<string, string[]> {
+  const out: Record<string, string[]> = {}
+  if (!raw || typeof raw !== 'object') return out
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>).slice(0, MAX_FRAMES)) {
+    if (!/^[a-z0-9_-]{1,64}:[a-z0-9_-]{1,64}$/i.test(k) || !Array.isArray(v) || !v.every((x) => typeof x === 'string')) continue
+    out[k] = (v as string[]).slice(0, 1024)
+  }
+  return out
+}
+
 export function readSpriteData(data: ProjectFile): SpriteData {
   const raw = data.sprite && typeof data.sprite === 'object' ? (data.sprite as Record<string, unknown>) : {}
   const settings = sanitizeSettings(raw.settings)
@@ -308,6 +326,7 @@ export function readSpriteData(data: ProjectFile): SpriteData {
     sheets,
     style: sanitizeStyle(raw.style),
     review: sanitizeReview(raw.review),
+    srcSigs: sanitizeSigs(raw.srcSigs),
     lockKey: typeof raw.lockKey === 'string' && raw.lockKey ? raw.lockKey : null,
     exportDir: typeof raw.exportDir === 'string' ? raw.exportDir.slice(0, 1024) : '',
     lastExport: last ? { at: num(last.at), sheets: num(last.sheets), frames: num(last.frames) } : null
@@ -320,6 +339,7 @@ function writeSpriteData(data: ProjectFile, sprite: SpriteData): void {
     sheets: sprite.sheets,
     style: sprite.style,
     review: sprite.review,
+    srcSigs: sprite.srcSigs,
     lockKey: sprite.lockKey,
     exportDir: sprite.exportDir,
     lastExport: sprite.lastExport
@@ -467,9 +487,11 @@ export class SpriteService {
   private async view(rel: string, dir: string, data: ProjectFile, sprite: SpriteData, forceWrite = false): Promise<SpriteProjectView> {
     let dirty = forceWrite
     const sheets: SheetView[] = []
+    const statuses = new Map<string, SheetStatus>()
     for (const rec of sprite.sheets) {
       const s = await this.status(rec)
       if (s.dirty) dirty = true
+      statuses.set(rec.id, s.status)
       const thumb = s.status === 'missing' ? null : await ensureThumb(dir, rec.path, rec.hash)
       this.deps.allow(rec.path)
       sheets.push({
@@ -495,10 +517,11 @@ export class SpriteService {
         description: rec.description
       })
     }
-    if (dirty) await this.save(dir, data, sprite)
+    const checker = await createSourceChecker(dir, sprite, statuses)
     const defs = this.defs(sprite, sheets)
     const strips: StripView[] = []
-    for (const d of defs) strips.push(await this.stripView(dir, d, sprite))
+    for (const d of defs) strips.push(await this.stripView(dir, d, sprite, checker.strip))
+    if (dirty || checker.dirty) await this.save(dir, data, sprite)
     for (const st of strips) {
       if (!st.mirrorOf) continue
       const src = strips.find((x) => x.key === st.mirrorOf)
@@ -508,6 +531,7 @@ export class SpriteService {
       st.url = src.url
       st.decision = src.decision
       st.qa = src.qa
+      st.source = src.source
     }
     void refreshSpriteCovers(dir, this.deps.log)
     return {
@@ -538,13 +562,14 @@ export class SpriteService {
     return autoLockKey(defs)
   }
 
-  private async stripView(dir: string, d: StripDef, sprite: SpriteData): Promise<StripView> {
+  private async stripView(dir: string, d: StripDef, sprite: SpriteData, sourceOf: SourceChecker['strip']): Promise<StripView> {
     const versions = await listStripVersions(dir, d.assetRel)
     const entry = sprite.review[d.key]
     const last = versions.length ? versions[versions.length - 1] : 0
     const selected = entry?.selected && versions.includes(entry.selected) ? entry.selected : last
     const orig = await origStrip(dir, d).catch(() => null)
     const meta = selected ? await readStripMeta(dir, d.assetRel, selected) : null
+    const source = selected && !d.mirrorOf ? await sourceOf(d, selected) : undefined
     return {
       key: d.key,
       assetRel: d.assetRel,
@@ -563,7 +588,8 @@ export class SpriteService {
       decision: decisionAt(entry, selected),
       qa: meta?.qa ?? null,
       created: d.sheet.origin === 'new',
-      refUrl: d.sheet.origin === 'new' ? this.characterUrl(dir, d.sheet as SheetRecord) : null
+      refUrl: d.sheet.origin === 'new' ? this.characterUrl(dir, d.sheet as SheetRecord) : null,
+      ...(source ? { source } : {})
     }
   }
 
@@ -651,6 +677,9 @@ export class SpriteService {
           mtime: Math.round(st.mtimeMs),
           hash: await hashFile(path),
           atlasPath: null,
+          atlasSize: 0,
+          atlasMtime: 0,
+          atlasHash: '',
           format: 'grid',
           grid,
           frames,
@@ -1164,6 +1193,9 @@ export class SpriteService {
       mtime: Math.round(st.mtimeMs),
       hash: await hashFile(image),
       atlasPath: null,
+      atlasSize: 0,
+      atlasMtime: 0,
+      atlasHash: '',
       format: 'grid',
       grid: null,
       frames: [],
@@ -1178,8 +1210,13 @@ export class SpriteService {
     }
     let parsed: ParsedAtlas | undefined
     if (atlas) {
-      parsed = parseAtlas(atlas, await readText(atlas), rec.w, rec.h)
+      const text = await readText(atlas)
+      parsed = parseAtlas(atlas, text, rec.w, rec.h)
+      const ast = await fs.stat(atlas)
       rec.atlasPath = resolve(atlas)
+      rec.atlasSize = ast.size
+      rec.atlasMtime = Math.round(ast.mtimeMs)
+      rec.atlasHash = atlasTextHash(text)
       rec.format = parsed.format
       rec.frames = parsed.frames.slice(0, MAX_FRAMES)
       rec.warnings = parsed.warnings.slice(0, 20)

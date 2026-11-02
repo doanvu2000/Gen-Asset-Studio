@@ -2126,5 +2126,25 @@
     "imported": "Imported {{count}} style(s)",
     "confirmDelete": "Delete style “{{name}}” from the library?",
     "close": "Close"
+  },
+  "spriteSource": {
+    "changedTitle": "Source sheet changed: {{count}} strip(s) affected",
+    "changedHint": "The sheet or atlas was edited outside the app. Regenerate those strips to match the new frames.",
+    "approvedWarn": "{{count}} approved strip(s) keep their approval but no longer match the source.",
+    "regen": "Regenerate affected strips",
+    "layoutTitle": "Sheet layout changed: {{count}} strip(s)",
+    "layoutHint": "Frame count, rectangles or sheet size changed. Re-import the sheet to rebuild the frames before generating.",
+    "missingTitle": "Atlas file missing: {{count}} strip(s)",
+    "missingHint": "The atlas file of this sheet can no longer be read.",
+    "badge": {
+      "sourceChanged": "Source changed",
+      "layoutChanged": "Layout changed",
+      "missing": "Source missing"
+    },
+    "badgeTip": {
+      "sourceChanged": "Frames {{frames}} changed in the source sheet",
+      "layoutChanged": "Frame layout no longer matches the source",
+      "missing": "Source atlas is missing"
+    }
   }
 }

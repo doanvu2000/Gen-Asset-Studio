@@ -301,6 +301,13 @@ export interface StripVersion {
   recolorOf: number | null
 }
 
+export type StripSourceState = 'sourceChanged' | 'layoutChanged' | 'missing'
+
+export interface StripSource {
+  state: StripSourceState
+  frames: number[]
+}
+
 export interface StripView {
   key: string
   assetRel: string
@@ -320,6 +327,7 @@ export interface StripView {
   qa: StripQa | null
   created: boolean
   refUrl: string | null
+  source?: StripSource
 }
 
 export interface SpriteExportState {

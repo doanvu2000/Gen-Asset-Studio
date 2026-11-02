@@ -6,6 +6,7 @@ import { DIRECTIONS, ROW_PRESETS, type Direction, type DirSet, type RowPreset, t
 import { Advanced } from '@renderer/components/Advanced'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
+import { SourceChangeBanner } from '@renderer/components/sprite/SourceChangeBanner'
 import { SpriteDemo } from '@renderer/components/sprite/SpriteDemo'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
 import { useClock } from '@renderer/components/sprite/StripPreview'
@@ -550,6 +551,11 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
   }, [project.rel, project.updatedAt, load])
   useEffect(() => () => reset(), [reset])
   const refresh = useSprite((s) => s.refresh)
+  useEffect(() => {
+    const onFocus = (): void => void refresh()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [refresh])
   const snap = useQueue((s) => s.snap)
   const finished = useRef<string | null>(null)
   useEffect(() => {
@@ -590,6 +596,7 @@ export function SpriteProjectScreen({ project }: { project: ProjectView }): Reac
   return (
     <>
       <StepBar v={view} />
+      <SourceChangeBanner v={view} />
       <div className="pbody">
         <AnimatePresence initial={false} custom={dir} mode="popLayout">
           <motion.div

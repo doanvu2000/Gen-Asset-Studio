@@ -2126,5 +2126,25 @@
     "imported": "Đã nhập {{count}} style",
     "confirmDelete": "Xoá style “{{name}}” khỏi thư viện?",
     "close": "Đóng"
+  },
+  "spriteSource": {
+    "changedTitle": "Sheet nguồn đã đổi: {{count}} dải bị ảnh hưởng",
+    "changedHint": "Sheet hoặc atlas đã được sửa ngoài app. Gen lại các dải đó để khớp frame mới.",
+    "approvedWarn": "{{count}} dải đã duyệt vẫn giữ duyệt nhưng không còn khớp nguồn.",
+    "regen": "Gen lại các dải bị ảnh hưởng",
+    "layoutTitle": "Bố cục sheet đã đổi: {{count}} dải",
+    "layoutHint": "Số frame, vùng cắt hoặc kích thước sheet đã đổi. Nhập lại sheet để dựng lại frame trước khi gen.",
+    "missingTitle": "Mất file atlas: {{count}} dải",
+    "missingHint": "Không đọc được file atlas của sheet này nữa.",
+    "badge": {
+      "sourceChanged": "Nguồn đã đổi",
+      "layoutChanged": "Bố cục đã đổi",
+      "missing": "Mất nguồn"
+    },
+    "badgeTip": {
+      "sourceChanged": "Frame {{frames}} đã đổi trong sheet nguồn",
+      "layoutChanged": "Bố cục frame không còn khớp nguồn",
+      "missing": "Mất file atlas nguồn"
+    }
   }
 }

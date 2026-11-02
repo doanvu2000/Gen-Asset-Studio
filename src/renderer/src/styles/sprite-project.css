@@ -1537,3 +1537,41 @@
 .spw .spr-body > .spg-list {
   padding-top: 2px;
 }
+
+.src-banners {
+  flex: none;
+  padding: 10px 24px 0;
+}
+
+.src-banner {
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.src-banner > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.src-banner small {
+  display: block;
+  margin-top: 3px;
+  opacity: 0.85;
+}
+
+.src-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  background: var(--orange-bg);
+  color: var(--orange);
+  white-space: nowrap;
+}
+
+.src-badge.err {
+  background: var(--red-bg);
+  color: var(--red);
+}

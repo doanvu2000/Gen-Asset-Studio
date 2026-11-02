@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, statSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
 import type { JobSpec, QueueJob } from '../src/shared/queue'
@@ -194,6 +194,132 @@ async function animChecks(): Promise<void> {
   check(threw, 'no frames rejected')
 }
 
+async function sourceChecks(): Promise<void> {
+  console.log('source change detection')
+  const srcBase = join(process.env['TEMP'] ?? '.', 'gas-src-test')
+  const dir = join(srcBase, 'SrcHero')
+  const files = join(srcBase, 'src-files')
+  rmSync(dir, { recursive: true, force: true })
+  rmSync(files, { recursive: true, force: true })
+  mkdirSync(dir, { recursive: true })
+  mkdirSync(files, { recursive: true })
+  for (const f of ['hero_4dir_tp.png', 'hero_4dir_tp.json']) copyFileSync(join(samples, f), join(files, f))
+  await writeProject(dir, emptyProject('SrcHero', 'sprite'))
+  const queued: JobSpec[] = []
+  const svc = new SpriteService({
+    projectDir: () => dir,
+    run: (fn) => fn(),
+    allow: () => undefined,
+    log: () => undefined,
+    readProject,
+    writeProject,
+    enqueue: () => (specs) => {
+      queued.push(...specs)
+      return specs.map((_, i) => `j${i}`)
+    },
+    pending: () => [],
+    template: async () => null
+  })
+  const run = async (): Promise<void> => {
+    while (queued.length) {
+      const spec = queued.shift() as JobSpec
+      const job = { ...spec, id: 'x', attempt: 1, status: 'running', step: 'waiting', progress: '', error: null, result: null, createdAt: 0, startedAt: 0, finishedAt: null, notBefore: null } as QueueJob
+      await runStripJob(job, { codex, pipeline, log: () => undefined, model: 'm', effort: 'e', timeoutMs: 1000, signal: new AbortController().signal, onStep: () => undefined })
+    }
+  }
+  const png = join(files, 'hero_4dir_tp.png')
+  const atlas = join(files, 'hero_4dir_tp.json')
+  await svc.addPaths('SrcHero', [atlas])
+  await svc.setStyle('SrcHero', { promptEn: 'candy', locked: true })
+  await svc.setSettings('SrcHero', { autoChain: false })
+  let view = await svc.open('SrcHero')
+  const own = (view?.strips ?? []).filter((x) => !x.mirrorOf)
+  check(own.length >= 3, `source test has ${own.length} own strips`)
+  const lockKey = view?.lockKey as string
+  await svc.enqueue('SrcHero', [lockKey])
+  await run()
+  await svc.review('SrcHero', { [lockKey]: { decision: 'approved' } })
+  await svc.enqueue('SrcHero', own.filter((x) => x.key !== lockKey).map((x) => x.key))
+  await run()
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.every((x) => !x.source), 'fresh gen: no source flags')
+  const meta0 = JSON.parse(readFileSync(join(dir, 'versions', ...own[0].assetRel.split('/'), 'v1.json'), 'utf8')) as Record<string, unknown>
+  check(Array.isArray(meta0.srcFrames) && (meta0.srcFrames as string[]).length === own[0].frameCount, 'version meta stores one srcFrames hash per frame')
+
+  const sheet = view?.sheets[0]
+  const target = own.find((x) => x.frameCount >= 3 && x.key !== lockKey) ?? own[1]
+  const poke = async (strip: typeof target, pos: number): Promise<void> => {
+    const f = sheet?.frames[(sheet.anims.find((a) => a.id === strip.animId)?.frames ?? [])[pos]] as FrameRect
+    const img = await decode(png)
+    const i = ((f.y + 1) * img.width + f.x + 1) * 4
+    img.data[i] = 255
+    img.data[i + 1] = 0
+    img.data[i + 2] = 255
+    img.data[i + 3] = 255
+    await sharp(Buffer.from(img.data), { raw: { width: img.width, height: img.height, channels: 4 } })
+      .png()
+      .toFile(`${png}.tmp`)
+    copyFileSync(`${png}.tmp`, png)
+    rmSync(`${png}.tmp`)
+  }
+  await poke(target, 1)
+  view = await svc.open('SrcHero')
+  const flagged = view?.strips.filter((x) => x.source) ?? []
+  const hit = view?.strips.find((x) => x.key === target.key)
+  check(hit?.source?.state === 'sourceChanged' && hit.source.frames.join() === '1', `pixel edit in frame 1 -> sourceChanged [${hit?.source?.frames}]`)
+  const mirrorsOfTarget = view?.strips.filter((x) => x.mirrorOf === target.key) ?? []
+  check(flagged.length === 1 + mirrorsOfTarget.length && flagged.every((x) => x.key === target.key || x.mirrorOf === target.key), `only that strip (+mirrors) flagged (${flagged.length})`)
+  check(view?.strips.find((x) => x.key === lockKey)?.decision === 'approved', 'approval kept')
+  const n = await svc.enqueue('SrcHero', [target.key], 'Source frames changed: 2')
+  check(n === 1 && queued[0].note?.includes('Source frames changed: 2') === true, 'regen enqueues the affected strip with note')
+  await run()
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.every((x) => !x.source), 'after regen: flags cleared (new version carries new signature)')
+
+  const assets = view?.strips.filter((x) => !x.mirrorOf).map((x) => x.assetRel) ?? []
+  for (const a of assets) {
+    for (const f of ['v1.json', 'v2.json']) {
+      const mp = join(dir, 'versions', ...a.split('/'), f)
+      if (!existsSync(mp)) continue
+      const m = JSON.parse(readFileSync(mp, 'utf8')) as Record<string, unknown>
+      delete m.srcFrames
+      writeFileSync(mp, JSON.stringify(m))
+    }
+  }
+  copyFileSync(join(samples, 'hero_4dir_tp.png'), png)
+  const pd = await readProject(dir)
+  delete (pd.sprite as Record<string, unknown>).srcSigs
+  await writeProject(dir, pd)
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.every((x) => !x.source), 'legacy project (no signatures): nothing flagged')
+  const baseline = ((await readProject(dir)).sprite as { srcSigs?: Record<string, string[]> }).srcSigs ?? {}
+  check(Object.keys(baseline).length === assets.length, `baseline signatures written once (${Object.keys(baseline).length}/${assets.length})`)
+  await poke(target, 0)
+  view = await svc.open('SrcHero')
+  const hit2 = view?.strips.find((x) => x.key === target.key)
+  check(hit2?.source?.state === 'sourceChanged' && hit2.source.frames.join() === '0', `legacy baseline detects edit of frame 0 (${hit2?.source?.frames})`)
+  copyFileSync(join(samples, 'hero_4dir_tp.png'), png)
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.every((x) => !x.source), 'restoring the original pixels clears the flag')
+
+  const json = JSON.parse(readFileSync(atlas, 'utf8')) as { frames: unknown[] | Record<string, object> }
+  if (Array.isArray(json.frames)) json.frames.push({ ...(json.frames[0] as object), filename: 'extra' })
+  else json.frames['extra'] = { ...Object.values(json.frames)[0] }
+  writeFileSync(atlas, JSON.stringify(json))
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.filter((x) => !x.mirrorOf).every((x) => x.source?.state === 'layoutChanged'), 'atlas with extra frame -> layoutChanged on every strip')
+  copyFileSync(join(samples, 'hero_4dir_tp.json'), atlas)
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.every((x) => !x.source), 'original atlas restored -> ok again')
+  rmSync(atlas)
+  view = await svc.open('SrcHero')
+  check(!!view && view.strips.filter((x) => !x.mirrorOf).every((x) => x.source?.state === 'missing'), 'atlas file removed -> missing')
+  copyFileSync(join(samples, 'hero_4dir_tp.json'), atlas)
+  rmSync(png)
+  view = await svc.open('SrcHero')
+  check(view?.sheets[0]?.status === 'missing' && (view?.strips.length ?? 1) === 0, 'sheet png removed -> sheet missing, strips hidden')
+}
+
 async function main(): Promise<void> {
   unitChecks()
   await animChecks()
@@ -334,6 +460,7 @@ async function main(): Promise<void> {
   check(!existsSync(join(proj, 'output')), 'preview writes no output files')
   const again = await svc.exportRun('Hero', out)
   check(again.ok && !!again.backupDir && existsSync(join(again.backupDir as string, 'hero_8dir_grid.png')), 'second export backs up previous files')
+  await sourceChecks()
   console.log(`\n${passed} passed, ${failed} failed  (out: ${out})`)
   if (failed) process.exit(1)
 }

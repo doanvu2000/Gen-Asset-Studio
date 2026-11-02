@@ -7,6 +7,7 @@ import { GenEstimate } from '@renderer/components/GenEstimate'
 import { Segmented } from '@renderer/components/Segmented'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
+import { StripSourceBadge } from '@renderer/components/sprite/SourceChangeBanner'
 import { BulkApproveQa, QuickPassBar } from '@renderer/components/QuickPassBar'
 import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { genTargets, jobOf, qaFail, sourceOf, stripLabel, stripMatches, stripState, type StripFilter, type StripState } from '@renderer/lib/sprite'
@@ -329,6 +330,7 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
                           </span>
                         )}
                         <StateChip v={v} strip={s} state={state} job={job} />
+                        <StripSourceBadge strip={s} />
                         <div className="grow" />
                         {state === 'error' && job && (
                           <button

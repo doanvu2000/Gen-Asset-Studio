@@ -7,6 +7,7 @@ import { JobFailure, releaseVersion, reserveVersion, versionsDir, type GenContex
 import { decode, hexToRgb } from '../pipeline/image'
 import { buildNewStripPrompt, composeGuide, fitNewStrip } from './create'
 import { refreshSpriteCovers } from './service'
+import { frameHash } from './source'
 import { buildStripPrompt, composeSource, fitStrip, framesHaveShadow, isTrimmed, joinFrames, keyStrip, loadSheet, mirrorNeedsCheck, savePng, stripLayout, trimBox, uprightFrame } from './strip'
 
 const DEVELOPER_INSTRUCTIONS = [
@@ -188,6 +189,7 @@ export async function runStripJob(job: QueueJob, ctx: GenContext): Promise<JobRe
       src: `v${version}-src.png`,
       raw: `v${version}-raw.png`,
       output: `v${version}.png`,
+      srcFrames: originals.map(frameHash),
       stripQa: fit.qa,
       qa: stripQaSummary(fit.qa),
       timings: { ...timings, turnMs: turn.durationMs }

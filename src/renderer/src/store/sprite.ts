@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SheetPatch, SpriteAddResult, SpriteProjectView, SpriteSettings, SpriteStripPatch, SpriteStyle } from '@shared/sprite'
+import type { SheetPatch, SpriteAddResult, SpriteProjectView, SpriteSettings, SpriteStripPatch, SpriteStyle, StripView } from '@shared/sprite'
 import i18n from '@renderer/i18n'
 import { firstOpenStep } from '@renderer/lib/sprite'
 import { toast } from './toast'
@@ -28,6 +28,7 @@ interface SpriteStore {
   setLock: (key: string | null) => Promise<void>
   enqueue: (keys: string[], note?: string) => Promise<number>
   enqueueAll: (sheetId: string) => Promise<number>
+  regenSource: () => Promise<number>
   review: (patch: Record<string, SpriteStripPatch>) => Promise<void>
 }
 
@@ -45,6 +46,10 @@ function queuedToast(n: number): number {
   else if (n === 0) toast(i18n.t('spriteProject.toast.nothingQueued'), 'info')
   else toast(i18n.t('spriteProject.toast.queued', { count: n }))
   return n
+}
+
+export function sourceChangedStrips(v: SpriteProjectView): StripView[] {
+  return v.strips.filter((s) => !s.mirrorOf && s.source?.state === 'sourceChanged')
 }
 
 let animTimer: ReturnType<typeof setTimeout> | null = null
@@ -192,6 +197,18 @@ export const useSprite = create<SpriteStore>()((set, get) => ({
     const rel = get().rel
     if (!rel) return 0
     return queuedToast(await window.gas.spriteGen.enqueueAll(rel, sheetId))
+  },
+  regenSource: async () => {
+    const rel = get().rel
+    const view = get().view
+    if (!rel || !view) return 0
+    let total = 0
+    for (const s of sourceChangedStrips(view)) {
+      const n = await window.gas.spriteGen.enqueue(rel, [s.key], `Source frames changed: ${(s.source?.frames ?? []).map((i) => i + 1).join(', ')}`)
+      if (n < 0) return queuedToast(n)
+      total += n
+    }
+    return queuedToast(total)
   },
   review: async (patch) => {
     const rel = get().rel
