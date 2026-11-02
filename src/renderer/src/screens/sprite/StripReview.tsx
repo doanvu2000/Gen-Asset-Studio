@@ -21,6 +21,8 @@ import { toast } from '@renderer/store/toast'
 import type { RecolorParams } from '@shared/recolor'
 
 type Mode = 'side' | 'onion'
+
+const STAGE_PX = 180
 type TrySrc = 'orig' | 'new'
 
 type HintId = Extract<StripQaCheck['id'], 'overflow' | 'static' | 'shadow'>
@@ -144,7 +146,7 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
   }
 
   const newPv = src.url ? (
-    <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} zoom={zoom} flipX={mirror} guides />
+    <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} zoom={zoom} size={STAGE_PX} flipX={mirror} guides />
   ) : (
     <span className="muted">{t('spriteProject.gen.state.none')}</span>
   )
@@ -220,7 +222,7 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
       ) : mode === 'side' ? (
         <div className="spr-d-stage">
           <figure className="ck">
-            <OrigPreview strip={s} pos={pos} zoom={zoom} guides />
+            <OrigPreview strip={s} pos={pos} zoom={zoom} size={STAGE_PX} guides />
             <figcaption>{s.created ? t('spriteProject.create.character') : t('spriteProject.gen.orig')}</figcaption>
           </figure>
           <figure className="ck">
@@ -232,7 +234,7 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
         <div className="spr-d-stage one">
           <figure className="ck">
             {src.url ? (
-              <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} zoom={zoom} flipX={mirror} ghost={{ url: s.origUrl }} guides />
+              <StripPreview url={src.url} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} zoom={zoom} size={STAGE_PX} flipX={mirror} ghost={{ url: s.origUrl }} guides />
             ) : (
               newPv
             )}

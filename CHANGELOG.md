@@ -2,6 +2,11 @@
 
 Mỗi phiên bản liệt kê ngắn theo 4 mục: **Update** · **Add** · **Remove** · **Fixbug** (mục trống thì bỏ).
 
+## Chưa phát hành
+
+### Fixbug
+- Sprite · khung Gốc/Mới ở panel duyệt: frame lớn (vd sheet là ảnh chụp) bị zoom 2× rồi cắt mất, chỉ thấy một mảng giữa ảnh — giờ frame lớn hơn khung xem tự thu cho vừa, zoom chỉ áp cho sprite nhỏ
+
 ## 2.0.0 — 2026-11-02
 
 ### Add

@@ -16,6 +16,12 @@ export function useClock(count: number, fps: number, playing: boolean): [number,
   return [count ? pos % count : 0, setPos]
 }
 
+// Zoom is for inspecting small sprites; a frame already larger than the viewport (e.g. a photo sheet) is fitted instead of blown up and clipped.
+export function previewScale(w: number, h: number, size: number, zoom?: number): number {
+  const fit = Math.max(0.1, Math.min(size / w, size / h))
+  return zoom != null && fit >= 1 ? zoom : fit
+}
+
 export interface StripPreviewProps {
   url: string | null
   sizes: FrameSize[]
@@ -35,7 +41,7 @@ export function StripPreview({ url, sizes, pos, flipX = false, size = 96, zoom, 
   const frames = useMemo(() => stripFrames(sizes), [sizes])
   const seq = useMemo(() => frames.map((_, i) => i), [frames])
   const box = useMemo(() => frameBox(frames, seq), [frames, seq])
-  const scale = zoom ?? Math.max(0.1, Math.min(size / box.w, size / box.h))
+  const scale = previewScale(box.w, box.h, size, zoom)
   const w = Math.max(1, Math.round(box.w * scale))
   const h = Math.max(1, Math.round(box.h * scale))
 

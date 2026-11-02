@@ -1,6 +1,6 @@
 import type { ReactElement } from 'react'
 import type { StripView } from '@shared/sprite'
-import { StripPreview } from './StripPreview'
+import { previewScale, StripPreview } from './StripPreview'
 
 export interface OrigPreviewProps {
   strip: StripView
@@ -15,7 +15,7 @@ export function OrigPreview({ strip, pos, size = 96, zoom, guides, className }: 
   if (strip.created) {
     const bw = Math.max(1, ...strip.frameSizes.map((f) => f.w))
     const bh = Math.max(1, ...strip.frameSizes.map((f) => f.h))
-    const scale = zoom ?? Math.min(size / bw, size / bh)
+    const scale = previewScale(bw, bh, size, zoom)
     const w = Math.round(bw * scale)
     const h = Math.round(bh * scale)
     return (
