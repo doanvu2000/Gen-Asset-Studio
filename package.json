@@ -27,10 +27,11 @@
     "test:spine": "tsx --tsconfig tsconfig.node.json scripts/spine-test.ts",
     "test:workspace-card": "tsx --tsconfig tsconfig.node.json scripts/workspace-card-test.ts",
     "test:todo": "tsx --tsconfig tsconfig.node.json scripts/todo-test.ts",
-    "perf:bench": "tsx --tsconfig tsconfig.node.json scripts/perf-bench.ts",
     "test:recolor": "tsx --tsconfig tsconfig.node.json scripts/recolor-test.ts",
     "test:stats": "tsx --tsconfig tsconfig.node.json scripts/stats-test.ts",
     "test:sample": "tsx --tsconfig tsconfig.node.json scripts/sample-test.ts",
+    "perf:bench": "tsx --tsconfig tsconfig.node.json scripts/perf-bench.ts",
+    "test:e2e": "tsx --tsconfig tsconfig.node.json scripts/e2e/run.ts",
     "test": "node scripts/test-all.mjs"
   },
   "dependencies": {
@@ -54,6 +55,7 @@
     "electron": "^45.1.0",
     "electron-builder": "^26.18.0",
     "electron-vite": "^6.0.0",
+    "playwright": "^1.64.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
