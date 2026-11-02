@@ -2033,5 +2033,59 @@
       "queue": "{{count}} job lỗi trong hàng đợi"
     },
     "badge": "{{count}} việc cần làm"
+  },
+  "reviewBar": {
+    "versions": "Phiên bản",
+    "pick": "Chọn v{{v}}",
+    "compare": "So sánh A/B",
+    "compareHint": "So sánh 2 phiên bản",
+    "recolor": "Đổi màu",
+    "regen": "Gen lại",
+    "regenBusy": "Đang gen…",
+    "gen": "Gen",
+    "shortcuts": "Phím tắt",
+    "shortcutsTitle": "Xem phím tắt",
+    "flagged": "QA có cảnh báo",
+    "mirrorHint": "Dải lật gương: chọn phiên bản ở dải nguồn"
+  },
+  "shortcuts": {
+    "title": "Phím tắt",
+    "reskin": "Duyệt ảnh (Reskin)",
+    "sprite": "Duyệt dải (Sprite)",
+    "spine": "Duyệt region (Spine)",
+    "close": "Đóng",
+    "rows": {
+      "navItem": "Ảnh trước / sau",
+      "navStrip": "Dải trước / sau",
+      "navRegion": "Region trước / sau",
+      "approve": "Duyệt (bấm lại để bỏ)",
+      "reject": "Cần sửa (bấm lại để bỏ)",
+      "regenNote": "Nhập ghi chú gen lại",
+      "regen": "Mở ô gen lại",
+      "escItem": "Đóng chi tiết (đang so sánh A/B thì đóng so sánh trước)",
+      "esc": "Đóng chi tiết",
+      "hold": "Giữ để xem ảnh gốc",
+      "exportNext": "Sang bước xuất (ảnh cuối đã duyệt)",
+      "modes": "Chế độ so sánh gốc/mới: cạnh nhau, thanh trượt, chuyển đổi (chip phiên bản không dùng phím số)",
+      "play": "Chạy / dừng",
+      "frame": "Lùi / tiến 1 khung",
+      "version": "Chọn phiên bản 1–9",
+      "compare": "Bật / tắt so sánh A/B",
+      "slider": "Dịch thanh trượt A/B",
+      "ctrlEnter": "Gen lại khi đang nhập ghi chú",
+      "help": "Mở bảng phím tắt này"
+    }
+  },
+  "compare": {
+    "a": "A",
+    "b": "B",
+    "side": "Cạnh nhau",
+    "slider": "Thanh trượt",
+    "mode": "Kiểu so sánh",
+    "swap": "Đổi A/B",
+    "close": "Đóng so sánh",
+    "drag": "Kéo để chia đôi",
+    "sliderKeys": "[ ] dịch thanh trượt",
+    "only": "Cần ít nhất 2 phiên bản để so sánh"
   }
 }

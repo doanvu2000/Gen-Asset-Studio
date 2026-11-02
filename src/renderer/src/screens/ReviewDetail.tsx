@@ -13,6 +13,9 @@ import { EASE, fadeTransition, sheetTransition } from '@renderer/lib/motion'
 import { errMsg, projAbs } from '@renderer/lib/files'
 import { isLocked } from '@renderer/lib/project'
 import { RecolorPanel } from '@renderer/components/RecolorPanel'
+import { ReviewBar } from '@renderer/components/ReviewBar'
+import { useShortcutsDialog } from '@renderer/components/ShortcutsDialog'
+import { VersionCompare } from '@renderer/components/VersionCompare'
 import { resetReview, selectVersion, setDecision, type RvItem } from '@renderer/lib/review'
 import { useApp } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
@@ -215,6 +218,8 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   const [dirty, setDirty] = useState(false)
   const [reproc, setReproc] = useState(false)
   const [recolorOpen, setRecolorOpen] = useState(false)
+  const [abOpen, setAbOpen] = useState(false)
+  const help = useShortcutsDialog('reskin')
   const [queuing, setQueuing] = useState(false)
   const noteRef = useRef<HTMLTextAreaElement>(null)
   const inspRef = useRef<HTMLElement>(null)
@@ -236,6 +241,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   }, [rel, input.id, vkey, input.versions.length])
 
   const cur = versions.find((v) => v.v === input.selected) ?? null
+  const compareOn = abOpen && versions.length > 1
   useEffect(() => {
     setNine(cur?.nineSlice ?? input.type === 'nine')
     setEdges(cur?.edgeAnchored ?? [])
@@ -377,7 +383,14 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
       const k = e.key.toLowerCase()
       if (e.key === 'Escape') {
         e.preventDefault()
-        open(null)
+        if (compareOn) setAbOpen(false)
+        else open(null)
+      } else if (e.key === '?') {
+        e.preventDefault()
+        help.show()
+      } else if (k === 'c') {
+        e.preventDefault()
+        if (versions.length > 1) setAbOpen(!abOpen)
       } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
         e.preventDefault()
         onNav(e.key === 'ArrowRight' ? 1 : -1)
@@ -419,270 +432,284 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   const zoomOptions = (['fit', 'one', 'two'] as ZoomMode[]).map((z) => ({ value: z, label: t(`review.detail.zoom.${z}`) }))
 
   return (
-    <motion.div
-      ref={ref}
-      tabIndex={-1}
-      className="rv-sheet"
-      role="dialog"
-      aria-modal="true"
-      aria-label={input.name}
-      initial={{ opacity: 0, y: 18, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 10, scale: 0.985, transition: fadeTransition }}
-      transition={sheetTransition}
-    >
-      <header className="rv-head">
-        <div className="rv-ttl">
-          <b>{input.name}</b>
-          <span className="mono muted" title={input.outRel}>
-            {input.outRel} · {input.w}×{input.h} · {input.type === 'nine' ? t('review.detail.nine') : t('review.detail.normal')}
+    <>
+      <motion.div
+        ref={ref}
+        tabIndex={-1}
+        className="rv-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={input.name}
+        initial={{ opacity: 0, y: 18, scale: 0.98 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 10, scale: 0.985, transition: fadeTransition }}
+        transition={sheetTransition}
+      >
+        <header className="rv-head">
+          <div className="rv-ttl">
+            <b>{input.name}</b>
+            <span className="mono muted" title={input.outRel}>
+              {input.outRel} · {input.w}×{input.h} · {input.type === 'nine' ? t('review.detail.nine') : t('review.detail.normal')}
+            </span>
+          </div>
+          <div className="grow" />
+          <Segmented value={mode} options={modeOptions} onChange={setMode} ariaLabel={t('review.detail.modeLabel')} />
+          <Segmented value={zoom} options={zoomOptions} onChange={setZoom} ariaLabel={t('review.detail.zoomLabel')} />
+          <button type="button" className={dark ? 'icon-btn on' : 'icon-btn'} aria-pressed={dark} title={t(dark ? 'review.detail.bg.light' : 'review.detail.bg.dark')} aria-label={t(dark ? 'review.detail.bg.light' : 'review.detail.bg.dark')} onClick={() => setDark(!dark)}>
+            <Icon name={dark ? 'sun' : 'moon'} size={15} />
+          </button>
+          <span className="sep-v" />
+          <button type="button" className="icon-btn" disabled={idx <= 0} aria-label={t('review.detail.prev')} title={t('review.detail.prev')} onClick={() => onNav(-1)}>
+            <Icon name="left" />
+          </button>
+          <span className="muted rv-count">
+            {idx + 1}/{total}
           </span>
-        </div>
-        <div className="grow" />
-        <Segmented value={mode} options={modeOptions} onChange={setMode} ariaLabel={t('review.detail.modeLabel')} />
-        <Segmented value={zoom} options={zoomOptions} onChange={setZoom} ariaLabel={t('review.detail.zoomLabel')} />
-        <button type="button" className={dark ? 'icon-btn on' : 'icon-btn'} aria-pressed={dark} title={t(dark ? 'review.detail.bg.light' : 'review.detail.bg.dark')} aria-label={t(dark ? 'review.detail.bg.light' : 'review.detail.bg.dark')} onClick={() => setDark(!dark)}>
-          <Icon name={dark ? 'sun' : 'moon'} size={15} />
-        </button>
-        <span className="sep-v" />
-        <button type="button" className="icon-btn" disabled={idx <= 0} aria-label={t('review.detail.prev')} title={t('review.detail.prev')} onClick={() => onNav(-1)}>
-          <Icon name="left" />
-        </button>
-        <span className="muted rv-count">
-          {idx + 1}/{total}
-        </span>
-        <button type="button" className="icon-btn" disabled={idx >= total - 1} aria-label={t('review.detail.next')} title={t('review.detail.next')} onClick={() => onNav(1)}>
-          <Icon name="right" />
-        </button>
-        <button type="button" className="icon-btn" aria-label={t('review.detail.close')} title={t('review.detail.close')} onClick={() => open(null)}>
-          <Icon name="x" />
-        </button>
-      </header>
-      <div className="rv-body">
-        <Viewer item={item} newUrl={newUrl} newLabel={newLabel} hold={hold} setHold={setHold} />
-        <aside className="rv-insp" ref={inspRef}>
-          <section>
-            <div className="rv-st">
-              <RvChip status={status} />
-              <span className="muted">
-                {t('review.detail.genCount', { count: input.versions.length })}
-                {group ? ` · ${group.name}` : ''}
-              </span>
-            </div>
-            {status === 'err' && job && (
-              <div className="note err rv-err">
-                <Icon name="alert" size={14} />
-                <div className="note-t">
-                  <b>{t('review.error.title')}</b>
-                  <span title={errText}>{job.error?.message}</span>
-                </div>
-                <div className="rv-err-acts">
-                  <button type="button" className="btn sm" onClick={() => void window.gas.queue.retry(job.id)}>
-                    <Icon name="refresh" size={12} />
-                    {t('review.error.retry')}
-                  </button>
-                  {fixAvailable && (
-                    <button type="button" className="btn sm primary" onClick={() => void openFix({ source: 'gen', target: job.id, error: `${errText}\nAsset: ${job.assetRelPath}\nSource: ${job.sourcePath}` })}>
-                      <Icon name="sparkles" size={12} />
-                      {t('review.error.sendFix')}
+          <button type="button" className="icon-btn" disabled={idx >= total - 1} aria-label={t('review.detail.next')} title={t('review.detail.next')} onClick={() => onNav(1)}>
+            <Icon name="right" />
+          </button>
+          <button type="button" className="icon-btn" aria-label={t('review.detail.close')} title={t('review.detail.close')} onClick={() => open(null)}>
+            <Icon name="x" />
+          </button>
+        </header>
+        <div className="rv-body">
+          {compareOn ? (
+            <VersionCompare
+              key={input.id}
+              fill
+              versions={versions.map((x) => x.v)}
+              selected={input.selected}
+              onClose={() => setAbOpen(false)}
+              render={(v) => <img src={versions.find((x) => x.v === v)?.url} alt="" draggable={false} />}
+            />
+          ) : (
+            <Viewer item={item} newUrl={newUrl} newLabel={newLabel} hold={hold} setHold={setHold} />
+          )}
+          <aside className="rv-insp" ref={inspRef}>
+            <section>
+              <div className="rv-st">
+                <RvChip status={status} />
+                <span className="muted">
+                  {t('review.detail.genCount', { count: input.versions.length })}
+                  {group ? ` · ${group.name}` : ''}
+                </span>
+              </div>
+              {status === 'err' && job && (
+                <div className="note err rv-err">
+                  <Icon name="alert" size={14} />
+                  <div className="note-t">
+                    <b>{t('review.error.title')}</b>
+                    <span title={errText}>{job.error?.message}</span>
+                  </div>
+                  <div className="rv-err-acts">
+                    <button type="button" className="btn sm" onClick={() => void window.gas.queue.retry(job.id)}>
+                      <Icon name="refresh" size={12} />
+                      {t('review.error.retry')}
                     </button>
+                    {fixAvailable && (
+                      <button type="button" className="btn sm primary" onClick={() => void openFix({ source: 'gen', target: job.id, error: `${errText}\nAsset: ${job.assetRelPath}\nSource: ${job.sourcePath}` })}>
+                        <Icon name="sparkles" size={12} />
+                        {t('review.error.sendFix')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn sm ghost"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(errText)
+                        toast(t('gen.copied'), 'info')
+                      }}
+                    >
+                      <Icon name="copy" size={12} />
+                      {t('review.error.copy')}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </section>
+            {input.selected > 0 && (
+              <section>
+                <h3>
+                  <Icon name="shield" size={14} />
+                  {t('review.qa.title')}
+                  {cur?.qa && <span className={cur.qa.pass ? 'chip c-green rv-qa-chip' : 'chip c-orange rv-qa-chip'}>{t(cur.qa.pass ? 'review.qa.pass' : 'review.qa.fail')}</span>}
+                </h3>
+                {cur?.qa ? <QaList checks={cur.qa.checks} /> : <p className="muted rv-small">{t('review.qa.none')}</p>}
+              </section>
+            )}
+            {input.versions.length > 0 && (
+              <section>
+                <h3>
+                  <Icon name="layers" size={14} />
+                  {t('review.versions.title')}
+                </h3>
+                <div className="rv-vers">
+                  {[...versions].reverse().map((v) => {
+                    const on = v.v === input.selected
+                    const tip = [t('review.versions.pick', { v: v.v }), v.reprocessOf ? t('review.versions.reprocess', { v: v.reprocessOf }) : v.recolorOf ? t('recolor.from', { v: v.recolorOf }) : t('review.versions.gen'), v.note ? `${t('review.versions.note')}: ${v.note}` : '', timeOf(v.createdAt, lang)].filter(Boolean).join('\n')
+                    return (
+                      <button key={v.v} type="button" className={on ? 'rv-ver on' : 'rv-ver'} title={tip} aria-pressed={on} onClick={() => !on && void selectVersion(input, v.v)}>
+                        <div className={`rv-ver-th ck${dark ? ' dk' : ''}`}>
+                          <img src={v.url} alt="" draggable={false} />
+                          {v.qa && <i className={v.qa.pass ? 'rv-dot ok' : 'rv-dot bad'} />}
+                        </div>
+                        <span className="rv-ver-n">
+                          v{v.v}
+                          {v.reprocessOf || v.recolorOf ? <Icon name="wand" size={10} /> : null}
+                        </span>
+                        <span className="rv-ver-t">{on ? t('review.versions.used') : timeOf(v.createdAt, lang, true)}</span>
+                      </button>
+                    )
+                  })}
+                  {busy && (
+                    <div className="rv-ver add">
+                      <span className="spin" />
+                    </div>
                   )}
+                </div>
+                {cur && (cur.note || cur.reprocessOf || cur.recolorOf) && (
+                  <div className="rv-ver-note" title={cur.note ?? undefined}>
+                    <b>v{cur.v}</b> · {cur.reprocessOf ? t('review.versions.reprocess', { v: cur.reprocessOf }) : cur.recolorOf ? t('recolor.from', { v: cur.recolorOf }) : t('review.versions.gen')}
+                    {cur.note ? `: “${cur.note}”` : ''}
+                  </div>
+                )}
+              </section>
+            )}
+            {cur && recolorOpen && (
+              <section>
+                <h3>
+                  <Icon name="wand" size={14} />
+                  {t('recolor.title')}
+                </h3>
+                <RecolorPanel url={cur.url} disabled={busy} onSave={recolor} />
+              </section>
+            )}
+            {cur && (
+              <section>
+                <h3>
+                  <Icon name="wand" size={14} />
+                  {t('review.proc.title')}
+                </h3>
+                <label className="rv-tg" title={t('review.proc.nineHint')}>
+                  <span>{t('review.proc.nine')}</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={nine}
+                    className={nine ? 'rv-sw on' : 'rv-sw'}
+                    onClick={() => {
+                      setNine(!nine)
+                      setDirty(true)
+                    }}
+                  >
+                    <i />
+                  </button>
+                </label>
+                <div className="rv-tg" title={t('review.proc.edgesHint')}>
+                  <span>{t('review.proc.edges')}</span>
+                  <div className="rv-sides">
+                    {SIDES.map((s) => {
+                      const on = edges.includes(s)
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={on}
+                          className={on ? `rv-side ${s} on` : `rv-side ${s}`}
+                          title={t(`review.proc.sides.${s}`)}
+                          onClick={() => {
+                            setEdges(on ? edges.filter((x) => x !== s) : [...edges, s])
+                            setDirty(true)
+                          }}
+                        >
+                          {t(`review.proc.sides.${s}`)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+                <p className="muted rv-small">{cur.hasRaw ? t('review.proc.hint', { v: cur.v }) : t('review.proc.noRaw')}</p>
+                <button type="button" className="btn sm rv-wide" disabled={!cur.hasRaw || reproc || busy} onClick={() => void reprocess()}>
+                  {reproc ? <span className="spin xs" /> : <Icon name="wand" size={13} />}
+                  {reproc ? t('review.proc.running') : t('review.proc.run')}
+                </button>
+              </section>
+            )}
+            <section>
+              <h3>
+                <Icon name="refresh" size={14} />
+                {t('review.regen.title')}
+              </h3>
+              <textarea ref={noteRef} className="ta" rows={3} value={note} placeholder={t('review.regen.placeholder')} disabled={busy} onChange={(e) => setNote(e.target.value)} />
+              <div className="ptools">
+                <button type="button" className="btn sm" disabled={busy || polish?.phase === 'loading'} onClick={() => void runPolish()}>
+                  <Icon name="sparkles" size={13} />
+                  {t('style.polish.button')}
+                </button>
+                <ModelChip task="promptPolish" />
+                {prevNote !== null && (
                   <button
                     type="button"
                     className="btn sm ghost"
                     onClick={() => {
-                      void navigator.clipboard.writeText(errText)
-                      toast(t('gen.copied'), 'info')
+                      setNote(prevNote)
+                      setPrevNote(null)
                     }}
                   >
-                    <Icon name="copy" size={12} />
-                    {t('review.error.copy')}
+                    <Icon name="refresh" size={13} />
+                    {t('style.polish.undo')}
                   </button>
-                </div>
-              </div>
-            )}
-          </section>
-          {input.selected > 0 && (
-            <section>
-              <h3>
-                <Icon name="shield" size={14} />
-                {t('review.qa.title')}
-                {cur?.qa && <span className={cur.qa.pass ? 'chip c-green rv-qa-chip' : 'chip c-orange rv-qa-chip'}>{t(cur.qa.pass ? 'review.qa.pass' : 'review.qa.fail')}</span>}
-              </h3>
-              {cur?.qa ? <QaList checks={cur.qa.checks} /> : <p className="muted rv-small">{t('review.qa.none')}</p>}
-            </section>
-          )}
-          {input.versions.length > 0 && (
-            <section>
-              <h3>
-                <Icon name="layers" size={14} />
-                {t('review.versions.title')}
-              </h3>
-              <div className="rv-vers">
-                {[...versions].reverse().map((v) => {
-                  const on = v.v === input.selected
-                  const tip = [t('review.versions.pick', { v: v.v }), v.reprocessOf ? t('review.versions.reprocess', { v: v.reprocessOf }) : v.recolorOf ? t('recolor.from', { v: v.recolorOf }) : t('review.versions.gen'), v.note ? `${t('review.versions.note')}: ${v.note}` : '', timeOf(v.createdAt, lang)].filter(Boolean).join('\n')
-                  return (
-                    <button key={v.v} type="button" className={on ? 'rv-ver on' : 'rv-ver'} title={tip} aria-pressed={on} onClick={() => !on && void selectVersion(input, v.v)}>
-                      <div className={`rv-ver-th ck${dark ? ' dk' : ''}`}>
-                        <img src={v.url} alt="" draggable={false} />
-                        {v.qa && <i className={v.qa.pass ? 'rv-dot ok' : 'rv-dot bad'} />}
-                      </div>
-                      <span className="rv-ver-n">
-                        v{v.v}
-                        {v.reprocessOf || v.recolorOf ? <Icon name="wand" size={10} /> : null}
-                      </span>
-                      <span className="rv-ver-t">{on ? t('review.versions.used') : timeOf(v.createdAt, lang, true)}</span>
-                    </button>
-                  )
-                })}
-                {busy && (
-                  <div className="rv-ver add">
-                    <span className="spin" />
-                  </div>
                 )}
               </div>
-              {cur && (cur.note || cur.reprocessOf || cur.recolorOf) && (
-                <div className="rv-ver-note" title={cur.note ?? undefined}>
-                  <b>v{cur.v}</b> · {cur.reprocessOf ? t('review.versions.reprocess', { v: cur.reprocessOf }) : cur.recolorOf ? t('recolor.from', { v: cur.recolorOf }) : t('review.versions.gen')}
-                  {cur.note ? `: “${cur.note}”` : ''}
-                </div>
-              )}
+              <AnimatePresence initial={false}>
+                {polish && (
+                  <PolishPanel
+                    key="pf"
+                    state={polish}
+                    onUse={() => {
+                      if (polish.phase !== 'done') return
+                      setPrevNote(note)
+                      setNote(polish.result.promptEn)
+                      setPolish(null)
+                    }}
+                    onAgain={() => void runPolish()}
+                    onDrop={() => setPolish(null)}
+                  />
+                )}
+              </AnimatePresence>
+              <p className="muted rv-small">{group && isLocked(group) ? t('review.regen.hint') : t('review.regen.noGroup')}</p>
             </section>
-          )}
-          {cur && (
-            <section>
-              <h3>
-                <Icon name="wand" size={14} />
-                {t('recolor.title')}
-                <button type="button" className="btn ghost sm" style={{ marginLeft: 'auto' }} aria-expanded={recolorOpen} onClick={() => setRecolorOpen(!recolorOpen)}>
-                  {t('recolor.open')}
+          </aside>
+        </div>
+        <div className="rv-foot">
+          <ReviewBar
+            versions={versions.map((v) => ({
+              v: v.v,
+              title: v.reprocessOf ? t('review.versions.reprocess', { v: v.reprocessOf }) : v.recolorOf ? t('recolor.from', { v: v.recolorOf }) : t('review.versions.gen'),
+              warn: !!v.qa && !v.qa.pass
+            }))}
+            selected={input.selected}
+            onPick={(v) => void selectVersion(input, v)}
+            numberKeys={false}
+            compare={versions.length > 1 ? { active: compareOn, onToggle: () => setAbOpen(!abOpen) } : undefined}
+            recolor={cur ? { active: recolorOpen, onToggle: () => setRecolorOpen(!recolorOpen), disabled: busy } : undefined}
+            regen={{ label: busy ? t('review.regen.running') : t('review.regen.button'), busy: busy || queuing, disabled: busy || queuing || !group || !isLocked(group), onClick: () => void regen() }}
+            reject={{ label: input.decision === 'rejected' ? t('review.unreject') : t('review.reject'), on: input.decision === 'rejected', disabled: !canDecide, onClick: () => decide('rejected') }}
+            approve={{ label: input.decision === 'approved' ? t('review.unapprove') : t('review.approve'), on: input.decision === 'approved', disabled: !canDecide, onClick: () => decide('approved') }}
+            onShortcuts={help.show}
+            extra={
+              toExport && (
+                <button type="button" className="btn primary" onClick={goExport}>
+                  {t('review.next')}
+                  <Icon name="right" size={14} />
                 </button>
-              </h3>
-              {recolorOpen && <RecolorPanel url={cur.url} disabled={busy} onSave={recolor} />}
-            </section>
-          )}
-          {cur && (
-            <section>
-              <h3>
-                <Icon name="wand" size={14} />
-                {t('review.proc.title')}
-              </h3>
-              <label className="rv-tg" title={t('review.proc.nineHint')}>
-                <span>{t('review.proc.nine')}</span>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={nine}
-                  className={nine ? 'rv-sw on' : 'rv-sw'}
-                  onClick={() => {
-                    setNine(!nine)
-                    setDirty(true)
-                  }}
-                >
-                  <i />
-                </button>
-              </label>
-              <div className="rv-tg" title={t('review.proc.edgesHint')}>
-                <span>{t('review.proc.edges')}</span>
-                <div className="rv-sides">
-                  {SIDES.map((s) => {
-                    const on = edges.includes(s)
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        aria-pressed={on}
-                        className={on ? `rv-side ${s} on` : `rv-side ${s}`}
-                        title={t(`review.proc.sides.${s}`)}
-                        onClick={() => {
-                          setEdges(on ? edges.filter((x) => x !== s) : [...edges, s])
-                          setDirty(true)
-                        }}
-                      >
-                        {t(`review.proc.sides.${s}`)}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <p className="muted rv-small">{cur.hasRaw ? t('review.proc.hint', { v: cur.v }) : t('review.proc.noRaw')}</p>
-              <button type="button" className="btn sm rv-wide" disabled={!cur.hasRaw || reproc || busy} onClick={() => void reprocess()}>
-                {reproc ? <span className="spin xs" /> : <Icon name="wand" size={13} />}
-                {reproc ? t('review.proc.running') : t('review.proc.run')}
-              </button>
-            </section>
-          )}
-          <section>
-            <h3>
-              <Icon name="refresh" size={14} />
-              {t('review.regen.title')}
-            </h3>
-            <textarea ref={noteRef} className="ta" rows={3} value={note} placeholder={t('review.regen.placeholder')} disabled={busy} onChange={(e) => setNote(e.target.value)} />
-            <div className="ptools">
-              <button type="button" className="btn sm" disabled={busy || polish?.phase === 'loading'} onClick={() => void runPolish()}>
-                <Icon name="sparkles" size={13} />
-                {t('style.polish.button')}
-              </button>
-              <ModelChip task="promptPolish" />
-              {prevNote !== null && (
-                <button
-                  type="button"
-                  className="btn sm ghost"
-                  onClick={() => {
-                    setNote(prevNote)
-                    setPrevNote(null)
-                  }}
-                >
-                  <Icon name="refresh" size={13} />
-                  {t('style.polish.undo')}
-                </button>
-              )}
-            </div>
-            <AnimatePresence initial={false}>
-              {polish && (
-                <PolishPanel
-                  key="pf"
-                  state={polish}
-                  onUse={() => {
-                    if (polish.phase !== 'done') return
-                    setPrevNote(note)
-                    setNote(polish.result.promptEn)
-                    setPolish(null)
-                  }}
-                  onAgain={() => void runPolish()}
-                  onDrop={() => setPolish(null)}
-                />
-              )}
-            </AnimatePresence>
-            <p className="muted rv-small">{group && isLocked(group) ? t('review.regen.hint') : t('review.regen.noGroup')}</p>
-            <button type="button" className="btn rv-wide" disabled={busy || queuing || !group || !isLocked(group)} onClick={() => void regen()}>
-              {busy || queuing ? <span className="spin xs" /> : <Icon name="refresh" size={14} />}
-              {busy ? t('review.regen.running') : t('review.regen.button')}
-              <span className="kbd">R</span>
-            </button>
-          </section>
-          <div className="rv-acts">
-            <button type="button" className={input.decision === 'rejected' ? 'btn on-flag' : 'btn'} disabled={!canDecide} onClick={() => decide('rejected')}>
-              <Icon name="flag" size={14} />
-              {input.decision === 'rejected' ? t('review.unreject') : t('review.reject')}
-              <span className="kbd">X</span>
-            </button>
-            <button type="button" className={input.decision === 'approved' ? 'btn' : 'btn primary'} disabled={!canDecide} onClick={() => decide('approved')}>
-              <Icon name={input.decision === 'approved' ? 'x' : 'check'} size={14} />
-              {input.decision === 'approved' ? t('review.unapprove') : t('review.approve')}
-              <span className="kbd">A</span>
-            </button>
-            {toExport && (
-              <button type="button" className="btn primary rv-next" onClick={goExport}>
-                {t('review.next')}
-                <Icon name="right" size={14} />
-              </button>
-            )}
-          </div>
-        </aside>
-      </div>
-    </motion.div>
+              )
+            }
+          />
+        </div>
+      </motion.div>
+      {help.dialog}
+    </>
   )
 }
 

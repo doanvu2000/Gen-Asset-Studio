@@ -1,4 +1,5 @@
 import type { QaSummary } from './queue'
+import type { RecolorParams } from './recolor'
 import type { SpriteStyle } from './sprite'
 
 export interface SpineAtlasPage {
@@ -202,6 +203,12 @@ export interface SpineRegionPatch {
   selected?: number | null
 }
 
+export interface SpineRecolorResult {
+  ok: boolean
+  version: number | null
+  error: string | null
+}
+
 export const SPINE_IPC = {
   open: 'spine:open',
   importDialog: 'spine:import-dialog',
@@ -213,6 +220,7 @@ export const SPINE_IPC = {
   enqueue: 'spine:enqueue',
   review: 'spine:review',
   setRig: 'spine:set-rig',
+  recolor: 'spine:recolor',
   exportRun: 'spine:export-run',
   exportDir: 'spine:export-dir',
   addVariant: 'spine:add-variant',
@@ -231,6 +239,7 @@ export interface SpineApi {
   enqueue: (rel: string, keys: string[], note?: string) => Promise<number>
   review: (rel: string, patch: Record<string, SpineRegionPatch>) => Promise<SpineProjectView | null>
   setRig: (rel: string, rig: SpineRig) => Promise<SpineProjectView | null>
+  recolor: (rel: string, regionName: string, fromVersion: number, params: RecolorParams) => Promise<SpineRecolorResult>
   exportRun: (rel: string, outDir: string, variants?: string[]) => Promise<SpineExportResult>
   exportDir: (rel: string) => Promise<string | null>
   addVariant: (rel: string, name: string) => Promise<SpineVariantResult>

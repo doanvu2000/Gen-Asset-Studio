@@ -2033,5 +2033,59 @@
       "queue": "{{count}} failed jobs in the queue"
     },
     "badge": "{{count}} to-do items"
+  },
+  "reviewBar": {
+    "versions": "Versions",
+    "pick": "Select v{{v}}",
+    "compare": "Compare A/B",
+    "compareHint": "Compare two versions",
+    "recolor": "Recolor",
+    "regen": "Regenerate",
+    "regenBusy": "Generating…",
+    "gen": "Generate",
+    "shortcuts": "Shortcuts",
+    "shortcutsTitle": "Show keyboard shortcuts",
+    "flagged": "QA has warnings",
+    "mirrorHint": "Mirrored strip: pick versions on the source strip"
+  },
+  "shortcuts": {
+    "title": "Keyboard shortcuts",
+    "reskin": "Image review (Reskin)",
+    "sprite": "Strip review (Sprite)",
+    "spine": "Region review (Spine)",
+    "close": "Close",
+    "rows": {
+      "navItem": "Previous / next image",
+      "navStrip": "Previous / next strip",
+      "navRegion": "Previous / next region",
+      "approve": "Approve (press again to undo)",
+      "reject": "Needs changes (press again to undo)",
+      "regenNote": "Focus the regenerate note",
+      "regen": "Open the regenerate box",
+      "escItem": "Close detail (closes A/B compare first if open)",
+      "esc": "Close detail",
+      "hold": "Hold to see the original",
+      "exportNext": "Go to export (last image approved)",
+      "modes": "Original/new compare mode: side by side, slider, toggle (version chips have no number keys)",
+      "play": "Play / pause",
+      "frame": "Step back / forward one frame",
+      "version": "Select version 1–9",
+      "compare": "Toggle A/B compare",
+      "slider": "Move the A/B slider",
+      "ctrlEnter": "Regenerate while typing a note",
+      "help": "Open this shortcuts panel"
+    }
+  },
+  "compare": {
+    "a": "A",
+    "b": "B",
+    "side": "Side by side",
+    "slider": "Slider",
+    "mode": "Compare style",
+    "swap": "Swap A/B",
+    "close": "Close compare",
+    "drag": "Drag to split",
+    "sliderKeys": "[ ] move the slider",
+    "only": "Need at least 2 versions to compare"
   }
 }

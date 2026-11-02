@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next'
 import { DIRECTIONS, type Direction, type SpriteProjectView, type StripQaCheck, type StripVersion, type StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
 import { RecolorPanel } from '@renderer/components/RecolorPanel'
+import { ReviewBar } from '@renderer/components/ReviewBar'
+import { useShortcutsDialog } from '@renderer/components/ShortcutsDialog'
+import { VersionCompare } from '@renderer/components/VersionCompare'
 import { Segmented } from '@renderer/components/Segmented'
 import { DirCompass } from '@renderer/components/sprite/DirCompass'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
@@ -62,10 +65,13 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
   const [note, setNote] = useState('')
   const [regen, setRegen] = useState(false)
   const [recolorOpen, setRecolorOpen] = useState(false)
+  const [abOpen, setAbOpen] = useState(false)
+  const help = useShortcutsDialog('sprite')
   const job = jobOf(v, target, snap?.jobs ?? [])
   const state = stripState(target, job)
   const busy = state === 'running' || state === 'queued'
   const canRegen = !mirror && !busy && target.versions.length > 0
+  const compareOn = abOpen && versions.length > 1
 
   useEffect(() => {
     let live = true
@@ -116,6 +122,8 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
     x: reject,
     r: () => canRegen && setRegen(true),
     ' ': () => setPlaying((p) => !p),
+    '?': help.show,
+    c: () => versions.length > 1 && setAbOpen(!abOpen),
     ',': () => setPos((pos - 1 + s.frameCount) % s.frameCount),
     '.': () => setPos((pos + 1) % s.frameCount),
     ArrowLeft: () => onStep(-1),
@@ -199,7 +207,17 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
           </button>
         )}
       </div>
-      {mode === 'side' ? (
+      {compareOn ? (
+        <VersionCompare
+          key={target.key}
+          versions={versions.map((x) => x.version)}
+          selected={target.selected}
+          onClose={() => setAbOpen(false)}
+          render={(ver, cm) => (
+            <StripPreview url={versions.find((x) => x.version === ver)?.url ?? null} sizes={src.frameSizes} pos={pos % Math.max(1, src.frameCount)} size={cm === 'side' ? 170 : 300} flipX={mirror} guides />
+          )}
+        />
+      ) : mode === 'side' ? (
         <div className="spr-d-stage">
           <figure className="ck">
             <OrigPreview strip={s} pos={pos} zoom={zoom} guides />
@@ -240,35 +258,10 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
           </ul>
         </section>
       )}
-      {!mirror && versions.length > 0 && (
+      {!mirror && target.url && versions.length > 0 && recolorOpen && (
         <section className="spr-d-sec">
-          <h4>{t('spriteProject.review.versions')}</h4>
-          <div className="spr-vers">
-            {[...versions].reverse().map((ver) => (
-              <button
-                key={ver.version}
-                type="button"
-                className={ver.version === target.selected ? 'spr-ver on' : 'spr-ver'}
-                onClick={() => void review({ [target.key]: { selected: ver.version, decision: null } })}
-              >
-                <b>v{ver.version}</b>
-                <small>{relTime(ver.createdAt, lang)}</small>
-                {ver.qa && !ver.qa.checks.every((c) => c.status === 'pass') && <Icon name="alert" size={11} />}
-                {ver.recolorOf ? <i>{t('recolor.from', { v: ver.recolorOf })}</i> : ver.note && <i title={ver.note}>“{ver.note}”</i>}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-      {!mirror && target.url && versions.length > 0 && (
-        <section className="spr-d-sec">
-          <h4>
-            {t('recolor.title')}
-            <button type="button" className="btn ghost sm" style={{ float: 'right' }} aria-expanded={recolorOpen} onClick={() => setRecolorOpen(!recolorOpen)}>
-              {t('recolor.open')}
-            </button>
-          </h4>
-          {recolorOpen && <RecolorPanel url={target.url} disabled={busy} onSave={recolor} />}
+          <h4>{t('recolor.title')}</h4>
+          <RecolorPanel url={target.url} disabled={busy} onSave={recolor} />
         </section>
       )}
       {regen && canRegen && (
@@ -298,35 +291,32 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
           </div>
         </section>
       )}
-      <div className="spr-d-acts">
-        {busy ? (
-          <span className="chip c-blue">
-            <span className="spin sm" />
-            {target.versions.length ? t('spriteProject.review.regenRunning') : t('spriteProject.work.genRunning')}
-          </span>
-        ) : canRegen ? (
-          <button type="button" className="btn" onClick={() => setRegen((r) => !r)} title="R">
-            <Icon name="refresh" size={14} />
-            {t('spriteProject.gen.regen')}
-          </button>
-        ) : (
-          !mirror && (
-            <button type="button" className="btn primary" onClick={() => void enqueue([target.key])}>
-              <Icon name="sparkles" size={14} />
-              {target.key === v.lockKey ? t('spriteProject.gen.genLock') : t('spriteProject.gen.gen')}
-            </button>
-          )
-        )}
-        <div className="grow" />
-        <button type="button" className={target.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!target.url} onClick={reject} title={`${t('spriteProject.review.reject')} (X)`}>
-          <Icon name="x" size={14} />
-          {t('spriteProject.review.reject')}
-        </button>
-        <button type="button" className={target.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!target.url} onClick={approve} title={`${t('spriteProject.review.approve')} (A)`}>
-          <Icon name="check" size={14} />
-          {t('spriteProject.review.approve')}
-        </button>
-      </div>
+      <ReviewBar
+        className="spr-d-acts"
+        versions={versions.map((x) => ({
+          v: x.version,
+          title: [mirror ? t('reviewBar.mirrorHint') : '', x.recolorOf ? t('recolor.from', { v: x.recolorOf }) : (x.note ?? ''), relTime(x.createdAt, lang)].filter(Boolean).join('\n'),
+          warn: !!x.qa && !x.qa.checks.every((c) => c.status === 'pass')
+        }))}
+        selected={target.selected}
+        onPick={mirror ? undefined : pickVersion}
+        numberKeys={!mirror}
+        compare={versions.length > 1 ? { active: compareOn, onToggle: () => setAbOpen(!abOpen) } : undefined}
+        recolor={!mirror && target.url && versions.length > 0 ? { active: recolorOpen, onToggle: () => setRecolorOpen(!recolorOpen), disabled: busy } : undefined}
+        regen={
+          busy
+            ? { label: target.versions.length ? t('spriteProject.review.regenRunning') : t('spriteProject.work.genRunning'), busy: true, disabled: true, onClick: () => undefined }
+            : canRegen
+              ? { label: t('spriteProject.gen.regen'), onClick: () => setRegen((r) => !r) }
+              : mirror
+                ? undefined
+                : { label: target.key === v.lockKey ? t('spriteProject.gen.genLock') : t('spriteProject.gen.gen'), onClick: () => void enqueue([target.key]), noKey: true }
+        }
+        reject={{ label: t('spriteProject.review.reject'), on: target.decision === 'rejected', disabled: !target.url, onClick: reject }}
+        approve={{ label: t('spriteProject.review.approve'), on: target.decision === 'approved', disabled: !target.url, onClick: approve }}
+        onShortcuts={help.show}
+      />
+      {help.dialog}
     </aside>
   )
 }

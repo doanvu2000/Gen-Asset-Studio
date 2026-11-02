@@ -615,6 +615,16 @@ async function skinVariants(page: Raw): Promise<void> {
     let v = await svc.review(rel, { head: { decision: 'approved' }, arm_l: { decision: 'approved' } })
     const pj = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
     check(Object.keys(pj.spine.review).length === 0 && pj.spine.variants[0].review.head.decision === 'approved' && v?.variants[1].approved === 2 && v.variants[0].approved === 0, `${fmt}: review stored per skin, base review untouched`)
+    const headRel = v?.regions.find((r) => r.name === 'head')?.assetRel ?? ''
+    const rc = await svc.recolor(rel, 'head', 1, { hue: 180, sat: 100, bright: 100, region: null })
+    const rcPix = rc.version ? (await decode(join(versionsDir(dir, headRel), `v${rc.version}.png`))).data : null
+    const rcView = await svc.open(rel)
+    const rcHead = rcView?.regions.find((r) => r.name === 'head')
+    check(rc.ok && rc.version === 2 && !!rcPix && rcPix[0] < 20 && rcPix[1] > 235 && rcPix[2] > 235, `${fmt}: recolor writes a new version in the skin dir (hue 180: red -> cyan)`)
+    check(rcHead?.selected === 2 && rcHead.decision === null && rcHead.versions.join() === '1,2' && !existsSync(join(dir, 'versions', 'spine', 'head', 'v2.png')), `${fmt}: recolor selects the new version, clears the decision, base skin untouched`)
+    const bad = [await svc.recolor(rel, 'head', 1, { hue: 0, sat: 100, bright: 100, region: null }), await svc.recolor(rel, 'nope', 1, { hue: 90, sat: 100, bright: 100, region: null }), await svc.recolor(rel, 'head', 9, { hue: 90, sat: 100, bright: 100, region: null })]
+    check(bad.every((x) => !x.ok && !!x.error), `${fmt}: recolor refuses identity params / unknown region / missing version`)
+    v = await svc.review(rel, { head: { selected: 1, decision: 'approved' } })
     const prev = await svc.assets(rel, 'new')
     check(!!prev?.pages['hero-red.png'] && prev.atlas.includes('red/head') && (fmt === 'json' ? JSON.parse(prev.json).skins.some((s: { name: string }) => s.name === 'red') : !!prev.skelBase64), `${fmt}: preview assets carry the skin page, merged atlas, skeleton with skin`)
     const prevSd = await coreWithAtlas(fmt === 'json' ? prev!.json : Buffer.from(prev!.skelBase64 ?? '', 'base64'), prev!.atlas)

@@ -210,6 +210,7 @@ const api: GasApi = {
     enqueue: (rel: string, keys: string[], note?: string) => ipcRenderer.invoke(SPINE_IPC.enqueue, rel, keys, note),
     review: (rel: string, patch: Record<string, SpineRegionPatch>) => ipcRenderer.invoke(SPINE_IPC.review, rel, patch),
     setRig: (rel: string, rig: SpineRig) => ipcRenderer.invoke(SPINE_IPC.setRig, rel, rig),
+    recolor: (rel: string, regionName: string, fromVersion: number, params: RecolorParams) => ipcRenderer.invoke(SPINE_IPC.recolor, rel, regionName, fromVersion, params),
     exportRun: (rel: string, outDir: string, variants?: string[]) => ipcRenderer.invoke(SPINE_IPC.exportRun, rel, outDir, variants),
     exportDir: (rel: string) => ipcRenderer.invoke(SPINE_IPC.exportDir, rel),
     addVariant: (rel: string, name: string) => ipcRenderer.invoke(SPINE_IPC.addVariant, rel, name),

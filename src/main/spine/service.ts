@@ -16,6 +16,7 @@ import {
   type SpineExportResult,
   type SpineImportResult,
   type SpineProjectView,
+  type SpineRecolorResult,
   type SpineRegionPatch,
   type SpineRegionView,
   type SpineRig,
@@ -32,12 +33,13 @@ import type { ProjectFile } from '../workspace/project'
 import { PROJECT_FILE, pathKey } from '../workspace/project'
 import { hashFile } from '../workspace/analyze'
 import { fileUrl } from '../workspace/protocol'
+import { normalizeRecolor, type RecolorParams } from '../pipeline/recolor'
 import { readVersionQa } from '../workspace/review'
 import { versionsDir } from '../queue/GenJob'
 import { decode, encodePng, rawSharp } from '../pipeline/image'
 import type { RawImage } from '../pipeline/types'
 import { savePng } from '../sprite/strip'
-import { decisionAt } from '../sprite/strips'
+import { decisionAt, recolorStripVersion } from '../sprite/strips'
 import { AtlasError, parseSpineAtlas } from './atlas'
 import { applyRig, parseSkeleton, rigIsEmpty, sanitizeRig, SkeletonError } from './skeleton'
 import { addSkinsBinary, applyRigBinary, parseSkeletonBinary, skinPath } from './binary'
@@ -890,6 +892,25 @@ export class SpineService {
     )
   }
 
+  recolor(rel: string, regionName: string, fromVersion: number, params: RecolorParams): Promise<SpineRecolorResult> {
+    return this.deps.run(async () => {
+      try {
+        const l = await this.load(rel)
+        const asset = l.spine.assets[regionName]
+        if (!asset) throw new Error('region not found')
+        const slot = slotOf(l.spine)
+        const version = await recolorStripVersion(l.dir, slot.asset(asset), fromVersion, params)
+        slot.review[regionName] = { decision: null, selected: version, version, seen: version }
+        await this.save(l)
+        this.deps.log(`spine ${rel}: recolored ${regionName} v${fromVersion} -> v${version}`)
+        return { ok: true, version, error: null }
+      } catch (e) {
+        this.deps.log(`spine recolor failed: ${(e as Error).message}`)
+        return { ok: false, version: null, error: (e as Error).message.split(/\r?\n/)[0] }
+      }
+    })
+  }
+
   setRig(rel: string, rig: SpineRig): Promise<SpineProjectView | null> {
     return this.mutate(
       rel,
@@ -1081,6 +1102,7 @@ export function registerSpineIpc(ipcMain: IpcMain, getWindow: () => BrowserWindo
   ipcMain.handle(SPINE_IPC.addRefs, (_e, rel: unknown) => service.addRefs(s(rel), getWindow()))
   ipcMain.handle(SPINE_IPC.enqueue, (_e, rel: unknown, keys: unknown, note: unknown) => service.enqueue(s(rel), ss(keys), typeof note === 'string' ? note : undefined))
   ipcMain.handle(SPINE_IPC.review, (_e, rel: unknown, patch: unknown) => service.review(s(rel), o(patch) as Record<string, SpineRegionPatch>))
+  ipcMain.handle(SPINE_IPC.recolor, (_e, rel: unknown, region: unknown, from: unknown, params: unknown) => service.recolor(s(rel), s(region), typeof from === 'number' ? from : -1, normalizeRecolor(params)))
   ipcMain.handle(SPINE_IPC.setRig, (_e, rel: unknown, rig: unknown) => service.setRig(s(rel), o(rig) as unknown as SpineRig))
   ipcMain.handle(SPINE_IPC.exportRun, (_e, rel: unknown, outDir: unknown, variants: unknown) => service.exportRun(s(rel), s(outDir), ss(variants)))
   ipcMain.handle(SPINE_IPC.exportDir, (_e, rel: unknown) => service.pickExportDir(s(rel), getWindow()))

@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState, type MouseEvent, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SpinePlayer } from '@esotericsoftware/spine-player'
+import type { RecolorParams } from '@shared/recolor'
 import type { QueueJob } from '@shared/queue'
 import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
 import { GenEstimate } from '@renderer/components/GenEstimate'
+import { RecolorPanel } from '@renderer/components/RecolorPanel'
+import { ReviewBar } from '@renderer/components/ReviewBar'
 import { Segmented } from '@renderer/components/Segmented'
+import { useShortcutsDialog } from '@renderer/components/ShortcutsDialog'
+import { VersionCompare } from '@renderer/components/VersionCompare'
 import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { applyRig, origRigFromData, parseOrigRig, RigEditor } from '@renderer/components/spine/RigEditor'
 import { regionJob, regionQaFail, regionReviewState, regionState, rigEditCount, spineStepLock, type RegionReviewState } from '@renderer/lib/spine'
 import { useReviewKeys, type ReviewKeyMap } from '@renderer/lib/useReviewKeys'
+import { siblingVersionUrl } from '@renderer/lib/versionUrl'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSpine } from '@renderer/store/spine'
 import { toast } from '@renderer/store/toast'
@@ -122,11 +128,17 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
   const { t } = useTranslation()
   const review = useSpine((s) => s.review)
   const enqueue = useSpine((s) => s.enqueue)
+  const refresh = useSpine((s) => s.refresh)
+  const rel = useSpine((s) => s.rel)
   const [zoom, setZoom] = useState(2)
   const [note, setNote] = useState('')
   const [regen, setRegen] = useState(false)
+  const [abOpen, setAbOpen] = useState(false)
+  const [recolorOpen, setRecolorOpen] = useState(false)
+  const help = useShortcutsDialog('spine')
   const state = regionState(r, job)
   const busy = state === 'running' || state === 'queued'
+  const compareOn = abOpen && r.versions.length > 1 && !!r.url
 
   const approve = useCallback(() => {
     if (!r.url) return
@@ -138,19 +150,40 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
     void review({ [r.key]: { decision: 'rejected' } })
   }, [review, r.key, r.url])
 
+  const pickVersion = useCallback(
+    (n: number) => {
+      if (r.versions.length > 1 && r.versions.includes(n)) void review({ [r.key]: { selected: n, decision: null } })
+    },
+    [review, r.key, r.versions]
+  )
+
+  const recolor = async (params: RecolorParams): Promise<boolean> => {
+    if (!rel || !r.selected) return false
+    try {
+      const res = await window.gas.spine.recolor(rel, r.key, r.selected, params)
+      if (res.ok && res.version) {
+        toast(t('recolor.done', { v: res.version }), 'ok')
+        await refresh()
+        return true
+      }
+      toast(t('recolor.failed', { msg: res.error ?? '' }), 'err')
+    } catch (e) {
+      toast(t('recolor.failed', { msg: e instanceof Error ? e.message : String(e) }), 'err')
+    }
+    return false
+  }
+
   const keys: ReviewKeyMap = {
     a: approve,
     x: reject,
     r: () => setRegen(true),
-    Escape: onClose,
+    '?': help.show,
+    c: () => r.versions.length > 1 && setAbOpen(!abOpen),
+    Escape: () => (compareOn ? setAbOpen(false) : onClose()),
     ArrowLeft: () => onStep(-1),
     ArrowRight: () => onStep(1)
   }
-  for (let n = 1; n <= 9; n++) {
-    keys[String(n)] = () => {
-      if (r.versions.length > 1 && r.versions.includes(n)) void review({ [r.key]: { selected: n, decision: null } })
-    }
-  }
+  for (let n = 1; n <= 9; n++) keys[String(n)] = () => pickVersion(n)
   useReviewKeys(keys)
 
   const w = Math.min(200, r.w * zoom)
@@ -175,6 +208,18 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
           <Icon name="x" size={14} />
         </button>
       </div>
+      {compareOn ? (
+        <VersionCompare
+          key={r.key}
+          versions={r.versions}
+          selected={r.selected}
+          onClose={() => setAbOpen(false)}
+          render={(ver) => {
+            const url = r.url ? siblingVersionUrl(r.url, ver) : null
+            return url ? <img src={url} alt="" draggable={false} /> : null
+          }}
+        />
+      ) : (
       <div className="spr-d-stage">
         <figure className="ck">
           {r.sourceUrl && <img src={r.sourceUrl} alt="" draggable={false} style={{ width: w, imageRendering: zoom > 1 ? 'pixelated' : undefined }} />}
@@ -185,6 +230,7 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
           <figcaption>{t('spriteProject.gen.new')}</figcaption>
         </figure>
       </div>
+      )}
       {state === 'error' && job?.error && (
         <div className="note err">
           <Icon name="alert" size={14} />
@@ -207,16 +253,10 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
           </ul>
         </section>
       )}
-      {r.versions.length > 1 && (
+      {recolorOpen && r.url && (
         <section className="spr-d-sec">
-          <h4>{t('spriteProject.review.versions')}</h4>
-          <div className="spr-vers">
-            {[...r.versions].reverse().map((ver) => (
-              <button key={ver} type="button" className={ver === r.selected ? 'spr-ver on' : 'spr-ver'} onClick={() => void review({ [r.key]: { selected: ver, decision: null } })}>
-                <b>v{ver}</b>
-              </button>
-            ))}
-          </div>
+          <h4>{t('recolor.title')}</h4>
+          <RecolorPanel url={r.url} disabled={busy} onSave={recolor} />
         </section>
       )}
       {regen && (
@@ -247,28 +287,24 @@ function Detail({ r, job, onNext, onStep, onClose }: { r: SpineRegionView; job: 
           </div>
         </section>
       )}
-      <div className="spr-d-acts">
-        {busy ? (
-          <span className="chip c-blue">
-            <span className="spin sm" />
-            {t('spriteProject.review.regenRunning')}
-          </span>
-        ) : (
-          <button type="button" className="btn" onClick={() => setRegen((x) => !x)} title="R">
-            <Icon name={r.versions.length ? 'refresh' : 'sparkles'} size={14} />
-            {r.versions.length ? t('spriteProject.gen.regen') : t('spriteProject.gen.gen')}
-          </button>
-        )}
-        <div className="grow" />
-        <button type="button" className={r.decision === 'rejected' ? 'btn danger solid' : 'btn'} disabled={!r.url} onClick={reject} title={`${t('spriteProject.review.reject')} (X)`}>
-          <Icon name="x" size={14} />
-          {t('spriteProject.review.reject')}
-        </button>
-        <button type="button" className={r.decision === 'approved' ? 'btn green solid' : 'btn primary'} disabled={!r.url} onClick={approve} title={`${t('spriteProject.review.approve')} (A)`}>
-          <Icon name="check" size={14} />
-          {t('spriteProject.review.approve')}
-        </button>
-      </div>
+      <ReviewBar
+        className="spr-d-acts"
+        versions={r.versions.map((n) => ({ v: n }))}
+        selected={r.selected}
+        onPick={pickVersion}
+        numberKeys
+        compare={r.versions.length > 1 && r.url ? { active: compareOn, onToggle: () => setAbOpen(!abOpen) } : undefined}
+        recolor={r.url ? { active: recolorOpen, onToggle: () => setRecolorOpen(!recolorOpen), disabled: busy } : undefined}
+        regen={
+          busy
+            ? { label: t('spriteProject.review.regenRunning'), busy: true, disabled: true, onClick: () => undefined }
+            : { label: r.versions.length ? t('spriteProject.gen.regen') : t('spriteProject.gen.gen'), onClick: () => setRegen((x) => !x) }
+        }
+        reject={{ label: t('spriteProject.review.reject'), on: r.decision === 'rejected', disabled: !r.url, onClick: reject }}
+        approve={{ label: t('spriteProject.review.approve'), on: r.decision === 'approved', disabled: !r.url, onClick: approve }}
+        onShortcuts={help.show}
+      />
+      {help.dialog}
     </div>
   )
 }
