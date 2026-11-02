@@ -222,6 +222,7 @@
       "env": "Environment",
       "gen": "Generation",
       "storage": "Storage",
+      "stats": "Statistics",
       "about": "More apps"
     },
     "appearance": "Appearance",
@@ -1990,5 +1991,24 @@
         "exists": "Skin {{name}} clashes with an existing skin/page/region."
       }
     }
+  },
+  "stats": {
+    "title": "Generation statistics",
+    "hint": "Counted on this device, kept up to 12 months.",
+    "range": "Time range",
+    "days7": "7 days",
+    "days30": "30 days",
+    "failed": "Could not load statistics.",
+    "emptyTitle": "No generations yet",
+    "emptyBody": "Run a generation and the numbers will appear here.",
+    "total": "Generations",
+    "firstPass": "QA pass first try",
+    "regen": "Regenerations",
+    "errors": "Errors",
+    "perDay": "Generations per day",
+    "byProject": "By project (top 10)",
+    "byStyle": "By style",
+    "count": "Runs",
+    "errorCodes": "Errors by code"
   }
 }

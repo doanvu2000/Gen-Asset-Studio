@@ -22,6 +22,7 @@ import { closePipeline, getPipeline } from './pipeline'
 import { createUpdater, registerUpdateIpc, type Updater } from './updater'
 import { registerExportIpc } from './export'
 import { attachQueueNotifier } from './system/notify'
+import { initStats } from './stats'
 import { createSampleProject } from './sample'
 import { hasGenSpace, registerStorageIpc, removeGeneratedImage, StorageService } from './storage/service'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
@@ -222,6 +223,7 @@ function initQueue(): void {
   })
   queue = q
   registerQueueIpc(ipcMain, () => mainWindow, q)
+  initStats(q, (m) => logger.write('stats', m))
   attachQueueNotifier({ queue: q, getWindow: () => mainWindow, enabled: () => settings.get().notifyQueueDone, lang: () => settings.get().lang })
   void q
     .load()
@@ -332,6 +334,7 @@ function registerWorkspaceIpc(): void {
   ipcMain.handle(IPC.wsMove, (_e, rel: unknown, dest: unknown) => workspace.move(str(rel), str(dest)))
   ipcMain.handle(IPC.wsTrash, (_e, rel: unknown) => workspace.trash(str(rel)))
   ipcMain.handle(IPC.wsReveal, (_e, rel: unknown) => workspace.reveal(str(rel)))
+  ipcMain.handle(IPC.wsTodo, () => workspace.todo(queue?.snapshot().jobs ?? []))
   ipcMain.handle(IPC.projOpen, (_e, rel: unknown) => workspace.open(str(rel)))
   ipcMain.handle(IPC.projAddDialog, (e, rel: unknown, mode: unknown) => workspace.addFromDialog(str(rel), mode === 'folder' ? 'folder' : 'files', win(e)))
   ipcMain.handle(IPC.projAddPaths, (_e, rel: unknown, paths: unknown) => workspace.addPaths(str(rel), strs(paths)))

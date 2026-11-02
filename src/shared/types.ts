@@ -1,4 +1,4 @@
-import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, WorkspaceSnapshot } from './workspace'
+import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, TodoItem, WorkspaceSnapshot } from './workspace'
 import type { ProjectKind, SpriteApi, SpriteGenApi } from './sprite'
 import type { SpineApi } from './spine'
 import type { StyleApi, StyleGroup } from './style'
@@ -7,6 +7,7 @@ import type { ReviewApi } from './review'
 import type { UpdateApi } from './update'
 import type { ExportApi } from './export'
 import type { StorageApi } from './storage'
+import type { StatsApi } from './stats'
 
 export type ThemePref = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
@@ -300,6 +301,7 @@ export interface GasApi {
     move: (rel: string, destRel: string) => Promise<OpResult>
     trash: (rel: string) => Promise<OpResult>
     reveal: (rel: string) => Promise<void>
+    todo: () => Promise<TodoItem[]>
     onChange: (cb: (snapshot: WorkspaceSnapshot) => void) => Unsubscribe
   }
   project: {
@@ -318,6 +320,7 @@ export interface GasApi {
   export: ExportApi
   update: UpdateApi
   storage: StorageApi
+  stats: StatsApi
   sprite: SpriteApi
   spriteGen: SpriteGenApi
   spine: SpineApi

@@ -15,6 +15,7 @@ import { Splash } from './components/Splash'
 import './styles/splash.css'
 import './styles/sprite-project.css'
 import './styles/spine-project.css'
+import './styles/stats.css'
 
 async function bootstrap(): Promise<void> {
   const [settings, systemDark, maximized] = await Promise.all([

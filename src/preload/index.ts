@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IPC } from '@shared/ipc'
+import { STATS_IPC, type StatsQuery } from '@shared/stats'
 import type {
   AccountInfo,
   AppSettings,
@@ -228,6 +229,9 @@ const api: GasApi = {
     dismissBanner: () => ipcRenderer.invoke(STORAGE_IPC.dismissBanner),
     onProgress: (cb) => subscribe<MoveProgress>(STORAGE_IPC.progress, cb),
     onChange: (cb) => subscribe<StorageSnapshot>(STORAGE_IPC.changed, cb)
+  },
+  stats: {
+    summary: (q: StatsQuery) => ipcRenderer.invoke(STATS_IPC.summary, q)
   },
   files: {
     pathFor: (file: File) => webUtils.getPathForFile(file)

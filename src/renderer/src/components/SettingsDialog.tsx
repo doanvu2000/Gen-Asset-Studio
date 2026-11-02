@@ -15,6 +15,7 @@ import { EnvChip } from './EnvChip'
 import { ErrorActions } from './ErrorActions'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
 import { StorageTab } from './StorageSettings'
+import { StatsTab } from './StatsSettings'
 import { AboutTab, PromoHint } from './Promo'
 import { useUpdateT } from '@renderer/lib/useUpdateT'
 
@@ -497,6 +498,7 @@ const TABS: { id: SettingsTab; icon: IconName }[] = [
   { id: 'gen', icon: 'sparkles' },
   { id: 'account', icon: 'user' },
   { id: 'storage', icon: 'drive' },
+  { id: 'stats', icon: 'layers' },
   { id: 'env', icon: 'box' },
   { id: 'about', icon: 'apps' }
 ]
@@ -569,6 +571,7 @@ export function SettingsDialog(): ReactElement {
               {tab === 'gen' && <GenTab />}
               {tab === 'account' && <AccountTab />}
               {tab === 'storage' && <StorageTab />}
+              {tab === 'stats' && <StatsTab />}
               {tab === 'env' && <EnvTab />}
               {tab === 'about' && <AboutTab />}
             </div>

@@ -222,6 +222,7 @@
       "env": "Môi trường",
       "gen": "Gen & QA",
       "storage": "Lưu trữ",
+      "stats": "Thống kê",
       "about": "Từ cùng tác giả"
     },
     "appearance": "Giao diện",
@@ -1990,5 +1991,24 @@
         "exists": "Skin {{name}} trùng skin/page/region trong file Spine."
       }
     }
+  },
+  "stats": {
+    "title": "Thống kê gen",
+    "hint": "Tính trên máy này, giữ tối đa 12 tháng.",
+    "range": "Khoảng thời gian",
+    "days7": "7 ngày",
+    "days30": "30 ngày",
+    "failed": "Không tải được thống kê.",
+    "emptyTitle": "Chưa có lượt gen nào",
+    "emptyBody": "Gen thử một lượt là số liệu sẽ hiện ở đây.",
+    "total": "Lượt gen",
+    "firstPass": "QA đạt ngay lần đầu",
+    "regen": "Lượt gen lại",
+    "errors": "Lỗi",
+    "perDay": "Lượt gen mỗi ngày",
+    "byProject": "Theo project (top 10)",
+    "byStyle": "Theo style",
+    "count": "Lượt",
+    "errorCodes": "Lỗi theo mã"
   }
 }
