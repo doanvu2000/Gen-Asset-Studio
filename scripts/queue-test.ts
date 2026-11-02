@@ -1,3 +1,4 @@
+import { tmpdir } from 'node:os'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
@@ -13,7 +14,7 @@ import type { CodexLike } from '../src/main/queue/GenJob'
 import { BatchTracker } from '../src/main/system/queueBatch'
 
 const root = resolve(__dirname, '..')
-const project = process.env['GAS_QUEUE_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-queue-test'
+const project = process.env['GAS_QUEUE_TEST_DIR'] || join(tmpdir(), 'gas-queue-test')
 const source = join(root, 'spike/m0/in/btn_green.png')
 const styleRef = join(root, 'resources/style-templates/candy-pop/preview-sm.png')
 const template = JSON.parse(readFileSync(join(root, 'resources/style-templates/candy-pop/template.json'), 'utf8')) as { promptEn: string }

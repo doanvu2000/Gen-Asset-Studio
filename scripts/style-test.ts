@@ -1,3 +1,4 @@
+import { tmpdir } from 'node:os'
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { codexCurrentDir, codexHome } from '../src/main/paths'
@@ -8,7 +9,7 @@ import type { StyleCodex } from '../src/main/style/common'
 import type { SuggestProgress } from '../src/shared/style'
 
 const root = resolve(__dirname, '..')
-const project = process.env['GAS_STYLE_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-style-test'
+const project = process.env['GAS_STYLE_TEST_DIR'] || join(tmpdir(), 'gas-style-test')
 const skipPolish = process.argv.includes('--skip-polish')
 const skipSuggest = process.argv.includes('--skip-suggest')
 const templatesOnly = process.argv.includes('--templates-only')

@@ -1,5 +1,7 @@
 # Gen Asset Studio
 
+[![CI](https://github.com/doanvu2000/Gen-Asset-Studio/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/doanvu2000/Gen-Asset-Studio/actions/workflows/ci.yml)
+
 App Windows giúp đổi style **cả bộ asset 2D** cho game chỉ trong vài bước, dùng AI vẽ ảnh của Codex (ChatGPT).
 
 Có 3 loại project, chọn khi tạo:

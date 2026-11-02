@@ -1,10 +1,11 @@
+import { tmpdir } from 'node:os'
 import { existsSync, promises as fs } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createSampleProject, readSampleManifest, resolveSampleDir } from '../src/main/sample'
 import { absOf, readProject, sanitizeGroups, thumbPath } from '../src/main/workspace/project'
 
 const repo = resolve(__dirname, '..')
-const base = process.env['GAS_SAMPLE_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-sample-test'
+const base = process.env['GAS_SAMPLE_TEST_DIR'] || join(tmpdir(), 'gas-sample-test')
 let fails = 0
 
 function check(cond: unknown, msg: string): void {

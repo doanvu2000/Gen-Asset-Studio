@@ -1,3 +1,4 @@
+import { tmpdir } from 'node:os'
 import { existsSync, promises as fs } from 'node:fs'
 import { join, resolve } from 'node:path'
 import sharp from 'sharp'
@@ -6,7 +7,7 @@ import { longPath, planExport, reviewOf, runExport, exportRels, versionPath, typ
 import { readProject, type ProjectFile } from '../src/main/workspace/project'
 
 const repo = resolve(__dirname, '..')
-const base = process.env['GAS_EXPORT_TEST_DIR'] || 'C:\\Users\\dauph\\AppData\\Local\\Temp\\gas-export-test'
+const base = process.env['GAS_EXPORT_TEST_DIR'] || join(tmpdir(), 'gas-export-test')
 const srcGame = join(base, 'src', 'game')
 const srcExtra = join(base, 'src', 'extra')
 const proj = join(base, 'proj')
