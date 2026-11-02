@@ -105,6 +105,7 @@ const api: GasApi = {
     move: (rel: string, destRel: string) => ipcRenderer.invoke(IPC.wsMove, rel, destRel),
     trash: (rel: string) => ipcRenderer.invoke(IPC.wsTrash, rel),
     reveal: (rel: string) => ipcRenderer.invoke(IPC.wsReveal, rel),
+    todo: () => ipcRenderer.invoke(IPC.wsTodo),
     onChange: (cb) => subscribe<WorkspaceSnapshot>(IPC.wsChanged, cb)
   },
   project: {

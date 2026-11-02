@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next'
 import type { FolderNode } from '@shared/workspace'
 import { useApp } from '@renderer/store/app'
 import { findNode, useWs } from '@renderer/store/workspace'
+import { todoBadge, useTodo } from '@renderer/store/todo'
 import { ContextMenu, type MenuItem } from './ContextMenu'
 import { Icon } from './Icon'
 import { KIND_ICON } from './ProjectKinds'
@@ -170,6 +171,8 @@ export function Sidebar(): ReactElement {
   const openSettings = useApp((s) => s.openSettings)
   const sidebarOpen = useApp((s) => s.sidebarOpen)
   const route = useApp((s) => s.route)
+  const navigate = useApp((s) => s.navigate)
+  const todoCount = useTodo((s) => todoBadge(s.items))
   const snap = useWs((s) => s.snap)
   const curFolder = useWs((s) => s.curFolder)
   const openFolder = useWs((s) => s.openFolder)
@@ -287,6 +290,21 @@ export function Sidebar(): ReactElement {
           </div>
           <Icon name="chev" size={12} className="ws-chev" />
         </button>
+        <div className="side-quick">
+          <button
+            type="button"
+            className={route === 'todo' ? 'tn act' : 'tn'}
+            disabled={!snap?.exists}
+            aria-current={route === 'todo' || undefined}
+            onClick={() => navigate('todo')}
+          >
+            <span className="ti">
+              <Icon name="flag" size={15} />
+            </span>
+            <span className="tl">{t('todo.title')}</span>
+            {todoCount > 0 && <span className="todo-badge">{todoCount}</span>}
+          </button>
+        </div>
         <div className="side-label">
           {t('sidebar.folders')}
           <button

@@ -2010,5 +2010,28 @@
     "byStyle": "By style",
     "count": "Runs",
     "errorCodes": "Errors by code"
+  },
+  "todo": {
+    "title": "To-do",
+    "subtitle": "{{count}} items waiting across the workspace",
+    "open": "Open",
+    "empty": "Nothing left to do",
+    "emptyDesc": "Everything is reviewed and exported. New work will show up here.",
+    "noWorkspace": "No workspace to collect work from.",
+    "filterLabel": "Filter by type",
+    "filter": {
+      "all": "All",
+      "review": "To review",
+      "qa": "QA issues",
+      "export": "Not exported",
+      "queue": "Failed jobs"
+    },
+    "row": {
+      "review": "{{count}} awaiting review",
+      "qa": "{{count}} with QA warnings",
+      "export": "{{count}} approved, not exported",
+      "queue": "{{count}} failed jobs in the queue"
+    },
+    "badge": "{{count}} to-do items"
   }
 }

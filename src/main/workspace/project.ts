@@ -300,17 +300,27 @@ export async function checkInputs(data: ProjectFile): Promise<{ checked: Checked
   return { checked, dirty }
 }
 
+export function outRelResolver(data: ProjectFile): (input: InputRecord, abs: string) => string {
+  const labels = rootLabels(data.roots)
+  const multi = data.roots.length > 1
+  const common = data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots)
+  return (record, abs) => {
+    const fromCommon = common ? toPosix(relative(common, abs)) : ''
+    return fromCommon && !fromCommon.startsWith('..') && !isAbsolute(fromCommon) ? fromCommon : multi ? `${labels[record.root]}/${record.rel}` : record.rel
+  }
+}
+
 export async function buildView(dir: string, rel: string, data: ProjectFile, checked: CheckedInput[]): Promise<ProjectView> {
   const labels = rootLabels(data.roots)
   const multi = data.roots.length > 1
   const common = data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots)
+  const outRelOf = outRelResolver(data)
   const review = sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))
   const inputs: InputView[] = await mapLimit(checked, 4, async ({ record, abs, status }) => {
     const thumb = status === 'missing' ? null : await ensureThumb(dir, abs, record.hash)
     const d = dirname(record.rel).replace(/\\/g, '/')
     const dirRel = d === '.' ? '' : d
-    const fromCommon = common ? toPosix(relative(common, abs)) : ''
-    const outRel = fromCommon && !fromCommon.startsWith('..') && !isAbsolute(fromCommon) ? fromCommon : multi ? `${labels[record.root]}/${record.rel}` : record.rel
+    const outRel = outRelOf(record, abs)
     const versions = await listVersions(dir, outRel)
     const last = versions.length ? versions[versions.length - 1] : 0
     const vdir = join(dir, 'versions', ...assetSegments(outRel))

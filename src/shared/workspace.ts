@@ -40,6 +40,26 @@ export interface ProjectSummary {
   sample?: boolean
 }
 
+export type TodoArea = 'review' | 'qa' | 'export' | 'queue'
+
+export interface TodoTarget {
+  assetId?: string
+  stripKey?: string
+  region?: string
+  variantId?: string
+}
+
+export interface TodoItem {
+  projectRel: string
+  projectName: string
+  kind: ProjectKind
+  area: TodoArea
+  target: TodoTarget
+  label: string
+  count: number
+  updatedAt: number
+}
+
 export interface SampleCreateResult {
   ok: boolean
   rel: string | null

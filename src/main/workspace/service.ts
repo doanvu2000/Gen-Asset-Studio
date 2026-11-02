@@ -5,7 +5,8 @@ import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, join, relative, resolve, sep } from 'node:path'
-import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, WorkspaceSnapshot, WsError } from '@shared/workspace'
+import type { AddResult, FolderNode, InputType, OpResult, ProjectSummary, ProjectView, TodoItem, WorkspaceSnapshot, WsError } from '@shared/workspace'
+import type { QueueJob } from '@shared/queue'
 import type { StyleGroup } from '@shared/style'
 import { READY_KINDS, type ProjectKind } from '@shared/sprite'
 import { parseSpineAtlas } from '../spine/atlas'
@@ -35,6 +36,7 @@ import type { RecolorResult, ReprocessOptions, ReprocessResult, ReviewPatch, Ver
 import type { RecolorParams } from '@shared/recolor'
 import { applyReviewPatch, readVersions, recolorVersion, reprocessVersion, sanitizeReview } from './review'
 import { assetSegments } from './project'
+import { TodoIndex } from './todo'
 
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
 const RESERVED = /^(con|prn|aux|nul|com\d|lpt\d)(\..*)?$/i
@@ -214,6 +216,7 @@ export class WorkspaceService extends EventEmitter {
   private chain: Promise<unknown> = Promise.resolve()
   private allowed = new Set<string>()
   private readonly allowedDirs: string[] = []
+  private readonly todoIndex = new TodoIndex()
 
   constructor(private readonly log: (message: string) => void) {
     super()
@@ -229,6 +232,7 @@ export class WorkspaceService extends EventEmitter {
     await this.stopWatch()
     this.root = next
     this.allowed.clear()
+    this.todoIndex.clear()
     await this.rescan()
     this.startWatch()
   }
@@ -239,6 +243,11 @@ export class WorkspaceService extends EventEmitter {
 
   snapshot(): WorkspaceSnapshot {
     return this.snap
+  }
+
+  async todo(jobs: QueueJob[]): Promise<TodoItem[]> {
+    if (!this.root || !this.snap.exists) return []
+    return this.todoIndex.collect(this.root, this.snap.projects, jobs)
   }
 
   isAllowed(abs: string): boolean {

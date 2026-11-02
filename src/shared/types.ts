@@ -1,4 +1,4 @@
-import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, WorkspaceSnapshot } from './workspace'
+import type { AddResult, InputType, OpResult, ProjectView, SampleCreateResult, TodoItem, WorkspaceSnapshot } from './workspace'
 import type { ProjectKind, SpriteApi, SpriteGenApi } from './sprite'
 import type { SpineApi } from './spine'
 import type { StyleApi, StyleGroup } from './style'
@@ -301,6 +301,7 @@ export interface GasApi {
     move: (rel: string, destRel: string) => Promise<OpResult>
     trash: (rel: string) => Promise<OpResult>
     reveal: (rel: string) => Promise<void>
+    todo: () => Promise<TodoItem[]>
     onChange: (cb: (snapshot: WorkspaceSnapshot) => void) => Unsubscribe
   }
   project: {

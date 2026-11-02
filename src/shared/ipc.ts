@@ -55,6 +55,7 @@ export const IPC = {
   wsMove: 'ws:move',
   wsTrash: 'ws:trash',
   wsReveal: 'ws:reveal',
+  wsTodo: 'ws:todo',
   projOpen: 'proj:open',
   projAddDialog: 'proj:add-dialog',
   projAddPaths: 'proj:add-paths',

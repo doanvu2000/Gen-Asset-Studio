@@ -13,11 +13,13 @@ import { useEnv } from '@renderer/store/env'
 import { SetupScreen } from '@renderer/screens/SetupScreen'
 import { WorkspaceScreen } from '@renderer/screens/WorkspaceScreen'
 import { ProjectScreen } from '@renderer/screens/ProjectScreen'
+import { TodoScreen } from '@renderer/screens/TodoScreen'
 import { Toasts } from '@renderer/components/Toasts'
 import { WorkspaceDialogs } from '@renderer/components/WorkspaceDialogs'
 import { useWs } from '@renderer/store/workspace'
 import { useStyle } from '@renderer/store/style'
 import { useQueue } from '@renderer/store/queue'
+import { useTodo } from '@renderer/store/todo'
 import { QueueDrawer } from '@renderer/components/QueueDrawer'
 import { UpdateBanner } from '@renderer/components/UpdateBanner'
 import { StorageBanner } from '@renderer/components/StorageBanner'
@@ -28,6 +30,7 @@ import { tourSteps } from '@renderer/lib/tours'
 const SCREENS: Record<Route, () => ReactElement> = {
   setup: SetupScreen,
   workspace: WorkspaceScreen,
+  todo: TodoScreen,
   project: ProjectScreen
 }
 
@@ -57,12 +60,14 @@ function useEnvBridge(): void {
   const initWs = useWs((s) => s.init)
   const initStyle = useStyle((s) => s.init)
   const initQueue = useQueue((s) => s.init)
+  const initTodo = useTodo((s) => s.init)
   const loadModels = useStyle((s) => s.loadModelList)
   const loggedIn = useEnv((s) => !!s.account?.loggedIn)
   useEffect(() => init(), [init])
   useEffect(() => initWs(), [initWs])
   useEffect(() => initStyle(), [initStyle])
   useEffect(() => initQueue(), [initQueue])
+  useEffect(() => initTodo(), [initTodo])
   useEffect(() => {
     if (loggedIn) void loadModels()
   }, [loggedIn, loadModels])

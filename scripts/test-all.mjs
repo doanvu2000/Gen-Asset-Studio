@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process'
 
-const SUITES = ['format', 'export', 'sample', 'pipeline', 'queue', 'style', 'sprite', 'sprite-gen', 'sprite-new', 'spine', 'workspace-card', 'recolor', 'stats']
+const SUITES = ['format', 'export', 'sample', 'pipeline', 'queue', 'style', 'sprite', 'sprite-gen', 'sprite-new', 'spine', 'workspace-card', 'todo', 'recolor', 'stats']
 const only = process.argv.slice(2)
 const rows = []
 for (const name of only.length ? only : SUITES) {
