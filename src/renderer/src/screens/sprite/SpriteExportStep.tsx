@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { ExportFormats, SheetSnippets, SheetView, SpriteAnimExportResult, SpriteExportResult, SpriteProjectView } from '@shared/sprite'
 import { Segmented } from '@renderer/components/Segmented'
+import { Advanced } from '@renderer/components/Advanced'
 import { Icon } from '@renderer/components/Icon'
 import { relTime } from '@renderer/lib/format'
 import { isApproved } from '@renderer/lib/sprite'
@@ -109,6 +110,12 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
   )
   const any = rows.some((r) => r.ok > 0)
   const newSheets = v.sheets.filter((sh) => sh.origin === 'new')
+  const summary = [
+    newSheets.length > 0 ? ['JSON', ...FORMAT_OPTIONS.filter((o) => v.settings.exportFormats[o.key]).map((o) => o.label)].join(' + ') : '',
+    v.strips.length > 0 ? `${animFormat.toUpperCase()} ×${animScale}` : ''
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   const pick = async (): Promise<void> => {
     const d = await window.gas.spriteGen.exportDir(v.rel)
@@ -213,6 +220,7 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
           </button>
         </div>
       </section>
+      <Advanced id="sprite-export" summary={summary}>
       {newSheets.length > 0 && (
         <section className="spx-card">
           <h3>
@@ -325,6 +333,7 @@ export function SpriteExportStep({ v }: { v: SpriteProjectView }): ReactElement 
           )}
         </section>
       )}
+      </Advanced>
       {result && (
         <section className="spx-card">
           <h3>

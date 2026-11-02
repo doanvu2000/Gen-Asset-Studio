@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import { skinAtlasName, skinSkeletonName, type SpineExportResult, type SpineProjectView } from '@shared/spine'
+import { Advanced } from '@renderer/components/Advanced'
 import { Icon } from '@renderer/components/Icon'
 import i18n from '@renderer/i18n'
 import { relTime } from '@renderer/lib/format'
@@ -91,6 +92,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
           <Icon name="image" size={14} />
           {t('spineProject.export.pages')}
         </h3>
+        <Advanced id="spine-export" summary={t('advanced.spineExport', { pages: rows.length, ok: rows.reduce((n, r) => n + r.ok, 0), total: rows.reduce((n, r) => n + r.total, 0) })}>
         <table className="spx-table">
           <thead>
             <tr>
@@ -121,6 +123,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
           <span>{rigN ? t('spineProject.export.rigNew', { count: rigN, name: v.skeletonName ?? '' }) : t('spineProject.export.rigCopy', { name: v.skeletonName ?? '' })}</span>
         </div>
         <p className="muted">{t('spineProject.export.atlasCopy')}</p>
+        </Advanced>
         {skinList.length > 0 && (
           <fieldset className="spx-skins">
             <legend>{t('spine.skin.exportTitle')}</legend>

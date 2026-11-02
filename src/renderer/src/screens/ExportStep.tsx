@@ -16,6 +16,7 @@ import {
   type ExportSkipReason
 } from '@shared/export'
 import type { ProjectView } from '@shared/workspace'
+import { Advanced } from '@renderer/components/Advanced'
 import { Icon } from '@renderer/components/Icon'
 import { PromoHint } from '@renderer/components/Promo'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
@@ -259,6 +260,12 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
   const backupShort = plan ? `${outName}${sp}${BACKUP_DIR}${sp}${plan.backupStamp}${sp}` : ''
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : 0
   const blocked = !plan || !!plan.error || !ready || loading
+  const advSummary = [
+    opts.scales.some((s) => s !== 1) ? t(opts.scaleLayout === 'folder' ? 'layoutFolder' : 'layoutSuffix') : '',
+    plan && plan.conflicts > 0 ? `⚠ ${plan.conflicts} · ${t(opts.conflict === 'backup' ? 'policyBackup' : 'policySkip')}` : ''
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   if (result) {
     const resSep = sepOf(result.outDir)
@@ -404,6 +411,7 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
           </div>
         </div>
 
+        <Advanced id="reskin-export" summary={advSummary}>
         {opts.scales.some((s) => s !== 1) && (
           <div className="gkv">
             <label>{t('layout')}</label>
@@ -457,6 +465,8 @@ export function ExportStep({ project, api, onPickFolder, onBack, onHome, onExpor
             )}
           </div>
         </div>
+
+        </Advanced>
 
         <div className="gkv">
           <label>{t('options')}</label>

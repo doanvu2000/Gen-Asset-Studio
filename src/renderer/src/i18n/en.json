@@ -2087,5 +2087,9 @@
     "drag": "Drag to split",
     "sliderKeys": "[ ] move the slider",
     "only": "Need at least 2 versions to compare"
+  },
+  "advanced": {
+    "title": "Advanced",
+    "spineExport": "{{ok}}/{{total}} regions · {{pages}} pages · rig"
   }
 }

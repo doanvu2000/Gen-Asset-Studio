@@ -14,6 +14,7 @@ import { Segmented } from './Segmented'
 import { EnvChip } from './EnvChip'
 import { ErrorActions } from './ErrorActions'
 import { UpdateSettingsSection } from './UpdateSettingsSection'
+import { Advanced } from './Advanced'
 import { StorageTab } from './StorageSettings'
 import { StatsTab } from './StatsSettings'
 import { AboutTab, PromoHint } from './Promo'
@@ -173,6 +174,9 @@ function GenTab(): ReactElement {
           </div>
           <Stepper value={gen.concurrency} min={1} max={6} label={t('settings.gen.parallel')} onChange={(v) => setGen({ concurrency: v })} />
         </div>
+      </div>
+      <Advanced id="settings-gen" summary={`${gen.styleCount} · ×${gen.scale}`}>
+      <div className="group">
         <div className="row">
           <div className="rl">
             {t('settings.gen.styles')}
@@ -249,6 +253,7 @@ function GenTab(): ReactElement {
           </button>
         </div>
       </div>
+      </Advanced>
     </>
   )
 }

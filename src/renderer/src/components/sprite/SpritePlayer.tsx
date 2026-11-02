@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from 'react'
 import type { FrameRect, LoopMode } from '@shared/sprite'
+import { Advanced } from '../Advanced'
 import { Icon } from '../Icon'
 import { drawFrame, frameBox, frameOrigin, nextIndex, useImage } from './draw'
 import { useSize } from './useSize'
@@ -164,6 +165,8 @@ export function SpritePlayer({ url, frames, sequence, fps: fpsProp, loop: loopPr
     }
   }
 
+  const summary = [onion ? t('player.onion') : '', guides ? t('player.guides') : '', t(`bg.${bg}`), zoom === 0 ? t('player.fit') : `${zoom}×`].filter(Boolean).join(' · ')
+
   return (
     <div className="spr-player" tabIndex={0} onKeyDown={onKey} aria-label={t('player.label')}>
       <div ref={stageRef} className={`spr-stage bg-${bg}`} style={{ height }}>
@@ -195,7 +198,9 @@ export function SpritePlayer({ url, frames, sequence, fps: fpsProp, loop: loopPr
             </option>
           ))}
         </select>
-        <span className="grow" />
+      </div>
+      <Advanced id="sprite-player" summary={summary}>
+        <div className="spr-bar">
         <button type="button" className={onion ? 'btn sm tog on' : 'btn sm tog'} aria-pressed={onion} title={t('player.onionHint')} onClick={() => setOnion((v) => !v)}>
           {t('player.onion')}
         </button>
@@ -214,7 +219,8 @@ export function SpritePlayer({ url, frames, sequence, fps: fpsProp, loop: loopPr
             </option>
           ))}
         </select>
-      </div>
+        </div>
+      </Advanced>
     </div>
   )
 }

@@ -2087,5 +2087,9 @@
     "drag": "Kéo để chia đôi",
     "sliderKeys": "[ ] dịch thanh trượt",
     "only": "Cần ít nhất 2 phiên bản để so sánh"
+  },
+  "advanced": {
+    "title": "Nâng cao",
+    "spineExport": "{{ok}}/{{total}} vùng · {{pages}} trang · rig"
   }
 }

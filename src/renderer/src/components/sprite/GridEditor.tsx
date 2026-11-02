@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from 'react'
 import type { GridSpec } from '@shared/sprite'
+import { Advanced } from '../Advanced'
 import { Icon } from '../Icon'
 import { useSpriteT } from './useSpriteT'
 import '@renderer/styles/sprite.css'
@@ -70,6 +71,7 @@ export function GridEditor({ grid, imageW, imageH, onChange, onDetect, busy = fa
           {t('grid.detect')}
         </button>
       </div>
+      <Advanced id="sprite-grid" summary={`${parsed.cellW}×${parsed.cellH} px`}>
       <div className="spr-grid-fields">
         {FIELDS.map((f) => (
           <label key={f.k} className="spr-fld">
@@ -92,6 +94,7 @@ export function GridEditor({ grid, imageW, imageH, onChange, onDetect, busy = fa
           </label>
         ))}
       </div>
+      </Advanced>
       <div className={over ? 'spr-grid-foot warn' : 'spr-grid-foot'}>
         {over && <Icon name="alert" size={13} />}
         <span className="mono">

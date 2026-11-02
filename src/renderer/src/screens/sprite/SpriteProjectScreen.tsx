@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
 import { DIRECTIONS, ROW_PRESETS, type Direction, type DirSet, type RowPreset, type SheetView, type SpriteProjectView, type SpriteSettings, type ViewAngle } from '@shared/sprite'
+import { Advanced } from '@renderer/components/Advanced'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { Segmented } from '@renderer/components/Segmented'
 import { SpriteDemo } from '@renderer/components/sprite/SpriteDemo'
@@ -137,6 +138,14 @@ function SettingsCard({ v, inline = false }: { v: SpriteProjectView; inline?: bo
   const setSettings = useSprite((s) => s.setSettings)
   const st = v.settings
   const dirKey = String(st.dirSet) as '0' | '4' | '6' | '8'
+  const advSummary = [
+    st.dirSet !== 0 ? (st.rowPreset === 'rpgmaker' ? 'RPG Maker' : 'Flame') : '',
+    st.dirSet !== 0 && st.mirror ? t('spriteProject.settings.mirror') : '',
+    t(`spriteProject.view.${st.view}`),
+    `${st.cell} px`
+  ]
+    .filter(Boolean)
+    .join(' · ')
   const order = (dirSet: DirSet, preset: RowPreset): SpriteSettings['rowOrder'] => (dirSet === 0 ? [] : preset === 'custom' ? st.rowOrder : ROW_PRESETS[preset][dirSet])
   return (
     <aside className={inline ? 'sp-set inline' : 'sp-set'}>
@@ -156,6 +165,7 @@ function SettingsCard({ v, inline = false }: { v: SpriteProjectView; inline?: bo
           }}
         />
       </label>
+      <Advanced id="sprite-settings" summary={advSummary}>
       {st.dirSet !== 0 && (
         <>
           <label className="fld">
@@ -205,6 +215,7 @@ function SettingsCard({ v, inline = false }: { v: SpriteProjectView; inline?: bo
           onChange={(k) => void setSettings({ cell: Number(k) as 64 | 128 | 256 })}
         />
       </label>
+      </Advanced>
     </aside>
   )
 }

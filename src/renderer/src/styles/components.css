@@ -1147,3 +1147,15 @@
 .spg-sheet > .gen-est-row {
   padding: 0 0 6px;
 }
+
+.adv { margin: 10px 0; border-top: 1px solid var(--sep2); }
+.adv-head { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; padding: 8px 2px; border: 0; background: none; color: var(--text2); font: inherit; font-size: 12px; text-align: left; cursor: pointer; border-radius: var(--radius-sm); }
+.adv-head:hover { color: var(--text); }
+.adv-head:focus-visible { outline: 2px solid var(--accent-ring); outline-offset: 1px; }
+.adv-head b { font-weight: 600; }
+.adv-chev { flex: none; transition: transform .18s var(--ease); }
+.adv.open .adv-chev { transform: rotate(90deg); }
+.adv-sum { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; }
+.adv-body { overflow: hidden; }
+.adv-in { padding-top: 2px; }
+@media (prefers-reduced-motion: reduce) { .adv-chev { transition: none; } }
