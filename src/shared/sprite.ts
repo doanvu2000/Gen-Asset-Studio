@@ -1,3 +1,4 @@
+import type { RecolorParams } from './recolor'
 export type ProjectKind = 'reskin' | 'sprite' | 'spine'
 export const PROJECT_KINDS: readonly ProjectKind[] = ['reskin', 'sprite', 'spine']
 export const READY_KINDS: readonly ProjectKind[] = ['reskin', 'sprite', 'spine']
@@ -297,6 +298,7 @@ export interface StripVersion {
   createdAt: number
   note: string | null
   qa: StripQa | null
+  recolorOf: number | null
 }
 
 export interface StripView {
@@ -357,6 +359,12 @@ export interface SpriteAnimExportResult {
   error: string | null
 }
 
+export interface SpriteRecolorResult {
+  ok: boolean
+  version: number | null
+  error: string | null
+}
+
 export const SPRITE_GEN_IPC = {
   setStyle: 'sprite:set-style',
   addRefs: 'sprite:add-refs',
@@ -373,7 +381,8 @@ export const SPRITE_GEN_IPC = {
   snippets: 'sprite:snippets',
   previewSheet: 'sprite:preview-sheet',
   exportAnims: 'sprite:export-anims',
-  saveAnim: 'sprite:save-anim'
+  saveAnim: 'sprite:save-anim',
+  recolor: 'sprite:recolor'
 } as const
 
 export interface SpriteGenApi {
@@ -393,6 +402,7 @@ export interface SpriteGenApi {
   previewSheet: (rel: string, sheetId: string) => Promise<string | null>
   exportAnims: (rel: string, opts: SpriteAnimExportOpts) => Promise<SpriteAnimExportResult>
   saveAnim: (rel: string, key: string, format: 'gif' | 'webp') => Promise<string | null>
+  recolor: (rel: string, key: string, fromVersion: number, params: RecolorParams) => Promise<SpriteRecolorResult>
 }
 
 export function stripFrames(sizes: FrameSize[]): FrameRect[] {

@@ -1943,5 +1943,23 @@
     "leftWeek": "{{left}}% tuần",
     "mayHit": "Có thể chạm giới hạn — hàng đợi sẽ tự dừng và chạy tiếp khi quota hồi",
     "exhausted": "Quota đã hết — hàng đợi sẽ tạm dừng và chạy tiếp khi quota hồi"
+  },
+  "recolor": {
+    "title": "Đổi màu nhanh",
+    "open": "Đổi màu",
+    "hue": "Sắc độ",
+    "sat": "Bão hòa",
+    "bright": "Độ sáng",
+    "pick": "Chọn màu nguồn",
+    "picking": "Bấm lên ảnh…",
+    "allColors": "Mọi màu",
+    "range": "Dải màu",
+    "hint": "Không tốn lượt Codex. Lưu thành phiên bản mới, giữ nguyên nền trong suốt và kích thước.",
+    "reset": "Đặt lại",
+    "save": "Lưu thành phiên bản mới",
+    "noPreview": "Không xem trước được, vẫn lưu bình thường.",
+    "done": "Đã tạo v{{v}} (đổi màu)",
+    "failed": "Đổi màu lỗi: {{msg}}",
+    "from": "Đổi màu từ v{{v}}"
   }
 }

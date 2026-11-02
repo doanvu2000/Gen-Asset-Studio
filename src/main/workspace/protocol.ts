@@ -12,7 +12,7 @@ export function fileUrl(abs: string, version?: string): string {
 
 export function registerFileScheme(): void {
   protocol.registerSchemesAsPrivileged([
-    { scheme: FILE_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }
+    { scheme: FILE_SCHEME, privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true, corsEnabled: true } }
   ])
 }
 
@@ -32,6 +32,7 @@ export function handleFileScheme(isAllowed: (abs: string) => boolean): void {
     const headers = new Headers(res.headers)
     headers.set('Content-Type', mime)
     headers.set('Cache-Control', 'no-cache')
+    headers.set('Access-Control-Allow-Origin', '*')
     return new Response(res.body, { status: res.status, headers })
   })
 }

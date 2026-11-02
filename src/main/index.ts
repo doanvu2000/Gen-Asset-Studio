@@ -25,6 +25,7 @@ import { attachQueueNotifier } from './system/notify'
 import { createSampleProject } from './sample'
 import { hasGenSpace, registerStorageIpc, removeGeneratedImage, StorageService } from './storage/service'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
+import { normalizeRecolor } from '@shared/recolor'
 import type { EdgeSide } from '@shared/queue'
 
 const BG: Record<ResolvedTheme, string> = { light: '#F5F5F7', dark: '#1C1C1E' }
@@ -347,6 +348,9 @@ function registerWorkspaceIpc(): void {
   ipcMain.handle(REVIEW_IPC.versions, (_e, rel: unknown, id: unknown) => workspace.versions(str(rel), str(id)))
   ipcMain.handle(REVIEW_IPC.reprocess, (_e, rel: unknown, id: unknown, version: unknown, options: unknown) =>
     workspace.reprocess(str(rel), str(id), typeof version === 'number' ? version : -1, reprocessOptions(options), getPipeline({ size: 2 }))
+  )
+  ipcMain.handle(REVIEW_IPC.recolor, (_e, rel: unknown, id: unknown, version: unknown, params: unknown) =>
+    workspace.recolor(str(rel), str(id), typeof version === 'number' ? version : -1, normalizeRecolor(params))
   )
 }
 

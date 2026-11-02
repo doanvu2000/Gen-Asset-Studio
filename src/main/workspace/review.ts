@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import type { EdgeSide, QaSummary } from '@shared/queue'
 import type { ReprocessOptions, ReviewDecision, ReviewEntry, ReviewPatch, VersionInfo } from '@shared/review'
 import type { PipelineLike } from '../queue/GenJob'
+import { isRecolorIdentity, recolorPng, type RecolorParams } from '../pipeline/recolor'
 import { releaseVersion, reserveVersion } from '../queue/GenJob'
 import { fileUrl } from './protocol'
 
@@ -88,6 +89,7 @@ export async function readVersions(vdir: string, versions: number[]): Promise<Ve
       model: typeof meta.model === 'string' ? meta.model : null,
       effort: typeof meta.effort === 'string' ? meta.effort : null,
       reprocessOf: typeof meta.reprocessOf === 'number' ? meta.reprocessOf : null,
+      recolorOf: meta.kind === 'recolor' && typeof meta.from === 'number' ? meta.from : null,
       nineSlice: fit.mode === 'nine-slice' ? true : fit.mode === 'uniform' ? false : null,
       edgeAnchored: anchored,
       hasRaw: existsSync(join(vdir, rawName))
@@ -142,6 +144,22 @@ export async function reprocessVersion(
     }
     await fs.writeFile(join(vdir, `v${version}.json`), JSON.stringify(record, null, 2), 'utf8')
     return { version, qa }
+  } finally {
+    releaseVersion(vdir, version)
+  }
+}
+
+export async function recolorVersion(vdir: string, base: number, params: RecolorParams): Promise<{ version: number }> {
+  if (isRecolorIdentity(params)) throw new Error('nothing to change')
+  const src = join(vdir, `v${base}.png`)
+  if (!existsSync(src)) throw new Error(`v${base} not found`)
+  const png = await recolorPng(src, params)
+  const version = await reserveVersion(vdir)
+  try {
+    await fs.writeFile(join(vdir, `v${version}.png`), png)
+    const record = { version, kind: 'recolor', from: base, params, createdAt: new Date().toISOString(), output: `v${version}.png` }
+    await fs.writeFile(join(vdir, `v${version}.json`), JSON.stringify(record, null, 2), 'utf8')
+    return { version }
   } finally {
     releaseVersion(vdir, version)
   }

@@ -36,16 +36,18 @@ import {
   NEW_MAX_FRAMES,
   type SpriteStripPatch,
   type SpriteStyle,
+  type SpriteRecolorResult,
   type StripVersion,
   type StripView,
   type ViewAngle
 } from '@shared/sprite'
 import type { JobSpec } from '@shared/queue'
 import type { StyleTemplate } from '@shared/style'
-import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, sheetCoverPath, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
+import { decisionAt, autoLockKey, buildStripDefs, composeSheet, frameSizes, listStripVersions, origStrip, readStripMeta, recolorStripVersion, sheetCoverPath, sheetOutName, sheetPieces, stripVersions, versionPath, type StripDef, type StripReviewEntry } from './strips'
 import { encodePng, flipFrame, savePng, splitFrames } from './strip'
 import { animFileBase, encodeAnimation, type AnimFormat } from './anim-export'
 import { decode } from '../pipeline/image'
+import { normalizeRecolor, type RecolorParams } from '../pipeline/recolor'
 import type { RawImage } from '../pipeline/types'
 import { cocosPlist, godotTres, unityMeta } from './formats'
 import { atlasJson, buildSnippets, snippetsMarkdown, type SnippetSheet } from './snippets'
@@ -823,6 +825,27 @@ export class SpriteService {
     })
   }
 
+  recolor(rel: string, key: string, from: number, params: RecolorParams): Promise<SpriteRecolorResult> {
+    return this.deps.run(async () => {
+      try {
+        const { dir, data, sprite } = await this.load(rel)
+        const defs = this.defs(sprite)
+        const d0 = defs.find((x) => x.key === key)
+        if (!d0) throw new Error('strip not found')
+        const d = d0.mirrorOf ? (defs.find((x) => x.key === d0.mirrorOf) ?? d0) : d0
+        const version = await recolorStripVersion(dir, d.assetRel, from, params)
+        sprite.review[d.key] = { decision: null, selected: version, version }
+        await this.save(dir, data, sprite)
+        void refreshSpriteCovers(dir, this.deps.log)
+        this.deps.log(`sprite ${rel}: recolored ${d.key} v${from} → v${version}`)
+        return { ok: true, version, error: null }
+      } catch (e) {
+        this.deps.log(`sprite recolor failed: ${(e as Error).message}`)
+        return { ok: false, version: null, error: (e as Error).message.split(/\r?\n/)[0] }
+      }
+    })
+  }
+
   enqueue(rel: string, keys: string[], note?: string): Promise<number> {
     return this.deps.run(async () => {
       const push = this.deps.enqueue?.()
@@ -1403,6 +1426,9 @@ export function registerSpriteIpc(ipcMain: IpcMain, getWindow: () => BrowserWind
   ipcMain.handle(SPRITE_GEN_IPC.snippets, (_e, rel: unknown, id: unknown) => service.snippets(s(rel), s(id)))
   ipcMain.handle(SPRITE_GEN_IPC.previewSheet, (_e, rel: unknown, id: unknown) => service.previewSheet(s(rel), s(id)))
   ipcMain.handle(SPRITE_GEN_IPC.exportAnims, (_e, rel: unknown, opts: unknown) => service.exportAnimations(s(rel), o<SpriteAnimExportOpts>(opts)))
+  ipcMain.handle(SPRITE_GEN_IPC.recolor, (_e, rel: unknown, key: unknown, from: unknown, params: unknown) =>
+    service.recolor(s(rel), s(key), typeof from === 'number' ? from : -1, normalizeRecolor(params))
+  )
   ipcMain.handle(SPRITE_GEN_IPC.saveAnim, (_e, rel: unknown, key: unknown, format: unknown) => service.saveAnimation(s(rel), s(key), format === 'webp' ? 'webp' : 'gif', getWindow()))
   ipcMain.handle(SPRITE_GEN_IPC.reveal, async (_e, p: unknown) => {
     const target = s(p)

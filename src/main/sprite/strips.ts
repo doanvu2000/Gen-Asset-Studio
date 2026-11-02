@@ -3,9 +3,10 @@ import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, join } from 'node:path'
 import sharp from 'sharp'
 import type { Direction, FrameRect, FrameSize, SpriteAnim, SpriteSettings, StripDecision, StripQa, StripVersion } from '@shared/sprite'
-import { versionsDir } from '../queue/GenJob'
+import { releaseVersion, reserveVersion, versionsDir } from '../queue/GenJob'
 import { fileUrl } from '../workspace/protocol'
 import { createImage, decode } from '../pipeline/image'
+import { isRecolorIdentity, recolorPng, type RecolorParams } from '../pipeline/recolor'
 import type { RawImage } from '../pipeline/types'
 import { blitClip, flipFrame, joinFrames, loadSheet, savePng, splitFrames, uprightFrame } from './strip'
 
@@ -110,13 +111,18 @@ export function versionPath(projectDir: string, assetRel: string, v: number): st
   return join(versionsDir(projectDir, assetRel), `v${v}.png`)
 }
 
-export async function readStripMeta(projectDir: string, assetRel: string, v: number): Promise<{ qa: StripQa | null; note: string | null; createdAt: number }> {
+export async function readStripMeta(projectDir: string, assetRel: string, v: number): Promise<{ qa: StripQa | null; note: string | null; createdAt: number; recolorOf: number | null }> {
   try {
     const raw = JSON.parse(await fs.readFile(join(versionsDir(projectDir, assetRel), `v${v}.json`), 'utf8')) as Record<string, unknown>
     const qa = raw.stripQa && typeof raw.stripQa === 'object' ? (raw.stripQa as StripQa) : null
-    return { qa, note: typeof raw.note === 'string' ? raw.note : null, createdAt: Date.parse(String(raw.createdAt ?? '')) || 0 }
+    return {
+      qa,
+      note: typeof raw.note === 'string' ? raw.note : null,
+      createdAt: Date.parse(String(raw.createdAt ?? '')) || 0,
+      recolorOf: raw.kind === 'recolor' && typeof raw.from === 'number' ? raw.from : null
+    }
   } catch {
-    return { qa: null, note: null, createdAt: 0 }
+    return { qa: null, note: null, createdAt: 0, recolorOf: null }
   }
 }
 
@@ -124,7 +130,7 @@ export async function stripVersions(projectDir: string, assetRel: string): Promi
   const out: StripVersion[] = []
   for (const v of await listStripVersions(projectDir, assetRel)) {
     const m = await readStripMeta(projectDir, assetRel, v)
-    out.push({ version: v, url: fileUrl(versionPath(projectDir, assetRel, v), `${v}`), createdAt: m.createdAt, note: m.note, qa: m.qa })
+    out.push({ version: v, url: fileUrl(versionPath(projectDir, assetRel, v), `${v}`), createdAt: m.createdAt, note: m.note, qa: m.qa, recolorOf: m.recolorOf })
   }
   return out
 }
@@ -194,4 +200,21 @@ export async function composeSheet(sheetPath: string, frames: FrameRect[], piece
 
 export function sheetOutName(sheetPath: string): string {
   return basename(sheetPath)
+}
+
+export async function recolorStripVersion(projectDir: string, assetRel: string, base: number, params: RecolorParams): Promise<number> {
+  if (isRecolorIdentity(params)) throw new Error('nothing to change')
+  const src = versionPath(projectDir, assetRel, base)
+  if (!existsSync(src)) throw new Error(`v${base} not found`)
+  const png = await recolorPng(src, params)
+  const vdir = versionsDir(projectDir, assetRel)
+  const version = await reserveVersion(vdir)
+  try {
+    await fs.writeFile(join(vdir, `v${version}.png`), png)
+    const record = { version, kind: 'recolor', from: base, params, createdAt: new Date().toISOString(), output: `v${version}.png` }
+    await fs.writeFile(join(vdir, `v${version}.json`), JSON.stringify(record, null, 2), 'utf8')
+    return version
+  } finally {
+    releaseVersion(vdir, version)
+  }
 }

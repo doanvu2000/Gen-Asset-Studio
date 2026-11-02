@@ -1943,5 +1943,23 @@
     "leftWeek": "{{left}}% weekly left",
     "mayHit": "May hit the limit — the queue will pause and resume when quota recovers",
     "exhausted": "Quota exhausted — the queue will stay paused until quota recovers"
+  },
+  "recolor": {
+    "title": "Quick recolor",
+    "open": "Recolor",
+    "hue": "Hue",
+    "sat": "Saturation",
+    "bright": "Brightness",
+    "pick": "Pick source color",
+    "picking": "Click the image…",
+    "allColors": "All colors",
+    "range": "Hue range",
+    "hint": "No Codex turn used. Saved as a new version; alpha and size are kept.",
+    "reset": "Reset",
+    "save": "Save as new version",
+    "noPreview": "Preview unavailable; saving still works.",
+    "done": "Created v{{v}} (recolor)",
+    "failed": "Recolor failed: {{msg}}",
+    "from": "Recolor of v{{v}}"
   }
 }

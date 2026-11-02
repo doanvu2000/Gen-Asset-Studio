@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement, t
 import { useTranslation } from 'react-i18next'
 import { DIRECTIONS, type Direction, type SpriteProjectView, type StripQaCheck, type StripVersion, type StripView } from '@shared/sprite'
 import { Icon } from '@renderer/components/Icon'
+import { RecolorPanel } from '@renderer/components/RecolorPanel'
 import { Segmented } from '@renderer/components/Segmented'
 import { DirCompass } from '@renderer/components/sprite/DirCompass'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
@@ -13,6 +14,8 @@ import { jobOf, sourceOf, stripLabel, stripState } from '@renderer/lib/sprite'
 import { useApp } from '@renderer/store/app'
 import { useQueue } from '@renderer/store/queue'
 import { useSprite } from '@renderer/store/sprite'
+import { toast } from '@renderer/store/toast'
+import type { RecolorParams } from '@shared/recolor'
 
 type Mode = 'side' | 'onion'
 type TrySrc = 'orig' | 'new'
@@ -58,6 +61,7 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
   const [versions, setVersions] = useState<StripVersion[]>([])
   const [note, setNote] = useState('')
   const [regen, setRegen] = useState(false)
+  const [recolorOpen, setRecolorOpen] = useState(false)
   const job = jobOf(v, target, snap?.jobs ?? [])
   const state = stripState(target, job)
   const busy = state === 'running' || state === 'queued'
@@ -89,6 +93,23 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
     },
     [mirror, versions, review, target.key]
   )
+
+  const recolorFrom = target.selected && versions.some((x) => x.version === target.selected) ? target.selected : (versions[versions.length - 1]?.version ?? 0)
+  const recolor = async (params: RecolorParams): Promise<boolean> => {
+    if (!recolorFrom) return false
+    try {
+      const r = await window.gas.spriteGen.recolor(v.rel, target.key, recolorFrom, params)
+      if (r.ok && r.version) {
+        toast(t('recolor.done', { v: r.version }))
+        await review({ [target.key]: { selected: r.version, decision: null } })
+        return true
+      }
+      toast(t('recolor.failed', { msg: r.error ?? '' }))
+    } catch (e) {
+      toast(t('recolor.failed', { msg: e instanceof Error ? e.message : String(e) }))
+    }
+    return false
+  }
 
   const keys: ReviewKeyMap = {
     a: approve,
@@ -233,10 +254,21 @@ export function StripDetail({ v, s, chip, onNext, onStep }: { v: SpriteProjectVi
                 <b>v{ver.version}</b>
                 <small>{relTime(ver.createdAt, lang)}</small>
                 {ver.qa && !ver.qa.checks.every((c) => c.status === 'pass') && <Icon name="alert" size={11} />}
-                {ver.note && <i title={ver.note}>“{ver.note}”</i>}
+                {ver.recolorOf ? <i>{t('recolor.from', { v: ver.recolorOf })}</i> : ver.note && <i title={ver.note}>“{ver.note}”</i>}
               </button>
             ))}
           </div>
+        </section>
+      )}
+      {!mirror && target.url && versions.length > 0 && (
+        <section className="spr-d-sec">
+          <h4>
+            {t('recolor.title')}
+            <button type="button" className="btn ghost sm" style={{ float: 'right' }} aria-expanded={recolorOpen} onClick={() => setRecolorOpen(!recolorOpen)}>
+              {t('recolor.open')}
+            </button>
+          </h4>
+          {recolorOpen && <RecolorPanel url={target.url} disabled={busy} onSave={recolor} />}
         </section>
       )}
       {regen && canRegen && (

@@ -1,4 +1,5 @@
 import type { EdgeSide, QaSummary } from './queue'
+import type { RecolorParams } from './recolor'
 
 export type ReviewDecision = 'approved' | 'rejected'
 
@@ -19,6 +20,7 @@ export interface VersionInfo {
   model: string | null
   effort: string | null
   reprocessOf: number | null
+  recolorOf: number | null
   nineSlice: boolean | null
   edgeAnchored: EdgeSide[]
   hasRaw: boolean
@@ -36,14 +38,22 @@ export interface ReprocessResult {
   error: string | null
 }
 
+export interface RecolorResult {
+  ok: boolean
+  version: number | null
+  error: string | null
+}
+
 export const REVIEW_IPC = {
   set: 'review:set',
   versions: 'review:versions',
-  reprocess: 'review:reprocess'
+  reprocess: 'review:reprocess',
+  recolor: 'review:recolor'
 } as const
 
 export interface ReviewApi {
   set: (rel: string, patch: ReviewPatch) => Promise<boolean>
   versions: (rel: string, inputId: string) => Promise<VersionInfo[]>
   reprocess: (rel: string, inputId: string, version: number, options: ReprocessOptions) => Promise<ReprocessResult>
+  recolor: (rel: string, inputId: string, version: number, params: RecolorParams) => Promise<RecolorResult>
 }

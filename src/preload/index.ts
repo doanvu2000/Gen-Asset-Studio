@@ -18,6 +18,7 @@ import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type Spr
 import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
+import type { RecolorParams } from '@shared/recolor'
 import { EXPORT_IPC, type ExportOptions, type ExportProgress } from '@shared/export'
 import { STORAGE_IPC, type CleanId, type MoveProgress, type StorageSnapshot } from '@shared/storage'
 import { QUEUE_IPC, type JobSpec, type QueueJobEvent, type QueueSnapshot, type QuotaPause } from '@shared/queue'
@@ -155,7 +156,8 @@ const api: GasApi = {
   review: {
     set: (rel: string, patch: ReviewPatch) => ipcRenderer.invoke(REVIEW_IPC.set, rel, patch),
     versions: (rel: string, inputId: string) => ipcRenderer.invoke(REVIEW_IPC.versions, rel, inputId),
-    reprocess: (rel: string, inputId: string, version: number, options: ReprocessOptions) => ipcRenderer.invoke(REVIEW_IPC.reprocess, rel, inputId, version, options)
+    reprocess: (rel: string, inputId: string, version: number, options: ReprocessOptions) => ipcRenderer.invoke(REVIEW_IPC.reprocess, rel, inputId, version, options),
+    recolor: (rel: string, inputId: string, version: number, params: RecolorParams) => ipcRenderer.invoke(REVIEW_IPC.recolor, rel, inputId, version, params)
   },
   export: {
     plan: (rel: string, options?: Partial<ExportOptions>) => ipcRenderer.invoke(EXPORT_IPC.plan, rel, options),
@@ -192,7 +194,8 @@ const api: GasApi = {
     snippets: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.snippets, rel, sheetId),
     previewSheet: (rel: string, sheetId: string) => ipcRenderer.invoke(SPRITE_GEN_IPC.previewSheet, rel, sheetId),
     exportAnims: (rel: string, opts: SpriteAnimExportOpts) => ipcRenderer.invoke(SPRITE_GEN_IPC.exportAnims, rel, opts),
-    saveAnim: (rel: string, key: string, format: 'gif' | 'webp') => ipcRenderer.invoke(SPRITE_GEN_IPC.saveAnim, rel, key, format)
+    saveAnim: (rel: string, key: string, format: 'gif' | 'webp') => ipcRenderer.invoke(SPRITE_GEN_IPC.saveAnim, rel, key, format),
+    recolor: (rel: string, key: string, fromVersion: number, params: RecolorParams) => ipcRenderer.invoke(SPRITE_GEN_IPC.recolor, rel, key, fromVersion, params)
   },
   spine: {
     open: (rel: string) => ipcRenderer.invoke(SPINE_IPC.open, rel),

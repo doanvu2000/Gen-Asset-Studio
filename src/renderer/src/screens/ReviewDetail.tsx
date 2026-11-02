@@ -2,6 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { EdgeSide, JobSpec, QaCheckSummary } from '@shared/queue'
+import type { RecolorParams } from '@shared/recolor'
 import type { VersionInfo } from '@shared/review'
 import type { PromptPolishResult } from '@shared/style'
 import type { ProjectView } from '@shared/workspace'
@@ -11,6 +12,7 @@ import { Segmented } from '@renderer/components/Segmented'
 import { EASE, fadeTransition, sheetTransition } from '@renderer/lib/motion'
 import { errMsg, projAbs } from '@renderer/lib/files'
 import { isLocked } from '@renderer/lib/project'
+import { RecolorPanel } from '@renderer/components/RecolorPanel'
 import { resetReview, selectVersion, setDecision, type RvItem } from '@renderer/lib/review'
 import { useApp } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
@@ -212,6 +214,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   const [edges, setEdges] = useState<EdgeSide[]>([])
   const [dirty, setDirty] = useState(false)
   const [reproc, setReproc] = useState(false)
+  const [recolorOpen, setRecolorOpen] = useState(false)
   const [queuing, setQueuing] = useState(false)
   const noteRef = useRef<HTMLTextAreaElement>(null)
   const inspRef = useRef<HTMLElement>(null)
@@ -302,6 +305,22 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
     } finally {
       setReproc(false)
     }
+  }
+
+  const recolor = async (params: RecolorParams): Promise<boolean> => {
+    if (!rel || !cur) return false
+    try {
+      const r = await window.gas.review.recolor(rel, input.id, cur.v, params)
+      if (r.ok && r.version) {
+        toast(t('recolor.done', { v: r.version }), 'ok')
+        await reload()
+        return true
+      }
+      toast(t('recolor.failed', { msg: r.error ?? '' }), 'err')
+    } catch (e) {
+      toast(t('recolor.failed', { msg: errMsg(e) }), 'err')
+    }
+    return false
   }
 
   const regen = async (): Promise<void> => {
@@ -502,7 +521,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
               <div className="rv-vers">
                 {[...versions].reverse().map((v) => {
                   const on = v.v === input.selected
-                  const tip = [t('review.versions.pick', { v: v.v }), v.reprocessOf ? t('review.versions.reprocess', { v: v.reprocessOf }) : t('review.versions.gen'), v.note ? `${t('review.versions.note')}: ${v.note}` : '', timeOf(v.createdAt, lang)].filter(Boolean).join('\n')
+                  const tip = [t('review.versions.pick', { v: v.v }), v.reprocessOf ? t('review.versions.reprocess', { v: v.reprocessOf }) : v.recolorOf ? t('recolor.from', { v: v.recolorOf }) : t('review.versions.gen'), v.note ? `${t('review.versions.note')}: ${v.note}` : '', timeOf(v.createdAt, lang)].filter(Boolean).join('\n')
                   return (
                     <button key={v.v} type="button" className={on ? 'rv-ver on' : 'rv-ver'} title={tip} aria-pressed={on} onClick={() => !on && void selectVersion(input, v.v)}>
                       <div className={`rv-ver-th ck${dark ? ' dk' : ''}`}>
@@ -511,7 +530,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
                       </div>
                       <span className="rv-ver-n">
                         v{v.v}
-                        {v.reprocessOf ? <Icon name="wand" size={10} /> : null}
+                        {v.reprocessOf || v.recolorOf ? <Icon name="wand" size={10} /> : null}
                       </span>
                       <span className="rv-ver-t">{on ? t('review.versions.used') : timeOf(v.createdAt, lang, true)}</span>
                     </button>
@@ -523,12 +542,24 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
                   </div>
                 )}
               </div>
-              {cur && (cur.note || cur.reprocessOf) && (
+              {cur && (cur.note || cur.reprocessOf || cur.recolorOf) && (
                 <div className="rv-ver-note" title={cur.note ?? undefined}>
-                  <b>v{cur.v}</b> · {cur.reprocessOf ? t('review.versions.reprocess', { v: cur.reprocessOf }) : t('review.versions.gen')}
+                  <b>v{cur.v}</b> · {cur.reprocessOf ? t('review.versions.reprocess', { v: cur.reprocessOf }) : cur.recolorOf ? t('recolor.from', { v: cur.recolorOf }) : t('review.versions.gen')}
                   {cur.note ? `: “${cur.note}”` : ''}
                 </div>
               )}
+            </section>
+          )}
+          {cur && (
+            <section>
+              <h3>
+                <Icon name="wand" size={14} />
+                {t('recolor.title')}
+                <button type="button" className="btn ghost sm" style={{ marginLeft: 'auto' }} aria-expanded={recolorOpen} onClick={() => setRecolorOpen(!recolorOpen)}>
+                  {t('recolor.open')}
+                </button>
+              </h3>
+              {recolorOpen && <RecolorPanel url={cur.url} disabled={busy} onSave={recolor} />}
             </section>
           )}
           {cur && (

@@ -805,3 +805,51 @@ kbd {
 .rv-acts .rv-next {
   flex-basis: 100%;
 }
+
+.rc {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rc-cv {
+  align-self: center;
+  max-width: 100%;
+  border-radius: 8px;
+  image-rendering: pixelated;
+}
+
+.rc-cv.pick {
+  cursor: crosshair;
+  outline: 2px solid var(--accent, currentColor);
+}
+
+.rc-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.rc-row > span {
+  width: 74px;
+  flex: none;
+}
+
+.rc-row input[type='range'] {
+  flex: 1;
+  min-width: 0;
+}
+
+.rc-row output {
+  width: 44px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-sw {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1px solid var(--border, rgba(128, 128, 128, 0.4));
+}

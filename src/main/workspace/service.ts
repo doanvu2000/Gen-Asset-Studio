@@ -31,8 +31,9 @@ import {
 } from './project'
 import { fileUrl } from './protocol'
 import type { PipelineLike } from '../queue/GenJob'
-import type { ReprocessOptions, ReprocessResult, ReviewPatch, VersionInfo } from '@shared/review'
-import { applyReviewPatch, readVersions, reprocessVersion, sanitizeReview } from './review'
+import type { RecolorResult, ReprocessOptions, ReprocessResult, ReviewPatch, VersionInfo } from '@shared/review'
+import type { RecolorParams } from '@shared/recolor'
+import { applyReviewPatch, readVersions, recolorVersion, reprocessVersion, sanitizeReview } from './review'
 import { assetSegments } from './project'
 
 const INVALID = /[<>:"/\\|?*\u0000-\u001f]/
@@ -701,6 +702,20 @@ export class WorkspaceService extends EventEmitter {
     } catch (e) {
       this.log(`reprocess failed: ${(e as Error).message}`)
       return { ok: false, version: null, qa: null, error: (e as Error).message.split(/\r?\n/)[0] }
+    }
+  }
+
+  async recolor(rel: string, inputId: string, version: number, params: RecolorParams): Promise<RecolorResult> {
+    try {
+      const a = await this.run(() => this.assetOf(rel, inputId))
+      if (!a.versions.includes(version)) throw new Error(`v${version} not found`)
+      const r = await recolorVersion(a.vdir, version, params)
+      this.log(`project ${rel}: recolored ${a.outRel} v${version} → v${r.version}`)
+      await this.setReview(rel, { [inputId]: { decision: null, selected: r.version } })
+      return { ok: true, version: r.version, error: null }
+    } catch (e) {
+      this.log(`recolor failed: ${(e as Error).message}`)
+      return { ok: false, version: null, error: (e as Error).message.split(/\r?\n/)[0] }
     }
   }
 
