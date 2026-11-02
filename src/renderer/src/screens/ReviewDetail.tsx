@@ -12,11 +12,12 @@ import { Segmented } from '@renderer/components/Segmented'
 import { EASE, fadeTransition, sheetTransition } from '@renderer/lib/motion'
 import { errMsg, projAbs } from '@renderer/lib/files'
 import { isLocked } from '@renderer/lib/project'
+import { QuickPassBar } from '@renderer/components/QuickPassBar'
 import { RecolorPanel } from '@renderer/components/RecolorPanel'
 import { ReviewBar } from '@renderer/components/ReviewBar'
 import { useShortcutsDialog } from '@renderer/components/ShortcutsDialog'
 import { VersionCompare } from '@renderer/components/VersionCompare'
-import { resetReview, selectVersion, setDecision, type RvItem } from '@renderer/lib/review'
+import { resetReview, selectVersion, setDecision, type RvItem, type RvStatus } from '@renderer/lib/review'
 import { useApp } from '@renderer/store/app'
 import { useEnv } from '@renderer/store/env'
 import { useRv, type CompareMode, type ZoomMode } from '@renderer/store/review'
@@ -196,7 +197,7 @@ function timeOf(iso: string | null, lang: string, short = false): string {
   return short ? hm : `${hm} · ${d.toLocaleDateString(loc, { day: '2-digit', month: '2-digit', year: 'numeric' })}`
 }
 
-function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; item: RvItem; idx: number; total: number; onNav: (d: number) => void }): ReactElement {
+function Sheet({ project, item, idx, total, onNav, quick }: { project: ProjectView; item: RvItem; idx: number; total: number; onNav: (d: number, skipDecided?: boolean) => void; quick?: QuickInfo }): ReactElement {
   const { t } = useTranslation()
   const lang = useApp((s) => s.settings.lang)
   const rel = useWs((s) => s.curProject)
@@ -271,10 +272,11 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
     (d: 'approved' | 'rejected') => {
       if (!canDecide) return
       const next = input.decision === d ? null : d
-      if (next === 'approved' && !last) onNav(1)
+      if (quick && next) onNav(1, true)
+      else if (next === 'approved' && !last) onNav(1)
       void setDecision([input.id], next)
     },
-    [canDecide, input.id, input.decision, last, onNav]
+    [canDecide, input.id, input.decision, last, onNav, quick]
   )
 
   const goExport = (): void => {
@@ -472,6 +474,7 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
             <Icon name="x" />
           </button>
         </header>
+        {quick && <QuickPassBar done={quick.done} total={quick.total} onExit={quick.onExit} />}
         <div className="rv-body">
           {compareOn ? (
             <VersionCompare
@@ -713,7 +716,15 @@ function Sheet({ project, item, idx, total, onNav }: { project: ProjectView; ite
   )
 }
 
-export function ReviewDetail({ project, items }: { project: ProjectView; items: RvItem[] }): ReactElement {
+export interface QuickInfo {
+  done: number
+  total: number
+  onExit: () => void
+}
+
+const UNDECIDED: RvStatus[] = ['pending', 'qa']
+
+export function ReviewDetail({ project, items, quick }: { project: ProjectView; items: RvItem[]; quick?: QuickInfo }): ReactElement {
   const detail = useRv((s) => s.detail)
   const open = useRv((s) => s.open)
   const idx = useMemo(() => items.findIndex((x) => x.input.id === detail), [items, detail])
@@ -723,7 +734,14 @@ export function ReviewDetail({ project, items }: { project: ProjectView; items: 
     if (detail && !item) open(null)
   }, [detail, item, open])
 
-  const nav = (d: number): void => {
+  const nav = (d: number, skipDecided?: boolean): void => {
+    if (skipDecided) {
+      const open1 = (x: RvItem, i: number): boolean => i !== idx && UNDECIDED.includes(x.status)
+      const at = items.findIndex((x, i) => i > idx && open1(x, i))
+      const to = at >= 0 ? items[at] : items.find(open1)
+      if (to) open(to.input.id)
+      return
+    }
     const next = items[idx + d]
     if (next) open(next.input.id)
   }
@@ -733,7 +751,7 @@ export function ReviewDetail({ project, items }: { project: ProjectView; items: 
       {item && (
         <div className="rv-root" key="rv">
           <motion.div className="scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={fadeTransition} onClick={() => open(null)} />
-          <Sheet project={project} item={item} idx={idx} total={items.length} onNav={nav} />
+          <Sheet project={project} item={item} idx={idx} total={items.length} onNav={nav} quick={quick} />
         </div>
       )}
     </AnimatePresence>

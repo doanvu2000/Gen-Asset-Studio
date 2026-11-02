@@ -1,15 +1,19 @@
-import { useEffect, useMemo, useRef, type MouseEvent, type ReactElement } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent, type ReactElement } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useTranslation } from 'react-i18next'
 import type { ProjectView } from '@shared/workspace'
 import { Icon } from '@renderer/components/Icon'
+import { BulkApproveQa } from '@renderer/components/QuickPassBar'
 import { EASE } from '@renderer/lib/motion'
 import { RV_CHIP, RV_FILTERS, reviewItems, setDecision, type RvItem, type RvStatus } from '@renderer/lib/review'
 import { useQueue } from '@renderer/store/queue'
 import { useRv } from '@renderer/store/review'
+import { useTodoFocus } from '@renderer/store/todo'
 import { useWs } from '@renderer/store/workspace'
 import { toast } from '@renderer/store/toast'
 import { ReviewDetail } from './ReviewDetail'
+
+const UNDECIDED: RvStatus[] = ['pending', 'qa']
 
 export function RvChip({ status }: { status: RvStatus }): ReactElement {
   const { t } = useTranslation()
@@ -87,8 +91,10 @@ export function ReviewStep({ project }: { project: ProjectView }): ReactElement 
   const jobs = useQueue((s) => s.snap?.jobs)
   const { filter, group, sel, detail, bind, setFilter, setGroup, setSel, toggleSel, open } = useRv()
   const anchor = useRef<string | null>(null)
+  const [quick, setQuick] = useState<string[] | null>(null)
 
   useEffect(() => bind(project.dir), [bind, project.dir])
+  useEffect(() => setQuick(null), [project.dir])
 
   const all = useMemo(() => reviewItems(project, jobs ?? []), [project, jobs])
   const byGroup = useMemo(() => all.filter((x) => group === 'all' || (group === '_none' ? !x.group : x.group?.id === group)), [all, group])
@@ -103,6 +109,39 @@ export function ReviewStep({ project }: { project: ProjectView }): ReactElement 
   const approved = all.filter((x) => x.status === 'approved').length
   const groups = project.groups.filter((g) => all.some((x) => x.group?.id === g.id))
   const hasNoGroup = all.some((x) => !x.group)
+  const undecided = all.filter((x) => UNDECIDED.includes(x.status))
+  const quickItems = useMemo(() => (quick ? quick.flatMap((id) => all.filter((x) => x.input.id === id)) : null), [quick, all])
+  const quickDone = quickItems ? quickItems.filter((x) => !UNDECIDED.includes(x.status)).length : 0
+
+  useTodoFocus(project.rel, (f) => {
+    const id = f.target.assetId
+    if (id && all.some((x) => x.input.id === id)) {
+      setQuick(null)
+      setFilter('all')
+      setGroup('all')
+      open(id)
+    }
+    return true
+  })
+
+  const exitQuick = useCallback(() => {
+    setQuick(null)
+    open(null)
+  }, [open])
+  const startQuick = (): void => {
+    if (!undecided.length) return
+    open(undecided[0].input.id)
+    setQuick(undecided.map((x) => x.input.id))
+  }
+
+  useEffect(() => {
+    if (!quickItems) return
+    if (!detail) return setQuick(null)
+    if (quickItems.length && quickItems.every((x) => !UNDECIDED.includes(x.status))) {
+      toast(t('quickPass.done'))
+      exitQuick()
+    }
+  }, [quickItems, detail, exitQuick, t])
 
   useEffect(() => {
     if (detail) return
@@ -217,10 +256,11 @@ export function ReviewStep({ project }: { project: ProjectView }): ReactElement 
               <button type="button" className="btn sm ghost" onClick={() => setSel(list.map((x) => x.input.id))}>
                 {t('review.selectAll')}
               </button>
-              <button type="button" className="btn sm" disabled={!pendingOk.length} onClick={() => void approve(pendingOk.map((x) => x.input.id), true)}>
-                <Icon name="check" size={13} />
-                {t('review.approveQa', { count: pendingOk.length })}
+              <button type="button" className="btn sm" disabled={!undecided.length} title={t('quickPass.startTitle')} onClick={startQuick}>
+                <Icon name="eye" size={13} />
+                {t('quickPass.start', { count: undecided.length })}
               </button>
+              <BulkApproveQa count={pendingOk.length} onConfirm={() => void approve(pendingOk.map((x) => x.input.id), true)} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -269,7 +309,11 @@ export function ReviewStep({ project }: { project: ProjectView }): ReactElement 
           <Icon name="right" size={14} />
         </button>
       </div>
-      <ReviewDetail project={project} items={list.length && detail && list.some((x) => x.input.id === detail) ? list : all} />
+      <ReviewDetail
+        project={project}
+        items={quickItems ?? (list.length && detail && list.some((x) => x.input.id === detail) ? list : all)}
+        quick={quickItems ? { done: quickDone, total: quickItems.length, onExit: exitQuick } : undefined}
+      />
     </div>
   )
 }

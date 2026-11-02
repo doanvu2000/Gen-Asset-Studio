@@ -2091,5 +2091,21 @@
   "advanced": {
     "title": "Advanced",
     "spineExport": "{{ok}}/{{total}} regions · {{pages}} pages · rig"
+  },
+  "bulk": {
+    "approveQa": "Approve all QA-passed ({{count}})",
+    "confirm": "Approve {{count}}?",
+    "cancel": "Cancel",
+    "hint": "Approves only QA-passed items with no decision yet",
+    "done": "Approved {{count}} QA-passed items"
+  },
+  "quickPass": {
+    "title": "Quick pass",
+    "start": "Quick pass undecided ({{count}})",
+    "startTitle": "Open undecided items one by one; A/X moves to the next",
+    "progress": "{{k}}/{{n}}",
+    "hint": "A approve · X reject · auto-next",
+    "exit": "Exit",
+    "done": "Quick pass finished"
   }
 }

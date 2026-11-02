@@ -2091,5 +2091,21 @@
   "advanced": {
     "title": "Nâng cao",
     "spineExport": "{{ok}}/{{total}} vùng · {{pages}} trang · rig"
+  },
+  "bulk": {
+    "approveQa": "Duyệt tất cả bản QA đạt ({{count}})",
+    "confirm": "Duyệt {{count}} bản?",
+    "cancel": "Huỷ",
+    "hint": "Chỉ duyệt bản đạt QA và chưa có quyết định",
+    "done": "Đã duyệt {{count}} bản đạt QA"
+  },
+  "quickPass": {
+    "title": "Xem lướt",
+    "start": "Xem lướt chưa duyệt ({{count}})",
+    "startTitle": "Mở lần lượt các mục chưa quyết định; A/X tự sang mục kế",
+    "progress": "{{k}}/{{n}}",
+    "hint": "A duyệt · X loại · tự sang mục kế",
+    "exit": "Thoát",
+    "done": "Đã xem lướt xong"
   }
 }

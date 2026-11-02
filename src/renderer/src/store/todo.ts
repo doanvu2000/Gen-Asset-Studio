@@ -1,5 +1,6 @@
+import { useEffect } from 'react'
 import { create } from 'zustand'
-import type { TodoArea, TodoItem } from '@shared/workspace'
+import type { TodoArea, TodoItem, TodoTarget } from '@shared/workspace'
 import { useApp } from './app'
 import { useQueue } from './queue'
 import { useSpine } from './spine'
@@ -8,10 +9,18 @@ import { useWs } from './workspace'
 
 export type TodoFilter = TodoArea | 'all'
 
+export interface TodoFocus {
+  projectRel: string
+  area: TodoArea
+  target: TodoTarget
+}
+
 interface TodoStore {
   items: TodoItem[]
   loaded: boolean
   filter: TodoFilter
+  focus: TodoFocus | null
+  clearFocus: () => void
   setFilter: (f: TodoFilter) => void
   refresh: () => Promise<void>
   init: () => () => void
@@ -19,6 +28,7 @@ interface TodoStore {
 }
 
 const REFRESH_MS = 600
+const FOCUS_TTL_MS = 5000
 
 function queueSig(): string {
   const jobs = useQueue.getState().snap?.jobs ?? []
@@ -51,7 +61,7 @@ const REVIEW_STEP = { reskin: 4, sprite: 3, spine: 3 } as const
 const EXPORT_STEP = { reskin: 5, sprite: 4, spine: 4 } as const
 const GEN_STEP = { reskin: 3, sprite: 3, spine: 3 } as const
 
-async function focus(item: TodoItem): Promise<void> {
+async function gotoStep(item: TodoItem): Promise<void> {
   const { kind, area, target, projectRel } = item
   const step = area === 'export' ? EXPORT_STEP[kind] : area === 'queue' ? GEN_STEP[kind] : REVIEW_STEP[kind]
   if (kind === 'reskin') {
@@ -73,11 +83,18 @@ async function focus(item: TodoItem): Promise<void> {
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null
+let focusTimer: ReturnType<typeof setTimeout> | null = null
 
 export const useTodo = create<TodoStore>()((set, get) => ({
   items: [],
   loaded: false,
   filter: 'all',
+  focus: null,
+  clearFocus: () => {
+    if (focusTimer) clearTimeout(focusTimer)
+    focusTimer = null
+    set({ focus: null })
+  },
   setFilter: (filter) => set({ filter }),
   refresh: async () => {
     try {
@@ -117,10 +134,23 @@ export const useTodo = create<TodoStore>()((set, get) => ({
   },
   open: async (item) => {
     await useWs.getState().openProject(item.projectRel)
-    await focus(item)
+    await gotoStep(item)
+    if (item.area !== 'review' && item.area !== 'qa') return
+    get().clearFocus()
+    set({ focus: { projectRel: item.projectRel, area: item.area, target: item.target } })
+    focusTimer = setTimeout(() => get().clearFocus(), FOCUS_TTL_MS)
   }
 }))
 
 export function todoBadge(items: TodoItem[]): number {
   return items.filter((i) => i.area !== 'qa').length
+}
+
+export function useTodoFocus(rel: string | null | undefined, apply: (f: TodoFocus) => boolean): void {
+  const focus = useTodo((s) => s.focus)
+  const clear = useTodo((s) => s.clearFocus)
+  useEffect(() => {
+    if (!focus || !rel || focus.projectRel !== rel) return
+    if (apply(focus)) clear()
+  })
 }

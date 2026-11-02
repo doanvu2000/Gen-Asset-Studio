@@ -7,10 +7,14 @@ import { GenEstimate } from '@renderer/components/GenEstimate'
 import { Segmented } from '@renderer/components/Segmented'
 import { StripPreview, useClock } from '@renderer/components/sprite/StripPreview'
 import { OrigPreview } from '@renderer/components/sprite/OrigPreview'
+import { BulkApproveQa, QuickPassBar } from '@renderer/components/QuickPassBar'
 import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { genTargets, jobOf, qaFail, sourceOf, stripLabel, stripMatches, stripState, type StripFilter, type StripState } from '@renderer/lib/sprite'
+import { useQuickPass } from '@renderer/lib/useQuickPass'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSprite } from '@renderer/store/sprite'
+import { toast } from '@renderer/store/toast'
+import { useTodoFocus } from '@renderer/store/todo'
 import { StripDetail, StripOverview } from './StripReview'
 
 type Tab = 'strips' | 'overview'
@@ -90,7 +94,11 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
   const styleOk = v.style.locked
   const doneCount = targets.filter((s) => s.versions.length > 0).length
   const approved = targets.filter((s) => s.decision === 'approved').length
-  const qaOk = targets.filter((s) => s.url && !s.decision && !qaFail(s))
+  const busy = (s: StripView): boolean => {
+    const st = stripState(s, jobOf(v, s, jobs))
+    return st === 'running' || st === 'queued'
+  }
+  const qaOk = targets.filter((s) => s.url && !s.decision && !qaFail(s) && !busy(s))
   const list = v.strips.filter((s) => stripMatches(v, s, filter))
   const cur = v.strips.find((s) => s.key === sel) ?? v.strips.find((s) => s.key === pickDefault(v)) ?? null
 
@@ -104,8 +112,31 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
     return st === 'none' || st === 'error'
   }
 
+  const quick = useQuickPass({
+    items: v.strips,
+    keyOf: (s) => s.key,
+    pending: (s) => !s.mirrorOf && !!s.url && !s.decision && !busy(s),
+    goto: (key) => {
+      setTab('strips')
+      setSel(key)
+    },
+    scope: v.dir,
+    onFinish: () => toast(t('quickPass.done'))
+  })
+
+  useTodoFocus(v.rel, (f) => {
+    const key = f.target.stripKey
+    if (key && v.strips.some((s) => s.key === key)) {
+      quick.exit()
+      setTab('strips')
+      setFilter('all')
+      setSel(key)
+    }
+    return true
+  })
+
   const next = (): void => {
-    if (!cur) return
+    if (!cur || quick.active) return
     const idx = list.findIndex((s) => s.key === cur.key)
     const after = [...list.slice(idx + 1), ...list.slice(0, idx)].find((s) => !s.mirrorOf && s.url && s.decision !== 'approved')
     if (after) setSel(after.key)
@@ -219,18 +250,26 @@ export function SpriteWorkStep({ v }: { v: SpriteProjectView }): ReactElement {
             {progress}
           </span>
           <QueueControls count={active.length} paused={paused} dir={v.dir} />
-          {qaOk.length > 0 && (
-            <button type="button" className="btn sm" onClick={() => void review(Object.fromEntries(qaOk.map((s) => [s.key, { decision: 'approved' as const }])))}>
-              <Icon name="check" size={13} />
-              {t('spriteProject.review.approveQa', { count: qaOk.length })}
+          {!quick.active && (
+            <button type="button" className="btn sm" disabled={!quick.available} title={t('quickPass.startTitle')} onClick={quick.start}>
+              <Icon name="eye" size={13} />
+              {t('quickPass.start', { count: quick.available })}
             </button>
           )}
+          <BulkApproveQa
+            count={qaOk.length}
+            onConfirm={() => {
+              void review(Object.fromEntries(qaOk.map((s) => [s.key, { decision: 'approved' as const }])))
+              toast(t('bulk.done', { count: qaOk.length }))
+            }}
+          />
           <button type="button" className="btn primary sm" disabled={!approved} title={approved ? undefined : t('spriteProject.lock.export')} onClick={() => setStep(4)}>
             {t('spriteProject.review.toExport')}
             <Icon name="right" size={13} />
           </button>
         </div>
       </div>
+      {quick.active && <QuickPassBar done={quick.done} total={quick.total} onExit={quick.exit} />}
       {tab === 'overview' ? (
         <StripOverview v={v} pos={pos} />
       ) : (

@@ -11,16 +11,19 @@ import { ReviewBar } from '@renderer/components/ReviewBar'
 import { Segmented } from '@renderer/components/Segmented'
 import { useShortcutsDialog } from '@renderer/components/ShortcutsDialog'
 import { VersionCompare } from '@renderer/components/VersionCompare'
+import { BulkApproveQa, QuickPassBar } from '@renderer/components/QuickPassBar'
 import { QueueControls } from '@renderer/components/sprite/QueueControls'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { applyRig, origRigFromData, parseOrigRig, RigEditor } from '@renderer/components/spine/RigEditor'
 import { regionJob, regionQaFail, regionReviewState, regionState, rigEditCount, spineStepLock, type RegionReviewState } from '@renderer/lib/spine'
 import { useReviewKeys, type ReviewKeyMap } from '@renderer/lib/useReviewKeys'
+import { useQuickPass } from '@renderer/lib/useQuickPass'
 import { siblingVersionUrl } from '@renderer/lib/versionUrl'
 import { isActive, samePath, useQueue } from '@renderer/store/queue'
 import { useSpine } from '@renderer/store/spine'
 import { toast } from '@renderer/store/toast'
+import { useTodoFocus } from '@renderer/store/todo'
 
 type Filter = 'all' | 'todo' | 'pending' | 'rejected' | 'approved'
 
@@ -339,7 +342,7 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
   const todo = used.filter((r) => !r.versions.length && !busyKeys.has(r.key))
   const generated = v.regions.filter((r) => r.versions.length > 0)
   const approved = generated.filter((r) => r.decision === 'approved').length
-  const qaOk = generated.filter((r) => !r.decision && !regionQaFail(r))
+  const qaOk = generated.filter((r) => !r.decision && !!r.url && !regionQaFail(r) && !busyKeys.has(r.key))
   const active = jobs.filter((j) => samePath(j.projectPath, v.dir) && isActive(j))
   const paused = !!snap?.paused
   const rigN = rigEditCount(v)
@@ -370,12 +373,37 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
     setRigOpen(!rigOpen)
   }
 
+  const quick = useQuickPass({
+    items: v.regions,
+    keyOf: (r) => r.key,
+    pending: (r) => !!r.url && !r.decision && !busyKeys.has(r.key),
+    goto: (key) => {
+      setRigOpen(false)
+      setPick(key)
+    },
+    scope: `${v.dir}|${v.variant}`,
+    onFinish: () => toast(t('quickPass.done'))
+  })
+
+  useTodoFocus(v.rel, (f) => {
+    const want = f.target.variantId ?? ''
+    if (v.variant !== want && v.variants.some((x) => x.id === want)) return false
+    const hit = f.target.region ? v.regions.find((r) => r.name === f.target.region) : undefined
+    if (hit) {
+      quick.exit()
+      setRigOpen(false)
+      setFilter('all')
+      setPick(hit.key)
+    }
+    return true
+  })
+
   const nextOne = useCallback(() => {
-    if (!pick) return
+    if (!pick || quick.active) return
     const idx = list.findIndex((r) => r.key === pick)
     const after = [...list.slice(idx + 1), ...list.slice(0, idx)].find((r) => r.versions.length > 0 && r.decision !== 'approved')
     if (after) setPick(after.key)
-  }, [list, pick])
+  }, [list, pick, quick.active])
   const stepOne = useCallback(
     (dir: 1 | -1) => {
       const idx = list.findIndex((r) => r.key === pick)
@@ -407,12 +435,19 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
           <Icon name="sparkles" size={13} />
           {t('spineProject.gen.all', { count: todo.length })}
         </button>
-        {qaOk.length > 0 && (
-          <button type="button" className="btn sm" onClick={() => void review(Object.fromEntries(qaOk.map((r) => [r.key, { decision: 'approved' as const }])))}>
-            <Icon name="check" size={13} />
-            {t('spineProject.review.approveQa', { count: qaOk.length })}
+        {!quick.active && (
+          <button type="button" className="btn sm" disabled={!quick.available} title={t('quickPass.startTitle')} onClick={quick.start}>
+            <Icon name="eye" size={13} />
+            {t('quickPass.start', { count: quick.available })}
           </button>
         )}
+        <BulkApproveQa
+          count={qaOk.length}
+          onConfirm={() => {
+            void review(Object.fromEntries(qaOk.map((r) => [r.key, { decision: 'approved' as const }])))
+            toast(t('bulk.done', { count: qaOk.length }))
+          }}
+        />
         <div className="tb-end">
           <span className="muted tb-prog" title={progress}>
             {progress}
@@ -430,6 +465,7 @@ export function SpineGenReviewStep({ v }: { v: SpineProjectView }): ReactElement
           </button>
         </div>
       </div>
+      {quick.active && <QuickPassBar done={quick.done} total={quick.total} onExit={quick.exit} />}
       {todo.length > 0 && (
         <div className="gen-est-row">
           <GenEstimate turns={todo.length} />
