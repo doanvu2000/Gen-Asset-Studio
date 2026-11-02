@@ -3,13 +3,16 @@ import { promises as fs } from 'node:fs'
 import { join } from 'node:path'
 import {
   DEFAULT_TASK_MODELS,
+  GASSTYLE_EXT,
   STYLE_IPC,
   SUGGEST_DEFAULT,
   SUGGEST_MAX,
   SUGGEST_MIN,
+  type ApplyTemplateRefsRequest,
   type LockRequest,
   type PromptPolishRequest,
   type PromptPolishResult,
+  type SaveStyleRequest,
   type SaveTemplateRequest,
   type StyleGroup,
   type StyleTask,
@@ -106,6 +109,18 @@ export class StyleService {
     return this.templates.deleteUser(id)
   }
 
+  saveStyle(req: SaveStyleRequest): Promise<StyleTemplate> {
+    return this.templates.saveFromStyle(req)
+  }
+
+  renameTemplate(id: string, name: string): Promise<StyleTemplate | null> {
+    return this.templates.rename(id, name)
+  }
+
+  applyTemplateRefs(req: ApplyTemplateRefsRequest): Promise<string[]> {
+    return this.templates.applyRefs(req)
+  }
+
   async polish(req: PromptPolishRequest, onDelta?: (t: string) => void): Promise<PromptPolishResult> {
     const models = (await this.getModels()).promptPolish
     const cwd = this.deps.workDir ?? appDataDir
@@ -145,6 +160,36 @@ export function registerStyleIpc(ipcMain: IpcMain, getWindow: () => BrowserWindo
   ipcMain.handle(STYLE_IPC.templatesList, () => service.listTemplates())
   ipcMain.handle(STYLE_IPC.templateSave, (_e, req: SaveTemplateRequest) => service.saveTemplate(req))
   ipcMain.handle(STYLE_IPC.templateDelete, (_e, id: string) => service.deleteTemplate(id))
+  ipcMain.handle(STYLE_IPC.templateSaveStyle, (_e, req: SaveStyleRequest) => service.saveStyle(req))
+  ipcMain.handle(STYLE_IPC.templateRename, (_e, id: string, name: string) => service.renameTemplate(String(id), String(name)))
+  ipcMain.handle(STYLE_IPC.templateApplyRefs, (_e, req: ApplyTemplateRefsRequest) => service.applyTemplateRefs(req))
+  ipcMain.handle(STYLE_IPC.templateExport, async (_e, id: string) => {
+    const { dialog } = await import('electron')
+    const t = (await service.templates.listUser()).find((x) => x.id === String(id))
+    if (!t) return null
+    const opts: Electron.SaveDialogOptions = {
+      defaultPath: `${t.name.en.replace(/[^\w.-]+/g, '_') || 'style'}.${GASSTYLE_EXT}`,
+      filters: [{ name: 'Gen Asset Studio style', extensions: [GASSTYLE_EXT] }]
+    }
+    const win = getWindow()
+    const r = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (r.canceled || !r.filePath) return null
+    await service.templates.exportPack(t.id, r.filePath)
+    return r.filePath
+  })
+  ipcMain.handle(STYLE_IPC.templateImport, async () => {
+    const { dialog } = await import('electron')
+    const opts: Electron.OpenDialogOptions = {
+      properties: ['openFile', 'multiSelections', 'dontAddToRecent'],
+      filters: [{ name: 'Gen Asset Studio style', extensions: [GASSTYLE_EXT] }]
+    }
+    const win = getWindow()
+    const r = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (r.canceled) return []
+    const out: StyleTemplate[] = []
+    for (const f of r.filePaths) out.push(await service.templates.importPack(f))
+    return out
+  })
   ipcMain.handle(STYLE_IPC.promptPolish, (_e, req: PromptPolishRequest) => service.polish(req))
   ipcMain.handle(STYLE_IPC.suggestStart, async (_e, req: SuggestRequest) => {
     const { run, done } = await service.startSuggest(req)

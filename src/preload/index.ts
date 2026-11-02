@@ -16,7 +16,7 @@ import type {
 import type { InputType, WorkspaceSnapshot } from '@shared/workspace'
 import { SPINE_IPC, type SpineRegionPatch, type SpineRig } from '@shared/spine'
 import { SPRITE_GEN_IPC, SPRITE_IPC, type ProjectKind, type SheetPatch, type SpriteAnimExportOpts, type SpriteSettings, type SpriteStripPatch, type SpriteStyle, type NewSheetSpec } from '@shared/sprite'
-import { STYLE_IPC, type LockRequest, type PromptPolishRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
+import { STYLE_IPC, type ApplyTemplateRefsRequest, type LockRequest, type PromptPolishRequest, type SaveStyleRequest, type SaveTemplateRequest, type StyleGroup, type SuggestProgress, type SuggestRequest, type TaskModels } from '@shared/style'
 import { exposeUpdateApi } from './update'
 import { REVIEW_IPC, type ReprocessOptions, type ReviewPatch } from '@shared/review'
 import type { RecolorParams } from '@shared/recolor'
@@ -122,6 +122,11 @@ const api: GasApi = {
     templates: () => ipcRenderer.invoke(STYLE_IPC.templatesList),
     saveTemplate: (req: SaveTemplateRequest) => ipcRenderer.invoke(STYLE_IPC.templateSave, req),
     deleteTemplate: (id: string) => ipcRenderer.invoke(STYLE_IPC.templateDelete, id),
+    saveStyle: (req: SaveStyleRequest) => ipcRenderer.invoke(STYLE_IPC.templateSaveStyle, req),
+    renameTemplate: (id: string, name: string) => ipcRenderer.invoke(STYLE_IPC.templateRename, id, name),
+    exportTemplate: (id: string) => ipcRenderer.invoke(STYLE_IPC.templateExport, id),
+    importTemplate: () => ipcRenderer.invoke(STYLE_IPC.templateImport),
+    applyTemplateRefs: (req: ApplyTemplateRefsRequest) => ipcRenderer.invoke(STYLE_IPC.templateApplyRefs, req),
     polish: (req: PromptPolishRequest) => ipcRenderer.invoke(STYLE_IPC.promptPolish, req),
     suggestStart: (req: SuggestRequest) => ipcRenderer.invoke(STYLE_IPC.suggestStart, req),
     suggestCancel: (runId: string) => ipcRenderer.invoke(STYLE_IPC.suggestCancel, runId),

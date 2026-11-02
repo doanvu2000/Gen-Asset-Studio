@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next'
 import type { SpineProjectView } from '@shared/spine'
 import type { PromptPolishResult, StyleTemplate } from '@shared/style'
 import { Icon } from '@renderer/components/Icon'
+import { applyLibraryStyle, SaveToLibraryButton, StyleLibraryPanel } from '@renderer/components/StyleLibrary'
 import { Segmented } from '@renderer/components/Segmented'
 import { errMsg, fileUrl, projAbs } from '@renderer/lib/files'
 import { useSpine } from '@renderer/store/spine'
 import { toast } from '@renderer/store/toast'
 
-type Source = 'template' | 'custom'
+type Source = 'template' | 'team' | 'custom'
 
 export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
   const { t, i18n } = useTranslation()
@@ -25,9 +26,10 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
   const [polish, setPolish] = useState<{ phase: 'idle' | 'loading' | 'error'; msg?: string; result?: PromptPolishResult; prev?: string }>({ phase: 'idle' })
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  useEffect(() => {
+  const loadTpls = (): void => {
     void window.gas.style.templates().then(setTpls).catch(() => setTpls([]))
-  }, [])
+  }
+  useEffect(loadTpls, [])
   useEffect(() => {
     setPrompt(st.promptEn)
     setNotes(st.notes)
@@ -48,10 +50,16 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
   const sections = (['character', 'ui'] as const).map((cat) => ({ cat, list: tpls.filter((x) => x.category === cat) })).filter((x) => x.list.length > 0)
   const ready = !!(st.templateId || prompt.trim() || st.refImages.length)
 
-  const pickTpl = (x: StyleTemplate): void => {
+  const pickTpl = async (x: StyleTemplate): Promise<void> => {
     if (locked) return
     setPrompt(x.promptEn)
-    void setStyle({ templateId: x.id, promptEn: x.promptEn })
+    try {
+      const lib = await applyLibraryStyle(x, v.dir, 'styles/spine/refs', st.refImages)
+      if (lib.notes) setNotes(lib.notes)
+      await setStyle({ templateId: x.id, promptEn: x.promptEn, ...(x.builtin ? {} : { refImages: lib.refImages }), ...(lib.notes ? { notes: lib.notes } : {}) })
+    } catch (e) {
+      toast(errMsg(e), 'err')
+    }
   }
 
   const doPolish = async (): Promise<void> => {
@@ -85,12 +93,15 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
             onChange={setSource}
             options={[
               { value: 'template', label: t('spriteProject.style.templates') },
+              { value: 'team', label: t('styleLib.tab') },
               { value: 'custom', label: t('spriteProject.style.custom') }
             ]}
           />
           <span className="muted">{t('spineProject.style.oneStyle')}</span>
         </div>
-        {source === 'template' ? (
+        {source === 'team' ? (
+          <StyleLibraryPanel templates={tpls} selectedId={st.templateId} locked={locked} onPick={(x) => void pickTpl(x)} onChanged={loadTpls} />
+        ) : source === 'template' ? (
           <div className="sps-tpl-secs">
             {sections.map((sec) => (
               <Fragment key={sec.cat}>
@@ -100,7 +111,7 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
                     const on = st.templateId === x.id
                     return (
                       <div key={x.id} className={['tpl', on && 'on', on && locked && 'locked'].filter(Boolean).join(' ')}>
-                        <button type="button" className="tpl-hit" disabled={locked} onClick={() => pickTpl(x)} aria-pressed={on}>
+                        <button type="button" className="tpl-hit" disabled={locked} onClick={() => void pickTpl(x)} aria-pressed={on}>
                           <span className="tpl-img">{x.previewSmPath ? <img src={fileUrl(x.previewSmPath)} alt="" draggable={false} loading="lazy" /> : <Icon name="palette" size={22} />}</span>
                           <span className="tpl-b">
                             <span className="tpl-t">{x.name[lang]}</span>
@@ -214,6 +225,13 @@ export function SpineStyleStep({ v }: { v: SpineProjectView }): ReactElement {
             }}
           />
         </label>
+        <SaveToLibraryButton
+          defaultName={tpl?.name[lang] ?? v.name}
+          defaultCategory={tpl?.category ?? 'character'}
+          disabled={!(prompt.trim() || st.refImages.length)}
+          build={(name, category) => ({ projectPath: v.dir, name, category, promptEn: prompt, notes, refImages: st.refImages, palette: tpl?.palette, sourceName: v.name })}
+          onSaved={loadTpls}
+        />
         <div className="tip">
           <Icon name="help" size={14} />
           <span>{t('spineProject.style.tip')}</span>

@@ -2107,5 +2107,24 @@
     "hint": "A duyệt · X loại · tự sang mục kế",
     "exit": "Thoát",
     "done": "Đã xem lướt xong"
+  },
+  "styleLib": {
+    "tab": "Của team",
+    "teamDesc": "Style đã lưu — dùng chung giữa mọi project, chia sẻ được qua file .gasstyle.",
+    "empty": "Chưa có style nào trong thư viện. Chốt một style rồi bấm “Lưu vào thư viện”, hoặc nhập file .gasstyle.",
+    "saveBtn": "Lưu vào thư viện",
+    "saveDesc": "Lưu prompt, ghi chú và ảnh tham chiếu của style này để dùng cho project khác.",
+    "category": "Loại style",
+    "saved": "Đã lưu “{{name}}” vào thư viện",
+    "manage": "Quản lý thư viện",
+    "manageDesc": "Đổi tên, xoá, xuất file .gasstyle để gửi máy khác hoặc nhập về.",
+    "refs": "{{count}} ảnh ref",
+    "rename": "Đổi tên",
+    "export": "Xuất file .gasstyle",
+    "exported": "Đã xuất “{{name}}”",
+    "import": "Nhập .gasstyle",
+    "imported": "Đã nhập {{count}} style",
+    "confirmDelete": "Xoá style “{{name}}” khỏi thư viện?",
+    "close": "Đóng"
   }
 }

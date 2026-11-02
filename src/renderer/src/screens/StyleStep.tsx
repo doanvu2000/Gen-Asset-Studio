@@ -7,6 +7,7 @@ import { Icon } from '@renderer/components/Icon'
 import { Modal } from '@renderer/components/Modal'
 import { ModelChip } from '@renderer/components/ModelChip'
 import { Stepper } from '@renderer/components/Stepper'
+import { applyLibraryStyle, ImportButton, StyleLibraryDialog } from '@renderer/components/StyleLibrary'
 import { EASE, fadeTransition } from '@renderer/lib/motion'
 import { errMsg, fileUrl, newGroupId, projAbs } from '@renderer/lib/files'
 import { groupOf, isLocked, styleReady } from '@renderer/lib/project'
@@ -430,6 +431,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
   const [busy, setBusy] = useState<string | null>(null)
   const [confirmDel, setConfirmDel] = useState(false)
   const [saveTpl, setSaveTpl] = useState<string | null>(null)
+  const [libOpen, setLibOpen] = useState(false)
 
   const inputsById = useMemo(() => new Map(project.inputs.map((i) => [i.id, i])), [project.inputs])
   const assets = group.assetIds.map((id) => inputsById.get(id)).filter((x): x is InputView => !!x)
@@ -560,12 +562,19 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
     }
   }
 
-  const pickTemplate = (tpl: StyleTemplate): void => {
+  const pickTemplate = async (tpl: StyleTemplate): Promise<void> => {
     if (locked) return
     setPick({ kind: 'template', id: tpl.id })
     if (group.promptEn !== tpl.promptEn) {
       setPrevPrompt(group.promptEn)
       patch({ promptEn: tpl.promptEn, templateId: tpl.id, palette: tpl.palette })
+    }
+    if (tpl.builtin) return
+    try {
+      const lib = await applyLibraryStyle(tpl, project.dir, `styles/${group.id}/refs`, group.refImages)
+      patch({ refImages: lib.refImages, ...(lib.notes ? { notes: lib.notes } : {}) }, true)
+    } catch (e) {
+      toast(errMsg(e), 'err')
     }
   }
 
@@ -813,6 +822,11 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
               <div className="sub-l">
                 {t('style.pick.templates')}
                 <div className="grow" />
+                <ImportButton onChanged={() => void loadTemplates()} />
+                <button type="button" className="btn ghost sm" onClick={() => setLibOpen(true)}>
+                  <Icon name="palette" size={13} />
+                  {t('styleLib.manage')}
+                </button>
                 <button type="button" className="btn ghost sm" disabled={!group.promptEn.trim()} onClick={() => setSaveTpl(group.lockName || group.name)}>
                   <Icon name="save" size={13} />
                   {t('style.tpl.saveAs')}
@@ -831,7 +845,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
                           on={pick?.kind === 'template' && pick.id === tpl.id}
                           locked={locked && group.templateId === tpl.id}
                           disabled={locked}
-                          onPick={() => pickTemplate(tpl)}
+                          onPick={() => void pickTemplate(tpl)}
                           onZoom={() => tpl.previewPath && setZoom({ src: fileUrl(tpl.previewPath), title: tpl.name[lang] })}
                           onDelete={() =>
                             void window.gas.style.deleteTemplate(tpl.id).then(() => {
@@ -1011,6 +1025,7 @@ function GroupEditor({ project, group }: { project: ProjectView; group: StyleGro
           </button>
         </div>
       </Modal>
+      <StyleLibraryDialog open={libOpen} onClose={() => setLibOpen(false)} templates={templates} onChanged={() => void loadTemplates()} />
       <Modal open={saveTpl !== null} onClose={() => setSaveTpl(null)} label={t('style.tpl.saveAs')}>
         <h2>
           <span className="dlg-ic">

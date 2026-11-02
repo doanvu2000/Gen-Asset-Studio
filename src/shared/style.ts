@@ -18,6 +18,9 @@ export interface StyleTemplate {
   previewPath: string | null
   previewSmPath: string | null
   createdAt: number | null
+  notes: string
+  refPaths: string[]
+  source: { project: string; at: number } | null
 }
 
 export type NineSliceOverride = 'auto' | 'on' | 'off'
@@ -137,6 +140,30 @@ export interface SaveTemplateRequest {
   category?: TemplateCategory
 }
 
+export interface SaveStyleRequest {
+  projectPath: string
+  name: string
+  category: TemplateCategory
+  promptEn: string
+  notes?: string
+  refImages: string[]
+  previewRel?: string
+  palette?: string[]
+  sourceName: string
+}
+
+export interface ApplyTemplateRefsRequest {
+  templateId: string
+  projectPath: string
+  refDir: string
+  max: number
+}
+
+export const GASSTYLE_EXT = 'gasstyle'
+export const GASSTYLE_VERSION = 1
+export const STYLE_REF_MAX = 8
+export const STYLE_IMAGE_MAX_BYTES = 12 * 1024 * 1024
+
 export function templateCategory(v: unknown): TemplateCategory {
   return v === 'character' ? 'character' : 'ui'
 }
@@ -153,6 +180,11 @@ export const STYLE_IPC = {
   templatesList: 'style:templates-list',
   templateSave: 'style:template-save',
   templateDelete: 'style:template-delete',
+  templateSaveStyle: 'style:template-save-style',
+  templateRename: 'style:template-rename',
+  templateExport: 'style:template-export',
+  templateImport: 'style:template-import',
+  templateApplyRefs: 'style:template-apply-refs',
   promptPolish: 'style:prompt-polish',
   suggestStart: 'style:suggest-start',
   suggestCancel: 'style:suggest-cancel',
@@ -169,6 +201,11 @@ export interface StyleApi {
   templates: () => Promise<StyleTemplate[]>
   saveTemplate: (req: SaveTemplateRequest) => Promise<StyleTemplate>
   deleteTemplate: (id: string) => Promise<boolean>
+  saveStyle: (req: SaveStyleRequest) => Promise<StyleTemplate>
+  renameTemplate: (id: string, name: string) => Promise<StyleTemplate | null>
+  exportTemplate: (id: string) => Promise<string | null>
+  importTemplate: () => Promise<StyleTemplate[]>
+  applyTemplateRefs: (req: ApplyTemplateRefsRequest) => Promise<string[]>
   polish: (req: PromptPolishRequest) => Promise<PromptPolishResult>
   suggestStart: (req: SuggestRequest) => Promise<SuggestRun>
   suggestCancel: (runId: string) => Promise<void>

@@ -2107,5 +2107,24 @@
     "hint": "A approve · X reject · auto-next",
     "exit": "Exit",
     "done": "Quick pass finished"
+  },
+  "styleLib": {
+    "tab": "Team",
+    "teamDesc": "Saved styles shared across all projects; share them with other machines via .gasstyle files.",
+    "empty": "No styles in the library yet. Lock a style and click “Save to library”, or import a .gasstyle file.",
+    "saveBtn": "Save to library",
+    "saveDesc": "Save this style's prompt, notes and reference images to reuse in other projects.",
+    "category": "Style type",
+    "saved": "Saved “{{name}}” to the library",
+    "manage": "Manage library",
+    "manageDesc": "Rename, delete, or export .gasstyle files to send to another machine, or import them.",
+    "refs": "{{count}} refs",
+    "rename": "Rename",
+    "export": "Export .gasstyle file",
+    "exported": "Exported “{{name}}”",
+    "import": "Import .gasstyle",
+    "imported": "Imported {{count}} style(s)",
+    "confirmDelete": "Delete style “{{name}}” from the library?",
+    "close": "Close"
   }
 }
