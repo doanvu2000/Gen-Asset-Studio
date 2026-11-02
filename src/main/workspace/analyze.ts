@@ -102,10 +102,34 @@ export async function analyzeImage(file: string): Promise<ImageFacts> {
   }
 }
 
-export async function makeThumb(file: string, dest: string): Promise<void> {
-  const tmp = `${dest}.${process.pid}.tmp`
-  await sharp(file).resize({ width: 256, height: 256, fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 6 }).toFile(tmp)
-  await fs.rename(tmp, dest)
+// Lazy protocol requests can arrive in bursts; cap concurrent decodes (RAM) and share one job per dest.
+const THUMB_LIMIT = 4
+const thumbJobs = new Map<string, Promise<void>>()
+const thumbWaiting: Array<() => void> = []
+let thumbActive = 0
+
+async function thumbSlot<T>(fn: () => Promise<T>): Promise<T> {
+  if (thumbActive >= THUMB_LIMIT) await new Promise<void>((r) => thumbWaiting.push(r))
+  else thumbActive++
+  try {
+    return await fn()
+  } finally {
+    const next = thumbWaiting.shift()
+    if (next) next()
+    else thumbActive--
+  }
+}
+
+export function makeThumb(file: string, dest: string): Promise<void> {
+  const hit = thumbJobs.get(dest)
+  if (hit) return hit
+  const job = thumbSlot(async () => {
+    const tmp = `${dest}.${process.pid}.tmp`
+    await sharp(file).resize({ width: 256, height: 256, fit: 'inside', withoutEnlargement: true }).png({ compressionLevel: 6 }).toFile(tmp)
+    await fs.rename(tmp, dest)
+  }).finally(() => thumbJobs.delete(dest))
+  thumbJobs.set(dest, job)
+  return job
 }
 
 export async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T, index: number) => Promise<R>): Promise<R[]> {

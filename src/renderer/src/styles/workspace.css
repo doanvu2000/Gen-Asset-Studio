@@ -957,6 +957,8 @@ select.inp {
   place-items: center;
   overflow: hidden;
   position: relative;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 110px;
 }
 
 .thumb img {

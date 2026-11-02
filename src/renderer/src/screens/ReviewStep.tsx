@@ -61,7 +61,7 @@ function Tile({ item, index, sel, onOpen, onSel }: { item: RvItem; index: number
       </span>
       <div className="rv-img">
         <div className="half ck">
-          {input.thumb || input.url ? <img src={input.thumb ?? input.url} alt="" draggable={false} /> : null}
+          {input.thumb || input.url ? <img src={input.thumb ?? input.url} alt="" draggable={false} loading="lazy" decoding="async" /> : null}
           <span className="lab">{t('review.src')}</span>
         </div>
         <div className="half ck">

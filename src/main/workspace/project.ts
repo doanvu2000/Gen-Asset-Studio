@@ -223,6 +223,9 @@ export async function writeProject(dir: string, data: ProjectFile): Promise<void
   await fs.rename(tmp, file)
 }
 
+const EAGER_THUMBS = 4
+const ANALYZE_LIMIT = 8
+
 export function thumbPath(dir: string, hash: string): string {
   return join(dir, CACHE_DIR, 'thumbs', `${hash}.png`)
 }
@@ -316,8 +319,9 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
   const common = data.roots.length === 1 ? data.roots[0] : commonAncestor(data.roots)
   const outRelOf = outRelResolver(data)
   const review = sanitizeReview(data.review, new Set(data.inputs.map((i) => i.id)))
-  const inputs: InputView[] = await mapLimit(checked, 4, async ({ record, abs, status }) => {
-    const thumb = status === 'missing' ? null : await ensureThumb(dir, abs, record.hash)
+  const inputs: InputView[] = await mapLimit(checked, 4, async ({ record, abs, status }, index) => {
+    // First tiles feed the workspace card (needs files on disk); the rest are generated on first request by the file protocol.
+    const thumb = status === 'missing' || !record.hash ? null : index < EAGER_THUMBS ? await ensureThumb(dir, abs, record.hash) : thumbPath(dir, record.hash)
     const d = dirname(record.rel).replace(/\\/g, '/')
     const dirRel = d === '.' ? '' : d
     const outRel = outRelOf(record, abs)
@@ -342,7 +346,7 @@ export async function buildView(dir: string, rel: string, data: ProjectFile, che
       typeAuto: record.typeAuto,
       kind: record.kind,
       status,
-      thumb: thumb ? fileUrl(thumb, record.hash) : null,
+      thumb: thumb ? fileUrl(thumb, record.hash, existsSync(thumb) ? undefined : abs) : null,
       url: fileUrl(abs, `${record.mtime}`),
       outRel,
       versions,
@@ -480,7 +484,7 @@ export async function addCollected(data: ProjectFile, c: Collected): Promise<{ a
     known.add(k)
     fresh.push(q)
   }
-  const facts = await mapLimit(fresh, 4, async (q) => {
+  const facts = await mapLimit(fresh, ANALYZE_LIMIT, async (q) => {
     try {
       return await analyzeImage(q.file)
     } catch (e) {
