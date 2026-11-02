@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { existsSync, promises as fs } from 'node:fs'
 import { basename, dirname, extname, isAbsolute, join, relative, resolve } from 'node:path'
 import sharp from 'sharp'
@@ -21,7 +21,12 @@ import {
   type SpineRig,
   type SpineSkeletonFormat,
   type SpineSkeletonInfo,
-  skeletonFormatOf
+  type SpineSkinExport,
+  type SpineVariantResult,
+  type SpineVariantView,
+  SKIN_NAME_RE,
+  skeletonFormatOf,
+  skinNameError
 } from '@shared/spine'
 import type { ProjectFile } from '../workspace/project'
 import { PROJECT_FILE, pathKey } from '../workspace/project'
@@ -35,8 +40,9 @@ import { savePng } from '../sprite/strip'
 import { decisionAt } from '../sprite/strips'
 import { AtlasError, parseSpineAtlas } from './atlas'
 import { applyRig, parseSkeleton, rigIsEmpty, sanitizeRig, SkeletonError } from './skeleton'
-import { applyRigBinary, parseSkeletonBinary } from './binary'
+import { addSkinsBinary, applyRigBinary, parseSkeletonBinary, skinPath } from './binary'
 import { extractRegion, partsBoard, writeRegion } from './regions'
+import { addSkinsJson, mergeSkinAtlas, skinAtlasName, skinPageName, skinSkeletonName } from './skins'
 
 export interface SpineDeps {
   projectDir: (rel: string) => string
@@ -56,17 +62,57 @@ interface FileRef {
   size?: number
 }
 
+type Review = Record<string, { decision: SpineDecision | null; selected: number; version?: number; seen?: number }>
+
+interface VariantData {
+  id: string
+  name: string
+  style: SpriteStyle
+  review: Review
+  createdAt: number
+}
+
 interface SpineData {
   skeleton: FileRef | null
   atlas: FileRef | null
   pages: Record<string, FileRef>
   style: SpriteStyle
-  review: Record<string, { decision: SpineDecision | null; selected: number; version?: number; seen?: number }>
+  review: Review
   dims: Record<string, number[]>
   assets: Record<string, string>
   rig: SpineRig
   exportDir: string
   lastExport: { at: number; pages: number; regions: number } | null
+  variants: VariantData[]
+  variant: string
+}
+
+interface Slot {
+  id: string
+  name: string
+  style: SpriteStyle
+  review: Review
+  asset: (base: string) => string
+}
+
+export function variantAsset(asset: string, id: string): string {
+  return `spine-${id}/${asset.replace(/^spine\//, '')}`
+}
+
+function slotOf(spine: SpineData, id = spine.variant): Slot {
+  const v = id ? spine.variants.find((x) => x.id === id) : undefined
+  if (!v) return { id: '', name: '', style: spine.style, review: spine.review, asset: (a) => a }
+  return { id: v.id, name: v.name, style: v.style, review: v.review, asset: (a) => variantAsset(a, v.id) }
+}
+
+function withSkins(format: SpineSkeletonFormat, data: Buffer, skins: string[]): Buffer {
+  if (!skins.length) return data
+  return format === 'binary' ? Buffer.from(addSkinsBinary(data, skins)) : Buffer.from(addSkinsJson(data.toString('utf8'), skins), 'utf8')
+}
+
+function dump(spine: SpineData): Record<string, unknown> {
+  const { variants, variant, ...rest } = spine
+  return variants.length ? { ...rest, variants, variant } : rest
 }
 
 interface Loaded {
@@ -129,15 +175,9 @@ function sanitizeStyle(raw: unknown): SpriteStyle {
   }
 }
 
-function readData(data: ProjectFile): SpineData {
-  const raw = o(data.spine)
-  const pages: Record<string, FileRef> = {}
-  for (const [k, v] of Object.entries(o(raw.pages))) {
-    const f = fileRef(v)
-    if (f) pages[k] = f
-  }
-  const review: SpineData['review'] = {}
-  for (const [k, v] of Object.entries(o(raw.review))) {
+function readReview(raw: unknown): Review {
+  const review: Review = {}
+  for (const [k, v] of Object.entries(o(raw))) {
     const e = o(v)
     review[k] = {
       decision: e.decision === 'approved' || e.decision === 'rejected' ? e.decision : null,
@@ -146,6 +186,30 @@ function readData(data: ProjectFile): SpineData {
       seen: Math.max(0, Math.round(num(e.seen)))
     }
   }
+  return review
+}
+
+function readVariants(raw: unknown): VariantData[] {
+  const out: VariantData[] = []
+  for (const v of Array.isArray(raw) ? raw : []) {
+    const e = o(v)
+    const id = typeof e.id === 'string' && /^[a-z0-9]{1,32}$/.test(e.id) ? e.id : ''
+    const name = typeof e.name === 'string' && SKIN_NAME_RE.test(e.name) ? e.name : ''
+    if (!id || !name || out.some((x) => x.id === id || x.name.toLowerCase() === name.toLowerCase())) continue
+    out.push({ id, name, style: sanitizeStyle(e.style), review: readReview(e.review), createdAt: num(e.createdAt) })
+  }
+  return out
+}
+
+function readData(data: ProjectFile): SpineData {
+  const raw = o(data.spine)
+  const pages: Record<string, FileRef> = {}
+  for (const [k, v] of Object.entries(o(raw.pages))) {
+    const f = fileRef(v)
+    if (f) pages[k] = f
+  }
+  const review = readReview(raw.review)
+  const variants = readVariants(raw.variants)
   const dims: SpineData['dims'] = {}
   for (const [k, v] of Object.entries(o(raw.dims))) if (Array.isArray(v) && v.length === 4 && v.every((x) => typeof x === 'number')) dims[k] = v as number[]
   const assets: SpineData['assets'] = {}
@@ -155,13 +219,15 @@ function readData(data: ProjectFile): SpineData {
     skeleton: fileRef(raw.skeleton),
     atlas: fileRef(raw.atlas),
     pages,
-    style: raw.style ? sanitizeStyle(raw.style) : { ...EMPTY_SPRITE_STYLE },
+    style: raw.style ? sanitizeStyle(raw.style) : { ...EMPTY_SPRITE_STYLE, refImages: [] },
     review,
     dims,
     assets,
     rig: sanitizeRig(raw.rig),
     exportDir: typeof raw.exportDir === 'string' ? raw.exportDir : '',
-    lastExport: raw.lastExport ? { at: num(last.at), pages: num(last.pages), regions: num(last.regions) } : null
+    lastExport: raw.lastExport ? { at: num(last.at), pages: num(last.pages), regions: num(last.regions) } : null,
+    variants,
+    variant: typeof raw.variant === 'string' && variants.some((v) => v.id === raw.variant) ? raw.variant : ''
   }
 }
 
@@ -237,7 +303,7 @@ export class SpineService {
   }
 
   private async save(l: Loaded): Promise<void> {
-    l.data.spine = { ...l.spine }
+    l.data.spine = dump(l.spine)
     await this.deps.writeProject(l.dir, l.data)
   }
 
@@ -273,7 +339,7 @@ export class SpineService {
   }
 
   private async saveQuiet(l: Loaded): Promise<void> {
-    l.data.spine = { ...l.spine }
+    l.data.spine = dump(l.spine)
     const file = join(l.dir, PROJECT_FILE)
     const tmp = `${file}.${process.pid}.tmp`
     const prev = await fs.stat(file).catch(() => null)
@@ -398,16 +464,28 @@ export class SpineService {
     }
   }
 
-  private selectedOf(spine: SpineData, name: string, versions: number[]): number {
-    const e = spine.review[name]
+  private selectedOf(review: Review, name: string, versions: number[]): number {
+    const e = review[name]
     const latest = versions[versions.length - 1] ?? 0
     const sel = e?.selected
     if (!sel || !versions.includes(sel)) return latest
     return e.seen && latest > e.seen ? latest : sel
   }
 
+  private async summarize(dir: string, atlas: SpineAtlasData, assets: Map<string, string>, slot: Slot, into: SpineVariantView): Promise<void> {
+    for (const r of atlas.regions) {
+      const versions = await this.versionsOf(dir, slot.asset(assets.get(r.name) ?? regionAsset(r.name)))
+      if (!versions.length) continue
+      into.generated++
+      if (decisionAt(slot.review[r.name], this.selectedOf(slot.review, r.name, versions)) !== 'approved') continue
+      into.approved++
+      into.pages[r.page] = (into.pages[r.page] ?? 0) + 1
+    }
+  }
+
   private async view(rel: string, l: Loaded, error: string | null = null): Promise<SpineProjectView> {
     const { dir, data, spine } = l
+    const slot = slotOf(spine)
     const base: SpineProjectView = {
       rel,
       name: basename(dir),
@@ -423,9 +501,11 @@ export class SpineService {
       skeleton: null,
       pages: [],
       regions: [],
-      style: spine.style,
+      style: slot.style,
       rig: spine.rig,
       export: { outDir: spine.exportDir, lastAt: spine.lastExport?.at ?? 0, lastPages: spine.lastExport?.pages ?? 0, lastRegions: spine.lastExport?.regions ?? 0 },
+      variant: slot.id,
+      variants: [slotOf(spine, ''), ...spine.variants.map((v) => slotOf(spine, v.id))].map((s) => ({ id: s.id, name: s.name, locked: s.style.locked, generated: 0, approved: 0, pages: {} })),
       updatedAt: Date.parse(data.updatedAt) || 0
     }
     if (!spine.skeleton) return base
@@ -445,9 +525,9 @@ export class SpineService {
     const regions: SpineRegionView[] = []
     for (const r of parsed.atlas.regions) {
       const refs = parsed.info.attachments.filter((a) => refersTo(a, r.name))
-      const assetRel = assets.get(r.name) ?? regionAsset(r.name)
+      const assetRel = slot.asset(assets.get(r.name) ?? regionAsset(r.name))
       const versions = await this.versionsOf(dir, assetRel)
-      const selected = this.selectedOf(spine, r.name, versions)
+      const selected = this.selectedOf(slot.review, r.name, versions)
       const src = sources.get(r.name)
       if (src) this.deps.allow(src)
       const vdir = versionsDir(dir, assetRel)
@@ -462,12 +542,13 @@ export class SpineService {
         versions,
         selected,
         url: selected ? fileUrl(join(vdir, `v${selected}.png`), `${selected}`) : null,
-        decision: decisionAt(spine.review[r.name], selected),
+        decision: decisionAt(slot.review[r.name], selected),
         qa: selected ? await readVersionQa(vdir, selected) : null,
         used: refs.length > 0
       })
     }
-    await this.coverBoard(dir, spine, regions, sources)
+    if (!slot.id) await this.coverBoard(dir, spine, regions, sources)
+    for (const v of base.variants) await this.summarize(dir, parsed.atlas, assets, slotOf(spine, v.id), v)
     const pages = parsed.atlas.pages.map((p) => {
       const ref = spine.pages[p.name]
       const ok = !!ref && existsSync(ref.path)
@@ -575,7 +656,9 @@ export class SpineService {
               .then((t) => regionDims(parseSpineAtlas(t)))
               .catch(() => ({}))
           }
-          for (const k of Object.keys(l.spine.review)) if (old[k] && dims[k] && old[k].join() !== dims[k].join()) delete l.spine.review[k]
+          for (const review of [l.spine.review, ...l.spine.variants.map((v) => v.review)]) {
+            for (const k of Object.keys(review)) if (old[k] && dims[k] && old[k].join() !== dims[k].join()) delete review[k]
+          }
         }
         l.spine.skeleton = await statRef(skeleton)
         l.spine.atlas = await statRef(atlas)
@@ -585,6 +668,7 @@ export class SpineService {
         if (!sameSkel) {
           l.spine.rig = { ...EMPTY_RIG, bones: {}, attachments: {} }
           l.spine.review = {}
+          for (const v of l.spine.variants) v.review = {}
         }
         await this.save(l)
         this.deps.log(`spine ${rel}: imported ${basename(skeleton)} (${parsed.regions.length} regions, ${parsed.pages.length} pages)`)
@@ -604,6 +688,7 @@ export class SpineService {
         l.spine.atlas = null
         l.spine.pages = {}
         l.spine.review = {}
+        for (const v of l.spine.variants) v.review = {}
         l.spine.dims = {}
         l.spine.rig = { bones: {}, attachments: {} }
       },
@@ -611,7 +696,7 @@ export class SpineService {
     )
   }
 
-  private async composedPages(l: Loaded, parsed: Parsed, mode: 'preview' | 'export'): Promise<Map<string, { image: RawImage; regions: number; pma: boolean }>> {
+  private async composedPages(l: Loaded, parsed: Parsed, mode: 'preview' | 'export', slot = slotOf(l.spine, '')): Promise<Map<string, { image: RawImage; regions: number; pma: boolean }>> {
     const out = new Map<string, { image: RawImage; regions: number; pma: boolean }>()
     for (const p of parsed.atlas.pages) {
       const ref = l.spine.pages[p.name]
@@ -622,11 +707,11 @@ export class SpineService {
     for (const r of parsed.atlas.regions) {
       const page = out.get(r.page)
       if (!page) continue
-      const asset = assets.get(r.name) ?? regionAsset(r.name)
+      const asset = slot.asset(assets.get(r.name) ?? regionAsset(r.name))
       const versions = await this.versionsOf(l.dir, asset)
-      const v = this.selectedOf(l.spine, r.name, versions)
+      const v = this.selectedOf(slot.review, r.name, versions)
       if (!v) continue
-      const decision = decisionAt(l.spine.review[r.name], v)
+      const decision = decisionAt(slot.review[r.name], v)
       if (mode === 'export' ? decision !== 'approved' : decision === 'rejected') continue
       const file = join(versionsDir(l.dir, asset), `v${v}.png`)
       if (!existsSync(file)) continue
@@ -652,14 +737,19 @@ export class SpineService {
         } else {
           for (const [name, p] of await this.composedPages(l, parsed, 'preview')) pages[name] = `data:image/png;base64,${Buffer.from(await encodePng(p.image)).toString('base64')}`
         }
-        const skel = which === 'new' ? riggedSkeleton(parsed, l.spine.rig) : parsed.data
+        const slot = slotOf(l.spine)
+        const skin = which === 'new' && slot.id && !parsed.info.skins.includes(slot.name) ? slot.name : ''
+        if (skin) {
+          for (const [name, p] of await this.composedPages(l, parsed, 'preview', slot)) pages[skinPageName(name, skin)] = `data:image/png;base64,${Buffer.from(await encodePng(p.image)).toString('base64')}`
+        }
+        const skel = which === 'new' ? withSkins(parsed.format, riggedSkeleton(parsed, l.spine.rig), skin ? [skin] : []) : parsed.data
         return {
           skeletonName: basename(l.spine.skeleton.path),
           atlasName: basename(l.spine.atlas.path),
           format: parsed.format,
           json: parsed.format === 'json' ? skel.toString('utf8') : '',
           skelBase64: parsed.format === 'binary' ? skel.toString('base64') : null,
-          atlas: parsed.atlasText,
+          atlas: skin ? mergeSkinAtlas(parsed.atlasText, [skin]) : parsed.atlasText,
           pages
         }
       } catch (e) {
@@ -674,10 +764,13 @@ export class SpineService {
       rel,
       (l) => {
         const p = patch && typeof patch === 'object' ? patch : {}
-        const next = sanitizeStyle({ ...l.spine.style, ...p })
-        if (p.locked === true && !l.spine.style.locked) next.lockedAt = Date.now()
+        const cur = slotOf(l.spine)
+        const next = sanitizeStyle({ ...cur.style, ...p })
+        if (p.locked === true && !cur.style.locked) next.lockedAt = Date.now()
         if (p.locked === false) next.lockedAt = 0
-        l.spine.style = next
+        const v = l.spine.variants.find((x) => x.id === cur.id)
+        if (v) v.style = next
+        else l.spine.style = next
       },
       'set style'
     )
@@ -693,13 +786,14 @@ export class SpineService {
       async (l) => {
         const refDir = join(l.dir, 'styles', 'spine', 'refs')
         await fs.mkdir(refDir, { recursive: true })
+        const style = slotOf(l.spine).style
         for (const src of r.filePaths.slice(0, 8)) {
-          if (l.spine.style.refImages.length >= 8) break
+          if (style.refImages.length >= 8) break
           const base = (basename(src).replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '_').slice(0, 40) || 'ref').toLowerCase()
           let name = `${base}.png`
           for (let n = 2; existsSync(join(refDir, name)); n++) name = `${base}-${n}.png`
           await sharp(src).png().toFile(join(refDir, name))
-          l.spine.style.refImages.push(`styles/spine/refs/${name}`)
+          style.refImages.push(`styles/spine/refs/${name}`)
         }
       },
       'add refs'
@@ -711,7 +805,9 @@ export class SpineService {
       const push = this.deps.enqueue?.()
       if (!push) return 0
       const l = await this.load(rel)
-      if (!l.spine.style.locked) return -1
+      const slot = slotOf(l.spine)
+      const style = slot.style
+      if (!style.locked) return -1
       if ((await this.sourceChanges(l)).length) return 0
       const parsed = await this.parse(l.spine)
       if (!parsed) return 0
@@ -719,14 +815,14 @@ export class SpineService {
       const sources = await this.ensureSources(l.dir, l.spine, parsed.atlas, assets)
       const board = join(this.cacheDir(l.dir, l.spine), 'parts-board.png')
       let styleImages: string[] = []
-      let prompt = l.spine.style.promptEn
-      if (l.spine.style.templateId && this.deps.template) {
-        const tpl = await this.deps.template(l.spine.style.templateId).catch(() => null)
+      let prompt = style.promptEn
+      if (style.templateId && this.deps.template) {
+        const tpl = await this.deps.template(style.templateId).catch(() => null)
         const preview = tpl ? (tpl.previewSmPath ?? tpl.previewPath) : null
         if (preview) styleImages = [preview]
         if (!prompt.trim() && tpl) prompt = tpl.promptEn
       }
-      const refs = [...(existsSync(board) ? [board] : []), ...l.spine.style.refImages.map((r) => join(l.dir, r)).filter((p) => existsSync(p))]
+      const refs = [...(existsSync(board) ? [board] : []), ...style.refImages.map((r) => join(l.dir, r)).filter((p) => existsSync(p))]
       const specs: JobSpec[] = []
       for (const key of keys) {
         const r = parsed.atlas.regions.find((x) => x.name === key)
@@ -734,15 +830,22 @@ export class SpineService {
         if (!r || !src || !existsSync(src)) continue
         const notes = [
           `This image is the "${r.name.replace(/#\d+$/, '')}" region (one body part or piece) of a 2D Spine skeletal character. Keep its exact outline, size, orientation and attachment point so it still fits the rig; draw only this part on its own.`,
-          existsSync(board) ? 'The first extra reference image is a board with every part of the same character: keep all parts consistent with each other.' : '',
-          l.spine.style.notes.trim(),
+          slot.id
+            ? `This is the "${slot.name}" skin variant of the character: restyle this part (colours, materials, outfit details) following the style below, but keep the exact silhouette so it still fits the same rig and atlas slot.`
+            : '',
+          existsSync(board)
+            ? slot.id
+              ? 'The first extra reference image is a board with every part of the original character: use it only for shapes and to keep all parts of the new skin consistent with each other.'
+              : 'The first extra reference image is a board with every part of the same character: keep all parts consistent with each other.'
+            : '',
+          style.notes.trim(),
           (note ?? '').trim()
         ]
           .filter(Boolean)
           .join('\n')
         specs.push({
           projectPath: l.dir,
-          assetRelPath: assets.get(r.name) ?? regionAsset(r.name),
+          assetRelPath: slot.asset(assets.get(r.name) ?? regionAsset(r.name)),
           sourcePath: src,
           groupId: 'spine',
           stylePrompt: prompt,
@@ -764,13 +867,14 @@ export class SpineService {
     return this.mutate(
       rel,
       async (l) => {
+        const slot = slotOf(l.spine)
         for (const [k, v] of Object.entries(patch && typeof patch === 'object' ? patch : {}).slice(0, 5000)) {
           if (!v || typeof v !== 'object') continue
           const asset = l.spine.assets[k]
-          const versions = asset ? await this.versionsOf(l.dir, asset) : null
-          const cur = l.spine.review[k] ?? { decision: null, selected: 0 }
+          const versions = asset ? await this.versionsOf(l.dir, slot.asset(asset)) : null
+          const cur = slot.review[k] ?? { decision: null, selected: 0 }
           if (versions) {
-            if (cur.selected && cur.selected !== this.selectedOf(l.spine, k, versions)) cur.selected = 0
+            if (cur.selected && cur.selected !== this.selectedOf(slot.review, k, versions)) cur.selected = 0
             cur.seen = versions[versions.length - 1] ?? 0
           }
           if (v.decision !== undefined) cur.decision = v.decision === 'approved' || v.decision === 'rejected' ? v.decision : null
@@ -778,8 +882,8 @@ export class SpineService {
             cur.selected = Math.max(0, Math.round(num(v.selected)))
             if (v.decision === undefined) cur.decision = null
           }
-          if (versions) cur.version = this.selectedOf({ ...l.spine, review: { [k]: cur } }, k, versions)
-          l.spine.review[k] = cur
+          if (versions) cur.version = this.selectedOf({ [k]: cur }, k, versions)
+          slot.review[k] = cur
         }
       },
       'review'
@@ -811,7 +915,52 @@ export class SpineService {
     return r.filePaths[0]
   }
 
-  exportRun(rel: string, outDirRaw: string): Promise<SpineExportResult> {
+  addVariant(rel: string, nameRaw: string): Promise<SpineVariantResult> {
+    return this.deps.run(async () => {
+      try {
+        const l = await this.load(rel)
+        const name = nameRaw.trim()
+        const parsed = await this.parse(l.spine).catch(() => null)
+        const error = skinNameError(name, [...l.spine.variants.map((v) => v.name), ...(parsed?.info.skins ?? [])])
+        if (error) return { view: null, error }
+        let id = ''
+        while (!id || l.spine.variants.some((v) => v.id === id)) id = randomBytes(4).toString('hex')
+        l.spine.variants.push({ id, name, style: sanitizeStyle({}), review: {}, createdAt: Date.now() })
+        l.spine.variant = id
+        await this.save(l)
+        return { view: await this.view(rel, l), error: null }
+      } catch (e) {
+        this.deps.log(`spine add variant failed: ${(e as Error).message}`)
+        return { view: null, error: 'failed' }
+      }
+    })
+  }
+
+  setVariant(rel: string, id: string): Promise<SpineProjectView | null> {
+    return this.mutate(
+      rel,
+      (l) => {
+        l.spine.variant = l.spine.variants.some((v) => v.id === id) ? id : ''
+      },
+      'set variant'
+    )
+  }
+
+  removeVariant(rel: string, id: string): Promise<SpineProjectView | null> {
+    return this.mutate(
+      rel,
+      async (l) => {
+        const v = l.spine.variants.find((x) => x.id === id)
+        if (!v) return
+        l.spine.variants = l.spine.variants.filter((x) => x !== v)
+        if (l.spine.variant === id) l.spine.variant = ''
+        await fs.rm(join(l.dir, 'versions', `spine-${v.id}`), { recursive: true, force: true })
+      },
+      'remove variant'
+    )
+  }
+
+  exportRun(rel: string, outDirRaw: string, variantIds: string[] = []): Promise<SpineExportResult> {
     return this.deps.run(async () => {
       const fail = (error: string, outDir = ''): SpineExportResult => ({ ok: false, outDir, pages: [], skeleton: null, rigChanged: false, backupDir: null, error })
       try {
@@ -830,7 +979,22 @@ export class SpineService {
         }
         const composed = await this.composedPages(l, parsed, 'export')
         const total = [...composed.values()].reduce((n, p) => n + p.regions, 0)
-        if (!total && rigIsEmpty(l.spine.rig)) return fail('nothingApproved', outDir)
+        const skinJobs: Array<{ name: string; pages: Map<string, { image: RawImage; regions: number; pma: boolean }>; regions: number }> = []
+        for (const id of [...new Set(variantIds)]) {
+          const v = l.spine.variants.find((x) => x.id === id)
+          if (!v) continue
+          const prefix = skinPath(v.name, '').toLowerCase()
+          if (parsed.info.skins.some((n) => n.toLowerCase() === v.name.toLowerCase()) || parsed.atlas.regions.some((r) => r.name.toLowerCase().startsWith(prefix))) return fail(`skinExists:${v.name}`, outDir)
+          for (const p of parsed.atlas.pages) {
+            const name = skinPageName(p.name, v.name)
+            if (!pageTarget(outDir, name)) return fail(`pagePath:${p.name}`, outDir)
+            if (parsed.atlas.pages.some((q) => pathKey(q.name) === pathKey(name))) return fail(`skinExists:${v.name}`, outDir)
+          }
+          const vp = await this.composedPages(l, parsed, 'export', slotOf(l.spine, v.id))
+          const n = [...vp.values()].reduce((a, p) => a + p.regions, 0)
+          if (n) skinJobs.push({ name: v.name, pages: vp, regions: n })
+        }
+        if (!total && rigIsEmpty(l.spine.rig) && !skinJobs.length) return fail('nothingApproved', outDir)
         await fs.mkdir(outDir, { recursive: true })
         const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
         let backupDir: string | null = null
@@ -859,18 +1023,43 @@ export class SpineService {
         const skelOut = join(outDir, skelName)
         await backup(skelOut)
         const rigChanged = !rigIsEmpty(l.spine.rig)
+        const rigged = rigChanged ? riggedSkeleton(parsed, l.spine.rig) : parsed.data
         if (rigChanged) {
-          await fs.writeFile(skelOut, riggedSkeleton(parsed, l.spine.rig))
+          await fs.writeFile(skelOut, rigged)
           const ext = extname(skelName)
           const origOut = join(outDir, `${skelName.slice(0, skelName.length - ext.length)}.original${ext}`)
           await backup(origOut)
           await fs.copyFile(l.spine.skeleton.path, origOut)
         } else await fs.copyFile(l.spine.skeleton.path, skelOut)
+        let skins: SpineSkinExport | null = null
+        if (skinJobs.length) {
+          skins = { skeleton: skinSkeletonName(skelName), atlas: skinAtlasName(basename(l.spine.atlas.path)), skins: [] }
+          for (const job of skinJobs) {
+            const written: string[] = []
+            for (const p of parsed.atlas.pages) {
+              const c = job.pages.get(p.name)
+              const target = pageTarget(outDir, skinPageName(p.name, job.name))
+              if (!c || !target) continue
+              await fs.mkdir(dirname(target), { recursive: true })
+              await backup(target)
+              await savePage(c.image, target)
+              written.push(relative(outDir, target).replace(/\\/g, '/'))
+            }
+            skins.skins.push({ name: job.name, regions: job.regions, pages: written })
+          }
+          const names = skinJobs.map((j) => j.name)
+          const atlasSkins = join(outDir, skins.atlas)
+          await backup(atlasSkins)
+          await fs.writeFile(atlasSkins, mergeSkinAtlas(parsed.atlasText, names), 'utf8')
+          const skelSkins = join(outDir, skins.skeleton)
+          await backup(skelSkins)
+          await fs.writeFile(skelSkins, withSkins(parsed.format, rigged, names))
+        }
         l.spine.exportDir = outDirRaw.trim() || l.spine.exportDir
         l.spine.lastExport = { at: Date.now(), pages: pages.length, regions: total }
         await this.save(l)
-        this.deps.log(`spine export ${rel}: ${pages.length} page(s), ${total} region(s), rig ${rigChanged ? 'changed' : 'unchanged'}`)
-        return { ok: true, outDir, pages, skeleton: skelName, rigChanged, backupDir, error: null }
+        this.deps.log(`spine export ${rel}: ${pages.length} page(s), ${total} region(s), rig ${rigChanged ? 'changed' : 'unchanged'}${skins ? `, skins ${skins.skins.map((x) => x.name).join(',')}` : ''}`)
+        return { ok: true, outDir, pages, skeleton: skelName, rigChanged, backupDir, error: null, skins }
       } catch (e) {
         this.deps.log(`spine export failed: ${(e as Error).message}`)
         return fail((e as Error).message)
@@ -893,6 +1082,9 @@ export function registerSpineIpc(ipcMain: IpcMain, getWindow: () => BrowserWindo
   ipcMain.handle(SPINE_IPC.enqueue, (_e, rel: unknown, keys: unknown, note: unknown) => service.enqueue(s(rel), ss(keys), typeof note === 'string' ? note : undefined))
   ipcMain.handle(SPINE_IPC.review, (_e, rel: unknown, patch: unknown) => service.review(s(rel), o(patch) as Record<string, SpineRegionPatch>))
   ipcMain.handle(SPINE_IPC.setRig, (_e, rel: unknown, rig: unknown) => service.setRig(s(rel), o(rig) as unknown as SpineRig))
-  ipcMain.handle(SPINE_IPC.exportRun, (_e, rel: unknown, outDir: unknown) => service.exportRun(s(rel), s(outDir)))
+  ipcMain.handle(SPINE_IPC.exportRun, (_e, rel: unknown, outDir: unknown, variants: unknown) => service.exportRun(s(rel), s(outDir), ss(variants)))
   ipcMain.handle(SPINE_IPC.exportDir, (_e, rel: unknown) => service.pickExportDir(s(rel), getWindow()))
+  ipcMain.handle(SPINE_IPC.addVariant, (_e, rel: unknown, name: unknown) => service.addVariant(s(rel), s(name)))
+  ipcMain.handle(SPINE_IPC.setVariant, (_e, rel: unknown, id: unknown) => service.setVariant(s(rel), s(id)))
+  ipcMain.handle(SPINE_IPC.removeVariant, (_e, rel: unknown, id: unknown) => service.removeVariant(s(rel), s(id)))
 }

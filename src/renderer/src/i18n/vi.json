@@ -1961,5 +1961,34 @@
     "done": "Đã tạo v{{v}} (đổi màu)",
     "failed": "Đổi màu lỗi: {{msg}}",
     "from": "Đổi màu từ v{{v}}"
+  },
+  "spine": {
+    "skin": {
+      "label": "Skin",
+      "base": "base (gốc)",
+      "add": "Thêm skin",
+      "addTitle": "Thêm skin biến thể",
+      "addDesc": "Skin mới dùng chung rig, gen lại region theo style riêng (chọn ở bước Style). Tên: chữ, số, - hoặc _.",
+      "name": "Tên skin",
+      "namePlaceholder": "vd red_armor",
+      "create": "Tạo skin",
+      "added": "Đã thêm skin {{name}}",
+      "approved_one": "{{count}} đã duyệt",
+      "approved_other": "{{count}} đã duyệt",
+      "noneApproved": "chưa có region duyệt",
+      "hintBase": "Đang sửa skin gốc.",
+      "hintVariant": "Style, gen, duyệt đang áp cho skin {{name}}; rig dùng chung.",
+      "remove": "Xoá skin",
+      "removeTitle": "Xoá skin {{name}}?",
+      "removeDesc": "Xoá style, duyệt và mọi version đã gen của skin này, không hoàn tác được.",
+      "exportTitle": "Xuất thêm skin",
+      "exportHint": "Ghi thêm {{skeleton}} + {{atlas}}; skeleton/atlas gốc giữ nguyên.",
+      "err": {
+        "invalid": "Tên chỉ gồm chữ, số, - hoặc _ (tối đa 40).",
+        "taken": "Tên trùng skin đã có.",
+        "failed": "Không tạo được skin.",
+        "exists": "Skin {{name}} trùng skin/page/region trong file Spine."
+      }
+    }
   }
 }

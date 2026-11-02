@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { SpineAssets, SpineImportResult, SpineProjectView, SpineRegionPatch, SpineRig } from '@shared/spine'
+import type { SpineAssets, SpineImportResult, SpineProjectView, SpineRegionPatch, SpineRig, SpineVariantResult } from '@shared/spine'
 import type { SpriteStyle } from '@shared/sprite'
 import i18n from '@renderer/i18n'
 import { firstOpenSpineStep } from '@renderer/lib/spine'
@@ -29,11 +29,14 @@ interface SpineStore {
   review: (patch: Record<string, SpineRegionPatch>) => Promise<void>
   setRig: (rig: SpineRig) => void
   flushRig: () => Promise<void>
+  addVariant: (name: string) => Promise<SpineVariantResult['error']>
+  setVariant: (id: string) => Promise<void>
+  removeVariant: (id: string) => Promise<void>
 }
 
 export function regionSig(view: SpineProjectView | null): string {
   if (!view) return ''
-  return view.regions.map((r) => `${r.key}:${r.selected}`).join('|')
+  return `${view.variant}#` + view.regions.map((r) => `${r.key}:${r.selected}`).join('|')
 }
 
 let rigTimer: ReturnType<typeof setTimeout> | null = null
@@ -194,5 +197,35 @@ export const useSpine = create<SpineStore>()((set, get) => ({
     if (rigTimer) clearTimeout(rigTimer)
     rigTimer = setTimeout(() => void persistRig(), 400)
   },
-  flushRig: () => persistRig()
+  flushRig: () => persistRig(),
+  addVariant: async (name) => {
+    const rel = get().rel
+    if (!rel) return 'failed'
+    const r: SpineVariantResult = await window.gas.spine.addVariant(rel, name).catch(() => ({ view: null, error: 'failed' as const }))
+    if (r.error || !r.view) return r.error ?? 'failed'
+    if (get().rel === rel) set({ view: r.view })
+    toast(i18n.t('spine.skin.added', { name }))
+    void get().loadAssets()
+    return null
+  },
+  setVariant: async (id) => {
+    const rel = get().rel
+    if (!rel || get().view?.variant === id) return
+    const view = await window.gas.spine.setVariant(rel, id)
+    if (!view) toast(i18n.t('spineProject.toast.saveFailed'), 'err')
+    else if (get().rel === rel) {
+      set({ view })
+      void get().loadAssets()
+    }
+  },
+  removeVariant: async (id) => {
+    const rel = get().rel
+    if (!rel) return
+    const view = await window.gas.spine.removeVariant(rel, id)
+    if (!view) toast(i18n.t('spineProject.toast.saveFailed'), 'err')
+    else if (get().rel === rel) {
+      set({ view })
+      void get().loadAssets()
+    }
+  }
 }))

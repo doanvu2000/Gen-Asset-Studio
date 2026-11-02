@@ -3,7 +3,8 @@ import { join, resolve } from 'node:path'
 import type { JobSpec } from '../src/shared/queue'
 import { parseSpineAtlas } from '../src/main/spine/atlas'
 import { parseSkeleton, applyRig, SkeletonError } from '../src/main/spine/skeleton'
-import { applyRigBinary, parseSkeletonBinary } from '../src/main/spine/binary'
+import { addSkinsBinary, applyRigBinary, parseSkeletonBinary } from '../src/main/spine/binary'
+import { addSkinsJson, mergeSkinAtlas, skinAtlasName, skinPageName } from '../src/main/spine/skins'
 import { extractRegion, premultiply, writeRegion } from '../src/main/spine/regions'
 import { SpineService, assignAssets, refersTo, regionAsset } from '../src/main/spine/service'
 import { AtlasError } from '../src/main/spine/atlas'
@@ -304,6 +305,7 @@ async function main(): Promise<void> {
   check(statSync(join(cache, 'board.png')).mtimeMs === coverAt && existsSync(join(cache, 'board.key')), 'cover board not rebuilt when selection unchanged')
   await skelProject(page)
   await backendFixes(page)
+  await skinVariants(page)
   console.log(`\n${passed} passed, ${failed} failed`)
   rmSync(base, { recursive: true, force: true })
   if (failed) process.exit(1)
@@ -513,6 +515,136 @@ async function backendFixes(page: Raw): Promise<void> {
   check(m['a b'] === 'spine/a_b' && m['a_b'].startsWith('spine/a_b-') && m.c === 'spine/c' && m.Head === 'spine/Head' && m.head.startsWith('spine/head-') && m['x y'] === 'spine/x_y' && m['x:y'] !== m['x y'] && new Set(Object.values(m)).size === 7, 'assignAssets: first in atlas order keeps the legacy name, suffix only on collisions')
   const m2 = assignAssets(['Head', 'head', 'a b'], { head: 'spine/head', gone: 'spine/a_b' })
   check(m2.head === 'spine/head' && m2.Head.startsWith('spine/Head-') && m2['a b'].startsWith('spine/a_b-') && m2.gone === 'spine/a_b', 'assignAssets: stored mapping never changes, new names avoid it')
+}
+
+interface CoreRead {
+  skins: Array<{ name: string; getAttachments: () => Array<{ slotIndex: number; name: string; attachment: CoreAttachment & { timelineAttachment?: unknown } }> }>
+  slots: Array<{ name: string }>
+  animations: unknown[]
+}
+
+async function coreWithAtlas(skel: Uint8Array | string, atlasText: string): Promise<CoreRead> {
+  const core = await import('@esotericsoftware/spine-core')
+  const loader = new core.AtlasAttachmentLoader(new core.TextureAtlas(atlasText))
+  const reader = typeof skel === 'string' ? new core.SkeletonJson(loader) : new core.SkeletonBinary(loader)
+  return reader.readSkeletonData((typeof skel === 'string' ? skel : new Uint8Array(skel)) as never) as unknown as CoreRead
+}
+
+function skinAtts(sd: CoreRead | CoreSkel, skin: string): string {
+  const s = sd.skins.find((x) => x.name === skin)
+  if (!s) return ''
+  return s
+    .getAttachments()
+    .map((e) => `${sd.slots[e.slotIndex].name}/${e.name}=${e.attachment.path}:${e.attachment.parentMesh ? 'linked' : e.attachment.constructor.name}`)
+    .sort()
+    .join()
+}
+
+async function skinVariants(page: Raw): Promise<void> {
+  for (const nonessential of [false, true]) {
+    const bytes = writeSkel(RICH, { nonessential })
+    const viaBin = addSkinsBinary(bytes, ['v1', 'v2'])
+    const viaJson = writeSkel(JSON.parse(addSkinsJson(JSON.stringify(RICH), ['v1', 'v2'])), { nonessential })
+    const a = await coreRead(viaBin)
+    const b = await coreRead(viaJson)
+    check(a.skins.map((s) => s.name).join() === 'default,alt,v1,v2' && skinAtts(a, 'v1') === skinAtts(b, 'v1') && skinAtts(a, 'v2') === skinAtts(b, 'v2'), `addSkinsBinary = addSkinsJson through spine-core (nonessential ${nonessential})`)
+    const v1 = a.skins[2].getAttachments()
+    const m1 = v1.find((e) => e.name === 'm1')?.attachment as (CoreAttachment & { timelineAttachment?: unknown }) | undefined
+    check(
+      skinAtts(a, 'v1').includes('s1/r1=v1/r1:RegionAttachment') && skinAtts(a, 'v1').includes('s1/r2=v1/atlas/r2:RegionAttachment') && !!m1?.parentMesh && m1.path === 'v1/mesh/m1' && m1.timelineAttachment === m1.parentMesh && v1.length === 4,
+      `binary skin: region / sequence / mesh → linked mesh inheriting timelines (${skinAtts(a, 'v1')})`
+    )
+    check(a.animations.length === 2 && parseSkeletonBinary(viaBin).info.skins.join() === 'default,alt,v1,v2', 'binary skin: animations intact, own reader re-parses')
+  }
+  const withLinked = structuredClone(RICH) as typeof RICH & { skins: Array<{ attachments: Record<string, Record<string, unknown>> }> }
+  withLinked.skins[0].attachments.s2.lm2 = { type: 'linkedmesh', parent: 'm1', path: 'mesh/lm2', width: 10, height: 10, color: '00ff00ff' }
+  for (const nonessential of [false, true]) {
+    const a = await coreRead(addSkinsBinary(writeSkel(withLinked, { nonessential }), ['v1']))
+    const b = await coreRead(writeSkel(JSON.parse(addSkinsJson(JSON.stringify(withLinked), ['v1'])), { nonessential }))
+    check(skinAtts(a, 'v1') === skinAtts(b, 'v1') && skinAtts(a, 'v1').includes('s2/lm2=v1/mesh/lm2:linked'), `default-skin linked mesh copied with new path (nonessential ${nonessential})`)
+  }
+  const legacy = JSON.parse(addSkinsJson(JSON.stringify({ skeleton: { spine: '4.2.1' }, skins: { default: { s: { a: { width: 1 } } } } }), ['red']))
+  check(legacy.skins.red?.s?.a?.path === 'red/a' && legacy.skins.default.s.a.path === undefined, 'addSkinsJson: legacy object skins get a new key, default untouched')
+  check(skinPageName('img/hero.png', 'red') === 'img/hero-red.png' && skinPageName('noext', 'red') === 'noext-red' && skinAtlasName('hero.atlas.txt') === 'hero-skins.atlas.txt', 'skin page / atlas names')
+  const legacyAtlas = parseSpineAtlas(mergeSkinAtlas('\nold.png\nsize: 64,64\nformat: RGBA8888\nhat\n  rotate: true\n  xy: 2, 2\n  size: 10, 20\n  orig: 12, 22\n  offset: 1, 1\n  index: -1\n', ['red']))
+  check(legacyAtlas.pages.map((p) => p.name).join() === 'old.png,old-red.png' && legacyAtlas.regions[1]?.name === 'red/hat' && legacyAtlas.regions[1].degrees === 90 && legacyAtlas.regions[1].page === 'old-red.png', 'mergeSkinAtlas keeps legacy fields (rotate / orig)')
+
+  for (const fmt of ['json', 'skel'] as const) {
+    const dir = join(base, `Skins ${fmt}`)
+    mkdirSync(dir, { recursive: true })
+    await writeProject(dir, emptyProject(`Skins ${fmt}`, 'spine'))
+    const queued: JobSpec[] = []
+    const svc = new SpineService({
+      projectDir: () => dir,
+      run: (fn) => fn(),
+      allow: () => undefined,
+      log: () => undefined,
+      readProject,
+      writeProject,
+      enqueue: () => (specs) => {
+        queued.push(...specs)
+        return specs.map(() => 'j')
+      },
+      template: async () => null
+    })
+    const rel = `Skins ${fmt}`
+    await svc.importPaths(rel, [join(sample, `hero.${fmt}`)])
+    await svc.setStyle(rel, { promptEn: 'base', locked: true })
+    check(JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8')).spine.variants === undefined, `${fmt}: project without skins keeps the old project.json shape`)
+    check((await svc.addVariant(rel, 'a b')).error === 'invalid' && (await svc.addVariant(rel, 'Default')).error === 'taken' && (await svc.addVariant(rel, 'base')).error === 'taken', `${fmt}: bad / reserved skin names refused`)
+    const added = await svc.addVariant(rel, 'red')
+    const id = added.view?.variant ?? ''
+    check(!!id && added.view?.variants.map((v) => v.name).join() === ',red' && added.view.regions.every((r) => r.assetRel.startsWith(`spine-${id}/`) && !r.versions.length) && !added.view.style.locked, `${fmt}: skin added, active, own asset dirs, own unlocked style`)
+    check((await svc.addVariant(rel, 'RED')).error === 'taken', `${fmt}: duplicate skin name (case-insensitive) refused`)
+    check((await svc.enqueue(rel, ['head'])) === -1, `${fmt}: skin enqueue waits for its own style lock`)
+    await svc.setStyle(rel, { promptEn: 'red armor', locked: true })
+    check((await svc.enqueue(rel, ['head', 'arm_l'])) === 2 && queued.every((q) => q.assetRelPath.startsWith(`spine-${id}/`) && q.stylePrompt === 'red armor' && /"red" skin variant/.test(q.note ?? '')), `${fmt}: skin jobs use skin style + versions/spine-<id>`)
+    const atlas = parseSpineAtlas(readFileSync(join(sample, 'hero.atlas'), 'utf8'))
+    const head = atlas.regions.find((r) => r.name === 'head')!
+    const arm = atlas.regions.find((r) => r.name === 'arm_l')!
+    const solid = (w: number, h: number, rgb: number[]): Raw => {
+      const img = createImage(w, h)
+      for (let i = 0; i < img.data.length; i += 4) img.data.set([...rgb, 255], i)
+      return img
+    }
+    for (const q of queued) {
+      const vdir = versionsDir(dir, q.assetRelPath)
+      mkdirSync(vdir, { recursive: true })
+      await savePng(q.assetRelPath.endsWith('head') ? solid(head.w, head.h, [255, 0, 0]) : solid(arm.w, arm.h, [0, 0, 255]), join(vdir, 'v1.png'))
+    }
+    let v = await svc.review(rel, { head: { decision: 'approved' }, arm_l: { decision: 'approved' } })
+    const pj = JSON.parse(readFileSync(join(dir, 'project.json'), 'utf8'))
+    check(Object.keys(pj.spine.review).length === 0 && pj.spine.variants[0].review.head.decision === 'approved' && v?.variants[1].approved === 2 && v.variants[0].approved === 0, `${fmt}: review stored per skin, base review untouched`)
+    const prev = await svc.assets(rel, 'new')
+    check(!!prev?.pages['hero-red.png'] && prev.atlas.includes('red/head') && (fmt === 'json' ? JSON.parse(prev.json).skins.some((s: { name: string }) => s.name === 'red') : !!prev.skelBase64), `${fmt}: preview assets carry the skin page, merged atlas, skeleton with skin`)
+    const prevSd = await coreWithAtlas(fmt === 'json' ? prev!.json : Buffer.from(prev!.skelBase64 ?? '', 'base64'), prev!.atlas)
+    check(skinAtts(prevSd, 'red').includes('head/head=red/head'), `${fmt}: preview skeleton + atlas load in spine-core with skin red`)
+    v = await svc.setVariant(rel, '')
+    check(v?.variant === '' && v.style.promptEn === 'base' && v.regions.every((r) => !r.versions.length), `${fmt}: base view unaffected by skin versions`)
+    const out = join(base, `out-skins-${fmt}`)
+    check((await svc.exportRun(rel, out)).error === 'nothingApproved', `${fmt}: base export without skins still needs approvals`)
+    const ex = await svc.exportRun(rel, out, [id, 'nope'])
+    check(ex.ok && ex.skins?.skins.length === 1 && ex.skins.skins[0].regions === 2 && ex.skins.skins[0].pages.join() === 'hero-red.png', `${fmt}: export with skin red (${ex.error})`)
+    check(readFileSync(join(out, `hero.${fmt}`)).equals(readFileSync(join(sample, `hero.${fmt}`))) && readFileSync(join(out, 'hero.atlas')).equals(readFileSync(join(sample, 'hero.atlas'))) && diff(await decode(join(out, 'hero.png')), page) === 0, `${fmt}: base skeleton / atlas / page unchanged byte for byte`)
+    const merged = readFileSync(join(out, 'hero-skins.atlas'), 'utf8')
+    const ma = parseSpineAtlas(merged)
+    const rh = ma.regions.find((r) => r.name === 'red/head')
+    const ra = ma.regions.find((r) => r.name === 'red/arm_l')
+    check(ma.pages.map((p) => p.name).join() === 'hero.png,hero-red.png' && ma.regions.length === 12 && rh?.page === 'hero-red.png' && rh.x === head.x && ra?.degrees === 90 && ra.x === arm.x, `${fmt}: merged atlas = base + page hero-red.png with red/<region>`)
+    const redPage = await decode(join(out, 'hero-red.png'))
+    const body = atlas.regions.find((r) => r.name === 'body')!
+    check(
+      region(redPage, head.x, head.y, 1, 1).join() === '255,0,0,255' && region(redPage, arm.x, arm.y, 1, 1).join() === '0,0,255,255' && sameish(region(redPage, body.x, body.y, body.w, body.h), region(page, body.x, body.y, body.w, body.h)),
+      `${fmt}: skin page has new head / rotated arm, unapproved body kept`
+    )
+    const skelOut = readFileSync(join(out, `hero-skins.${fmt}`))
+    const sd = await coreWithAtlas(fmt === 'json' ? skelOut.toString('utf8') : skelOut, merged)
+    check(sd.skins.map((s) => s.name).join() === 'default,red' && skinAtts(sd, 'red') === skinAtts(sd, 'default').replace(/=/g, '=red/'), `${fmt}: merged skeleton has skin red with every path → red/<region> (${skinAtts(sd, 'red')})`)
+    const again = await svc.exportRun(rel, out, [id])
+    check(!!again.backupDir && existsSync(join(again.backupDir, 'hero-red.png')) && existsSync(join(again.backupDir, `hero-skins.${fmt}`)), `${fmt}: re-export backs up skin page + merged skeleton`)
+    v = await svc.removeVariant(rel, id)
+    check(v?.variants.length === 1 && v.variant === '' && !existsSync(join(dir, 'versions', `spine-${id}`)), `${fmt}: remove skin drops data + its versions`)
+  }
 }
 
 void main().catch((e) => {

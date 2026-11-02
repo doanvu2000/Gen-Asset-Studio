@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils, type IpcRendererEvent } from 'electron'
 import { IPC } from '@shared/ipc'
+import { STATS_IPC, type StatsQuery } from '@shared/stats'
 import type {
   AccountInfo,
   AppSettings,
@@ -208,8 +209,11 @@ const api: GasApi = {
     enqueue: (rel: string, keys: string[], note?: string) => ipcRenderer.invoke(SPINE_IPC.enqueue, rel, keys, note),
     review: (rel: string, patch: Record<string, SpineRegionPatch>) => ipcRenderer.invoke(SPINE_IPC.review, rel, patch),
     setRig: (rel: string, rig: SpineRig) => ipcRenderer.invoke(SPINE_IPC.setRig, rel, rig),
-    exportRun: (rel: string, outDir: string) => ipcRenderer.invoke(SPINE_IPC.exportRun, rel, outDir),
-    exportDir: (rel: string) => ipcRenderer.invoke(SPINE_IPC.exportDir, rel)
+    exportRun: (rel: string, outDir: string, variants?: string[]) => ipcRenderer.invoke(SPINE_IPC.exportRun, rel, outDir, variants),
+    exportDir: (rel: string) => ipcRenderer.invoke(SPINE_IPC.exportDir, rel),
+    addVariant: (rel: string, name: string) => ipcRenderer.invoke(SPINE_IPC.addVariant, rel, name),
+    setVariant: (rel: string, id: string) => ipcRenderer.invoke(SPINE_IPC.setVariant, rel, id),
+    removeVariant: (rel: string, id: string) => ipcRenderer.invoke(SPINE_IPC.removeVariant, rel, id)
   },
   storage: {
     get: () => ipcRenderer.invoke(STORAGE_IPC.get),
@@ -225,6 +229,9 @@ const api: GasApi = {
     dismissBanner: () => ipcRenderer.invoke(STORAGE_IPC.dismissBanner),
     onProgress: (cb) => subscribe<MoveProgress>(STORAGE_IPC.progress, cb),
     onChange: (cb) => subscribe<StorageSnapshot>(STORAGE_IPC.changed, cb)
+  },
+  stats: {
+    summary: (q: StatsQuery) => ipcRenderer.invoke(STATS_IPC.summary, q)
   },
   files: {
     pathFor: (file: File) => webUtils.getPathForFile(file)

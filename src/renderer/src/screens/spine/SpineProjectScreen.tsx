@@ -6,6 +6,7 @@ import type { SpineProjectView, SpineRegionView } from '@shared/spine'
 import { Icon, type IconName } from '@renderer/components/Icon'
 import { Modal } from '@renderer/components/Modal'
 import { SpineCompare } from '@renderer/components/spine/SpineCompare'
+import { SkinPicker } from '@renderer/components/spine/SkinPicker'
 import { useViewer } from '@renderer/components/spine/SpinePreview'
 import { rigEditCount, SPINE_STEPS, spineStepLock, type SpineStepKey } from '@renderer/lib/spine'
 import { viewTransition } from '@renderer/lib/motion'
@@ -456,7 +457,16 @@ export function SpineProjectScreen({ project }: { project: ProjectView }): React
             transition={viewTransition}
           >
             <Intro step={key} n={step} />
-            {key === 'import' ? <ImportStep v={view} /> : key === 'style' ? <SpineStyleStep v={view} /> : key === 'gen' ? <SpineGenReviewStep v={view} /> : <SpineExportStep v={view} />}
+            {(key === 'style' || key === 'gen') && view.loaded && <SkinPicker v={view} />}
+            {key === 'import' ? (
+              <ImportStep v={view} />
+            ) : key === 'style' ? (
+              <SpineStyleStep key={view.variant} v={view} />
+            ) : key === 'gen' ? (
+              <SpineGenReviewStep key={view.variant} v={view} />
+            ) : (
+              <SpineExportStep v={view} />
+            )}
           </motion.div>
         </AnimatePresence>
       </div>

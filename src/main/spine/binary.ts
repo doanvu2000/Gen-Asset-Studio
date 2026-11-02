@@ -14,10 +14,37 @@ interface RegionSlot {
   xAt: number
 }
 
+interface AttSpan {
+  slot: number
+  keyRef: number
+  region: string
+  type: number
+  flags: number
+  start: number
+  nameEnd: number
+  pathEnd: number
+  extraEnd: number
+  end: number
+}
+
+interface SkinSpan {
+  name: string
+  index: number
+  headerStart: number
+  headerEnd: number
+  atts: AttSpan[]
+}
+
 export interface SkelLayout {
   bones: BoneSlot[]
   regions: RegionSlot[]
   tailAt: number
+  nonessential: boolean
+  stringsAt: number
+  stringsEnd: number
+  strings: string[]
+  skinsAt: number
+  skins: SkinSpan[]
 }
 
 const utf8 = new TextDecoder('utf-8')
@@ -100,11 +127,15 @@ class Input {
     return s
   }
 
-  stringRef(): string | null {
+  ref(): number {
     const i = this.varint()
-    if (i === 0) return null
     if (i < 0 || i > this.strings.length) throw new SkeletonError('parse', `bad string ref ${i}`)
-    return this.strings[i - 1]
+    return i
+  }
+
+  stringRef(): string | null {
+    const i = this.ref()
+    return i === 0 ? null : this.strings[i - 1]
   }
 
   index0(max: number, what: string): number {
@@ -158,62 +189,73 @@ function skipVertices(input: Input, weighted: boolean): number {
 function readSkin(input: Input, info: SpineSkeletonInfo, layout: SkelLayout, isDefault: boolean, nonessential: boolean, counts: number[]): boolean {
   let name = 'default'
   let slotCount: number
+  const span: SkinSpan = { name, index: info.skins.length, headerStart: 0, headerEnd: 0, atts: [] }
   if (isDefault) {
     slotCount = input.count()
     if (!slotCount) return false
   } else {
-    name = input.name('skin')
+    name = span.name = input.name('skin')
     if (nonessential) input.skip(4)
+    span.headerStart = input.index
     const bones = input.count()
     for (let i = 0; i < bones; i++) input.index0(info.bones.length, 'bone')
     for (const n of counts) {
       const c = input.count()
       for (let i = 0; i < c; i++) input.index0(n, 'constraint')
     }
+    span.headerEnd = input.index
     slotCount = input.count()
   }
   info.skins.push(name)
+  layout.skins.push(span)
   for (let i = 0; i < slotCount; i++) {
-    const slot = info.slots[input.index0(info.slots.length, 'slot')].name
+    const slotIndex = input.index0(info.slots.length, 'slot')
+    const slot = info.slots[slotIndex].name
     const atts = input.count()
     for (let a = 0; a < atts; a++) {
-      const key = input.stringRef()
+      const keyRef = input.ref()
+      const key = keyRef ? input.strings[keyRef - 1] : null
       if (!key) throw new SkeletonError('parse', 'attachment name missing')
-      readAttachment(input, info, layout, name, slot, key, nonessential)
+      const head = readAttachment(input, info, layout, name, slot, key, nonessential)
+      if (head) span.atts.push({ ...head, slot: slotIndex, keyRef, end: input.index })
     }
   }
   return true
 }
 
-function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayout, skin: string, slot: string, key: string, nonessential: boolean): void {
+type AttHead = Omit<AttSpan, 'slot' | 'keyRef' | 'end'>
+
+function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayout, skin: string, slot: string, key: string, nonessential: boolean): AttHead | null {
   const flagsAt = input.index
   const flags = input.ubyte()
   const name = flags & 8 ? input.stringRef() : key
   if (!name) throw new SkeletonError('parse', 'attachment name missing')
-  const push = (kind: SpineAttachmentKind, path: string | null, sequence?: SpineAttachmentRef['sequence']): void => {
-    info.attachments.push(sequence ? { skin, slot, name: key, region: path ?? name, kind, sequence } : { skin, slot, name: key, region: path ?? name, kind })
+  const nameEnd = input.index
+  const head = (kind: SpineAttachmentKind): AttHead => {
+    const path = flags & 16 ? input.stringRef() : null
+    const pathEnd = input.index
+    if (flags & 32) input.skip(4)
+    const sequence = flags & 64 ? readSequence(input) : undefined
+    const region = path ?? name
+    info.attachments.push(sequence ? { skin, slot, name: key, region, kind, sequence } : { skin, slot, name: key, region, kind })
+    return { region, type: flags & 7, flags, start: flagsAt, nameEnd, pathEnd, extraEnd: input.index }
   }
   switch (flags & 7) {
     case 0: {
-      const path = flags & 16 ? input.stringRef() : null
-      if (flags & 32) input.skip(4)
-      const sequence = flags & 64 ? readSequence(input) : undefined
+      const span = head('region')
       const rotationAt = flags & 128 ? input.index : null
       if (rotationAt !== null) input.skip(4)
       const xAt = input.index
       input.skip(24)
       layout.regions.push({ key: attachmentKey(skin, slot, key), flagsAt, rotationAt, xAt })
-      push('region', path, sequence)
-      return
+      return span
     }
     case 1:
       skipVertices(input, (flags & 16) !== 0)
       if (nonessential) input.skip(4)
-      return
+      return null
     case 2: {
-      const path = flags & 16 ? input.stringRef() : null
-      if (flags & 32) input.skip(4)
-      const sequence = flags & 64 ? readSequence(input) : undefined
+      const span = head('mesh')
       const hull = input.varint()
       const vertexCount = skipVertices(input, (flags & 128) !== 0)
       input.skip(vertexCount * 8)
@@ -224,34 +266,30 @@ function readAttachment(input: Input, info: SpineSkeletonInfo, layout: SkelLayou
         for (let i = 0; i < edges; i++) input.varint()
         input.skip(8)
       }
-      push('mesh', path, sequence)
-      return
+      return span
     }
     case 3: {
-      const path = flags & 16 ? input.stringRef() : null
-      if (flags & 32) input.skip(4)
-      const sequence = flags & 64 ? readSequence(input) : undefined
+      const span = head('linkedmesh')
       input.varint()
       input.stringRef()
       if (nonessential) input.skip(8)
-      push('linkedmesh', path, sequence)
-      return
+      return span
     }
     case 4: {
       const vertexCount = skipVertices(input, (flags & 64) !== 0)
       input.skip(Math.ceil((vertexCount * 2) / 6) * 4)
       if (nonessential) input.skip(4)
-      return
+      return null
     }
     case 5:
       input.skip(12)
       if (nonessential) input.skip(4)
-      return
+      return null
     case 6:
       input.index0(info.slots.length, 'slot')
       skipVertices(input, (flags & 16) !== 0)
       if (nonessential) input.skip(4)
-      return
+      return null
     default:
       throw new SkeletonError('parse', `unknown attachment type ${flags & 7}`)
   }
@@ -409,8 +447,9 @@ function readAll(bytes: Uint8Array, version: string): { info: SpineSkeletonInfo;
     input.string()
   }
   const info: SpineSkeletonInfo = { version, bones: [], slots: [], skins: [], animations: [], attachments: [], width, height }
-  const layout: SkelLayout = { bones: [], regions: [], tailAt: 0 }
+  const layout: SkelLayout = { bones: [], regions: [], tailAt: 0, nonessential, stringsAt: input.index, stringsEnd: 0, strings: input.strings, skinsAt: 0, skins: [] }
   for (let i = 0, n = input.count(); i < n; i++) input.strings.push(input.name('string table'))
+  layout.stringsEnd = input.index
   for (let i = 0, n = input.count(); i < n; i++) {
     const name = input.name('bone')
     const parent = i === 0 ? null : info.bones[input.index0(i, 'parent bone')].name
@@ -439,6 +478,7 @@ function readAll(bytes: Uint8Array, version: string): { info: SpineSkeletonInfo;
   counts.push(skipPaths(input, info))
   counts.push(skipPhysics(input, info))
   readSkin(input, info, layout, true, nonessential, counts)
+  layout.skinsAt = input.index
   for (let i = 0, n = input.count(); i < n; i++) readSkin(input, info, layout, false, nonessential, counts)
   layout.tailAt = input.index
   const eventAudio: boolean[] = []
@@ -564,4 +604,124 @@ export function applyRigBinary(bytes: Uint8Array, rig: SpineRig): Uint8Array {
   }
   result.set(out.subarray(src), dst)
   return result
+}
+
+class Output {
+  private readonly chunks: Uint8Array[] = []
+  private parts: number[] = []
+
+  private flush(): void {
+    if (!this.parts.length) return
+    this.chunks.push(Uint8Array.from(this.parts))
+    this.parts = []
+  }
+
+  byte(b: number): this {
+    this.parts.push(b & 0xff)
+    return this
+  }
+
+  bytes(b: Uint8Array | number[]): this {
+    if (Array.isArray(b)) this.parts.push(...b)
+    else {
+      this.flush()
+      this.chunks.push(b)
+    }
+    return this
+  }
+
+  varint(v: number): this {
+    let n = v >>> 0
+    while (n > 0x7f) {
+      this.parts.push((n & 0x7f) | 0x80)
+      n >>>= 7
+    }
+    this.parts.push(n)
+    return this
+  }
+
+  string(s: string): this {
+    const b = new TextEncoder().encode(s)
+    return this.varint(b.length + 1).bytes(b)
+  }
+
+  done(): Uint8Array {
+    this.flush()
+    const out = new Uint8Array(this.chunks.reduce((n, c) => n + c.length, 0))
+    let at = 0
+    for (const c of this.chunks) {
+      out.set(c, at)
+      at += c.length
+    }
+    return out
+  }
+}
+
+export function skinSource<T extends { name: string }>(skins: T[], hasAttachments: (s: T) => boolean): T | null {
+  return skins.find((s) => s.name === 'default' && hasAttachments(s)) ?? skins.find(hasAttachments) ?? null
+}
+
+export function skinPath(skin: string, region: string): string {
+  return `${skin}/${region}`
+}
+
+// Appends one skin per name, cloned from the default skin (or the first one) with every
+// attachment path prefixed by "<skin>/". Meshes become linked meshes of the source mesh so
+// deform timelines (bound to the source attachment) still drive them.
+export function addSkinsBinary(bytes: Uint8Array, skins: string[]): Uint8Array {
+  if (!skins.length) return bytes
+  const { layout } = parseSkeletonBinary(bytes)
+  const src = skinSource(layout.skins, (s) => s.atts.length > 0)
+  if (!src) return bytes
+  const added: string[] = []
+  const refOf = (s: string): number => {
+    const i = layout.strings.indexOf(s)
+    if (i >= 0) return i + 1
+    const j = added.indexOf(s)
+    if (j >= 0) return layout.strings.length + j + 1
+    added.push(s)
+    return layout.strings.length + added.length
+  }
+  const blobs: Uint8Array[] = []
+  for (const skin of skins) {
+    const o = new Output().string(skin)
+    if (layout.nonessential) o.bytes([0xff, 0xff, 0xff, 0xff])
+    if (src.name === 'default') o.varint(0).varint(0).varint(0).varint(0).varint(0)
+    else o.bytes(bytes.subarray(src.headerStart, src.headerEnd))
+    const slots = [...new Set(src.atts.map((a) => a.slot))]
+    o.varint(slots.length)
+    for (const slot of slots) {
+      const atts = src.atts.filter((a) => a.slot === slot)
+      o.varint(slot).varint(atts.length)
+      for (const a of atts) {
+        o.varint(a.keyRef)
+        const path = refOf(skinPath(skin, a.region))
+        if (a.type === 2) {
+          o.byte(3 | 16 | 128 | (a.flags & (8 | 32 | 64)))
+          o.bytes(bytes.subarray(a.start + 1, a.nameEnd)).varint(path)
+          o.bytes(bytes.subarray(a.pathEnd, a.extraEnd)).varint(src.index).varint(a.keyRef)
+          if (layout.nonessential) o.bytes(bytes.subarray(a.end - 8, a.end))
+        } else {
+          o.byte(a.flags | 16)
+          o.bytes(bytes.subarray(a.start + 1, a.nameEnd)).varint(path)
+          o.bytes(bytes.subarray(a.pathEnd, a.end))
+        }
+      }
+    }
+    blobs.push(o.done())
+  }
+  const head = new Input(bytes)
+  head.index = layout.stringsAt
+  const strings = head.count()
+  const tableStart = head.index
+  head.index = layout.skinsAt
+  const extra = head.count()
+  const out = new Output()
+    .bytes(bytes.subarray(0, layout.stringsAt))
+    .varint(strings + added.length)
+    .bytes(bytes.subarray(tableStart, layout.stringsEnd))
+  for (const s of added) out.string(s)
+  out.bytes(bytes.subarray(layout.stringsEnd, layout.skinsAt)).varint(extra + skins.length).bytes(bytes.subarray(head.index, layout.tailAt))
+  for (const b of blobs) out.bytes(b)
+  return out.bytes(bytes.subarray(layout.tailAt)).done()
 }

@@ -119,7 +119,38 @@ export interface SpineProjectView {
   style: SpriteStyle
   rig: SpineRig
   export: SpineExportState
+  variant: string
+  variants: SpineVariantView[]
   updatedAt: number
+}
+
+export interface SpineVariantView {
+  id: string
+  name: string
+  locked: boolean
+  generated: number
+  approved: number
+  pages: Record<string, number>
+}
+
+export const SKIN_NAME_RE = /^[A-Za-z0-9_-]{1,40}$/
+
+export function skinPageName(page: string, skin: string): string {
+  return page.replace(/(\.[^./\\]*)?$/, (ext) => `-${skin}${ext}`)
+}
+
+export function skinAtlasName(atlas: string): string {
+  return /\.atlas(\.txt)?$/i.test(atlas) ? atlas.replace(/(\.atlas(\.txt)?)$/i, '-skins$1') : `${atlas}-skins.atlas`
+}
+
+export function skinSkeletonName(skeleton: string): string {
+  return skeleton.replace(/(\.[^./\\]*)?$/, (ext) => `-skins${ext}`)
+}
+
+export function skinNameError(name: string, taken: string[]): 'invalid' | 'taken' | null {
+  if (!SKIN_NAME_RE.test(name)) return 'invalid'
+  const k = name.toLowerCase()
+  return k === 'base' || k === 'default' || taken.some((t) => t.toLowerCase() === k) ? 'taken' : null
 }
 
 export type SpineSkeletonFormat = 'json' | 'binary'
@@ -152,6 +183,18 @@ export interface SpineExportResult {
   rigChanged: boolean
   backupDir: string | null
   error: string | null
+  skins?: SpineSkinExport | null
+}
+
+export interface SpineSkinExport {
+  skeleton: string
+  atlas: string
+  skins: Array<{ name: string; regions: number; pages: string[] }>
+}
+
+export interface SpineVariantResult {
+  view: SpineProjectView | null
+  error: 'invalid' | 'taken' | 'failed' | null
 }
 
 export interface SpineRegionPatch {
@@ -171,7 +214,10 @@ export const SPINE_IPC = {
   review: 'spine:review',
   setRig: 'spine:set-rig',
   exportRun: 'spine:export-run',
-  exportDir: 'spine:export-dir'
+  exportDir: 'spine:export-dir',
+  addVariant: 'spine:add-variant',
+  setVariant: 'spine:set-variant',
+  removeVariant: 'spine:remove-variant'
 } as const
 
 export interface SpineApi {
@@ -185,6 +231,9 @@ export interface SpineApi {
   enqueue: (rel: string, keys: string[], note?: string) => Promise<number>
   review: (rel: string, patch: Record<string, SpineRegionPatch>) => Promise<SpineProjectView | null>
   setRig: (rel: string, rig: SpineRig) => Promise<SpineProjectView | null>
-  exportRun: (rel: string, outDir: string) => Promise<SpineExportResult>
+  exportRun: (rel: string, outDir: string, variants?: string[]) => Promise<SpineExportResult>
   exportDir: (rel: string) => Promise<string | null>
+  addVariant: (rel: string, name: string) => Promise<SpineVariantResult>
+  setVariant: (rel: string, id: string) => Promise<SpineProjectView | null>
+  removeVariant: (rel: string, id: string) => Promise<SpineProjectView | null>
 }

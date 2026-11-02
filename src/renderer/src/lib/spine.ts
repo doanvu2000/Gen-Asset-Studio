@@ -44,7 +44,7 @@ export function spineStepLock(view: SpineProjectView, n: number): SpineLockKey |
   if (!view.loaded) return 'import'
   if (n === 2) return null
   if (n === 3) return view.style.locked ? null : 'style'
-  return view.regions.some((r) => r.decision === 'approved' && r.versions.length > 0) || rigEditCount(view) > 0 ? null : 'review'
+  return view.regions.some((r) => r.decision === 'approved' && r.versions.length > 0) || view.variants.some((x) => x.approved > 0) || rigEditCount(view) > 0 ? null : 'review'
 }
 
 export function firstOpenSpineStep(view: SpineProjectView): number {

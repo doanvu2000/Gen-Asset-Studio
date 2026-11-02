@@ -1961,5 +1961,34 @@
     "done": "Created v{{v}} (recolor)",
     "failed": "Recolor failed: {{msg}}",
     "from": "Recolor of v{{v}}"
+  },
+  "spine": {
+    "skin": {
+      "label": "Skin",
+      "base": "base (original)",
+      "add": "Add skin",
+      "addTitle": "Add skin variant",
+      "addDesc": "New skin shares the rig; regions are regenerated with its own style (set in Style step). Name: letters, digits, - or _.",
+      "name": "Skin name",
+      "namePlaceholder": "e.g. red_armor",
+      "create": "Create skin",
+      "added": "Skin {{name}} added",
+      "approved_one": "{{count}} approved",
+      "approved_other": "{{count}} approved",
+      "noneApproved": "no approved region",
+      "hintBase": "Editing the original skin.",
+      "hintVariant": "Style, gen and review apply to skin {{name}}; the rig is shared.",
+      "remove": "Delete skin",
+      "removeTitle": "Delete skin {{name}}?",
+      "removeDesc": "Deletes this skin's style, reviews and generated versions. Cannot be undone.",
+      "exportTitle": "Also export skins",
+      "exportHint": "Also writes {{skeleton}} + {{atlas}}; original skeleton/atlas unchanged.",
+      "err": {
+        "invalid": "Use letters, digits, - or _ (max 40).",
+        "taken": "Name already used by a skin.",
+        "failed": "Could not create the skin.",
+        "exists": "Skin {{name}} clashes with an existing skin/page/region."
+      }
+    }
   }
 }

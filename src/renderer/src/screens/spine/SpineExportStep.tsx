@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
-import type { SpineExportResult, SpineProjectView } from '@shared/spine'
+import { skinAtlasName, skinSkeletonName, type SpineExportResult, type SpineProjectView } from '@shared/spine'
 import { Icon } from '@renderer/components/Icon'
 import i18n from '@renderer/i18n'
 import { relTime } from '@renderer/lib/format'
@@ -12,6 +12,7 @@ const EXPORT_ERR = ['outIsSource', 'nothingApproved', 'noSkeleton', 'sourceChang
 
 function exportErrorText(code: string): string {
   const k = code.split(':')[0]
+  if (k === 'skinExists') return i18n.t('spine.skin.err.exists', { name: code.slice(k.length + 1) })
   return (EXPORT_ERR as readonly string[]).includes(k) ? i18n.t(`spineProject.export.err.${k as (typeof EXPORT_ERR)[number]}`) : i18n.t('spineProject.export.err.unknown', { detail: code })
 }
 
@@ -29,16 +30,20 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
   const [result, setResult] = useState<SpineExportResult | null>(null)
   const rigN = Object.keys(v.rig.bones).length + Object.keys(v.rig.attachments).length
 
+  const baseStats = v.variants.find((x) => !x.id)
   const rows = useMemo(
     () =>
       v.pages.map((p) => {
-        const regions = v.regions.filter((r) => r.page === p.name)
-        const ok = regions.filter((r) => r.decision === 'approved' && r.url)
-        return { page: p, total: regions.length, ok: ok.length, kept: regions.length - ok.length }
+        const total = v.regions.filter((r) => r.page === p.name).length
+        const ok = baseStats?.pages[p.name] ?? 0
+        return { page: p, total, ok, kept: total - ok }
       }),
-    [v.pages, v.regions]
+    [v.pages, v.regions, baseStats]
   )
-  const any = rows.some((r) => r.ok > 0) || rigN > 0
+  const skinList = v.variants.filter((x) => x.id)
+  const [skins, setSkins] = useState<string[]>(() => skinList.filter((x) => x.approved > 0).map((x) => x.id))
+  const chosen = skinList.filter((x) => x.approved > 0 && skins.includes(x.id))
+  const any = rows.some((r) => r.ok > 0) || rigN > 0 || chosen.length > 0
 
   const pick = async (): Promise<void> => {
     const d = await window.gas.spine.exportDir(v.rel)
@@ -51,7 +56,7 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
     setResult(null)
     try {
       await flushRig()
-      const r = await window.gas.spine.exportRun(v.rel, outDir)
+      const r = await window.gas.spine.exportRun(v.rel, outDir, chosen.map((x) => x.id))
       setResult(r)
       if (r.ok) toast(t('spineProject.export.done', { count: r.pages.length }))
       else toast(r.error ? exportErrorText(r.error) : t('spineProject.export.failed'), 'err')
@@ -116,6 +121,24 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
           <span>{rigN ? t('spineProject.export.rigNew', { count: rigN, name: v.skeletonName ?? '' }) : t('spineProject.export.rigCopy', { name: v.skeletonName ?? '' })}</span>
         </div>
         <p className="muted">{t('spineProject.export.atlasCopy')}</p>
+        {skinList.length > 0 && (
+          <fieldset className="spx-skins">
+            <legend>{t('spine.skin.exportTitle')}</legend>
+            {skinList.map((x) => (
+              <label key={x.id} className={x.approved ? undefined : 'dim'}>
+                <input
+                  type="checkbox"
+                  disabled={!x.approved}
+                  checked={x.approved > 0 && skins.includes(x.id)}
+                  onChange={(e) => setSkins((cur) => (e.target.checked ? [...cur, x.id] : cur.filter((id) => id !== x.id)))}
+                />
+                <b>{x.name}</b>
+                <small className="muted">{x.approved ? t('spine.skin.approved', { count: x.approved }) : t('spine.skin.noneApproved')}</small>
+              </label>
+            ))}
+            {chosen.length > 0 && <small className="muted">{t('spine.skin.exportHint', { skeleton: skinSkeletonName(v.skeletonName ?? ''), atlas: skinAtlasName(v.atlasPath?.split(/[\\/]/).pop() ?? '') })}</small>}
+          </fieldset>
+        )}
         {!any && (
           <div className="note warn">
             <Icon name="alert" size={14} />
@@ -147,6 +170,14 @@ export function SpineExportStep({ v }: { v: SpineProjectView }): ReactElement {
               <li>
                 <b>{result.skeleton}</b>
                 <span className={result.rigChanged ? 'chip c-orange' : 'chip c-gray'}>{result.rigChanged ? t('spineProject.export.jsonNew') : t('spineProject.export.jsonCopy')}</span>
+              </li>
+            )}
+            {result.skins && (
+              <li>
+                <b>
+                  {result.skins.skeleton} · {result.skins.atlas}
+                </b>
+                <span className="muted">{result.skins.skins.map((x) => `${x.name} (${x.pages.join(', ')}: ${t('spine.skin.approved', { count: x.regions })})`).join(' · ')}</span>
               </li>
             )}
           </ul>

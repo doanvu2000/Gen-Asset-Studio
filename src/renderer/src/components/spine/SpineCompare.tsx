@@ -2,6 +2,7 @@ import type { ReactElement } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { SpinePlayer } from '@esotericsoftware/spine-player'
 import type { SpineAssets } from '@shared/spine'
+import { useSpine } from '@renderer/store/spine'
 import { SpinePreview, ViewerControls, type ViewerState } from './SpinePreview'
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
 
 export function SpineCompare({ viewer: v, orig, next, highlightSlots, height = 340, single, onNewPlayer, onOrigPlayer }: Props): ReactElement {
   const { t } = useTranslation()
+  const variantSkin = useSpine((s) => s.view?.variants.find((x) => x.id && x.id === s.view?.variant)?.name ?? '')
   return (
     <div className="spc">
       <ViewerControls v={v} />
@@ -40,7 +42,7 @@ export function SpineCompare({ viewer: v, orig, next, highlightSlots, height = 3
           <SpinePreview
             assets={next}
             animation={v.animation}
-            skin={v.skin}
+            skin={variantSkin || v.skin}
             time={v.time}
             showBones={v.bones}
             highlightSlots={highlightSlots}
