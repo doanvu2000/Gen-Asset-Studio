@@ -9,3 +9,5 @@ spike/m0/work/
 spike/m0/out-*.json
 spike/m0/pipe/
 spike/logo/out/
+
+.jin/logs/

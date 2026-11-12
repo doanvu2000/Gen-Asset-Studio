@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "scripts": [
+    {
+      "name": "check",
+      "file": "scripts/check.mjs",
+      "run": "node scripts/check.mjs",
+      "desc": "npm run typecheck → npm test (bỏ bước nào package.json không có), in tóm tắt OK/FAIL + lỗi TS / test đã dedupe",
+      "when": "Sau khi sửa code TS, trước khi báo xong; thay cho chạy rời npm run typecheck / npm test",
+      "flags": "--verbose · --only typecheck · --skip test · --test test:queue (chạy script test khác) · --files a,b",
+      "covers": ["npm run typecheck", "npm test"],
+      "created": "2026-11-13",
+      "estSaveTokens": 13000
+    }
+  ]
+}
